@@ -18,7 +18,7 @@ prisma_job:
 test_job:
   stage: test
   script:
-    - npm test >> test-results.xml
+    - npm test > test-results.xml 2>&1
   artifacts:
     reports:
       junit: test-results.xml
