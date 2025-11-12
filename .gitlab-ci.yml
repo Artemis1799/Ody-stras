@@ -12,13 +12,12 @@ prisma_job:
   stage: prisma
   script:
     - npx prisma generate
-    - npx prisma migrate deploy
 
 test_job:
   stage: test
   script:
     - npm test
   artifacts:
-  reports:
-    junit: test-results.xml
+    reports:
+      junit: test-results.xml
   
