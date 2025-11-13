@@ -1,0 +1,134 @@
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+
+export function CreateEventScreen() {
+  const [nom, setNom] = useState("");
+  const [description, setDescription] = useState("");
+  const [dateDebut, setDateDebut] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const handleSubmit = () => {
+    console.log({ nom, description, dateDebut });
+    alert("Événement créé !");
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Strasbourg.eu</Text>
+        <Ionicons name="person-circle-outline" size={28} color="white" />
+      </View>
+
+      {/* Formulaire */}
+      <View style={styles.form}>
+        <Text style={styles.label}>Nom d’événement</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Entrez le nom..."
+          value={nom}
+          onChangeText={setNom}
+        />
+
+        <Text style={styles.label}>Description</Text>
+        <TextInput
+          style={[styles.input, { height: 100 }]}
+          placeholder="Entrez une description..."
+          value={description}
+          onChangeText={setDescription}
+          multiline
+        />
+
+        <Text style={styles.label}>Date de début</Text>
+        <TouchableOpacity
+          style={styles.dateInput}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Text>{dateDebut.toLocaleDateString("fr-FR")}</Text>
+          <Ionicons name="calendar-outline" size={22} color="black" />
+        </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={dateDebut}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) setDateDebut(selectedDate);
+            }}
+          />
+        )}
+
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+          <Text style={styles.buttonText}>Valider</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  header: {
+    backgroundColor: "#A6CE39",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  headerText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 18,
+  },
+  form: {
+    padding: 20,
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 6,
+    marginTop: 10,
+    fontWeight: "500",
+  },
+  input: {
+    backgroundColor: "#f2f2f2",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  dateInput: {
+    backgroundColor: "#f2f2f2",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  button: {
+    backgroundColor: "#A6CE39",
+    borderRadius: 20,
+    alignItems: "center",
+    paddingVertical: 14,
+    marginTop: 25,
+  },
+  buttonText: {
+    color: "black",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+});
