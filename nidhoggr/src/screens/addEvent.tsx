@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  Image,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,13 +24,14 @@ export function CreateEventScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Strasbourg.eu</Text>
+        <Image
+          source={require("../../ressources/header.png")}
+          style={styles.headerImage}
+        />
         <Ionicons name="person-circle-outline" size={28} color="white" />
       </View>
 
-      {/* Formulaire */}
       <View style={styles.form}>
         <Text style={styles.label}>Nom d’événement</Text>
         <TextInput
@@ -82,13 +84,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  headerImage: {
+    width: "40%",
+    height: 30,
+    alignSelf: "center",
+  },
   header: {
-    backgroundColor: "#A6CE39",
+    backgroundColor: "#9EC54D",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingTop: 30,
+    paddingBottom: 10,
+    paddingLeft: 30,
+    paddingRight: 14,
   },
   headerText: {
     color: "#fff",

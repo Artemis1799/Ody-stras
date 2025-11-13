@@ -1,32 +1,49 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { StatusBar } from "expo-status-bar";
+import { StyleSheet, Text, View } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { CreateEventScreen } from "./src/screens/addEvent";
+import { EventListScreen } from "./src/screens/eventList";
 
 const Stack = createStackNavigator();
-
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Events" component={EventsScreen} />
-        <Stack.Screen name="AddEvent" component={AddEventScreen} />
-        <Stack.Screen name="Points" component={PointsScreen} />
-        <Stack.Screen name="PointDetails" component={PointDetailsScreen} />
-        <Stack.Screen name="SimulateScreen" component={SimulateScreen} />
-        <Stack.Screen name="AddPoint" component={AddPointScreen} />
-        <Stack.Screen name="AddPhoto" component={AddPhotoScreen} />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Events" component={EventListScreen} />
+        <Stack.Screen name="AddEvent" component={CreateEventScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
-
+/*
+  <Stack.Screen name="Points" component={PointsScreen} />
+  <Stack.Screen name="PointDetails" component={PointDetailsScreen} />
+  <Stack.Screen name="SimulateScreen" component={SimulateScreen} />
+  <Stack.Screen name="AddPoint" component={AddPointScreen} />
+  <Stack.Screen name="AddPhoto" component={AddPhotoScreen} />
+*/
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerImage: {
+    width: "40%",
+    height: 30,
+    alignSelf: "center",
+  },
+  header: {
+    backgroundColor: "#9EC54D",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 30,
+    paddingBottom: 10,
+    paddingLeft: 30,
+    paddingRight: 14,
   },
 });
