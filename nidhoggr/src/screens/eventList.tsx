@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,25 +7,42 @@ import {
   StyleSheet,
   Image,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useSQLiteContext } from "expo-sqlite";
 
 import { Ionicons } from "@expo/vector-icons";
 
 export function EventListScreen() {
   const navigation = useNavigation<any>();
+  const db = useSQLiteContext();
 
-  const events = [
-    { id: "1", name: "Event 1" },
-    { id: "2", name: "Event 2" },
-  ];
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const getEvents = async () => {
+      try {
+        const data = await (await db).getAllAsync("SELECT * FROM Evenement");
+        console.log(data);
+        setEvents(data);
+      } catch (err) {
+        console.error(err);
+        Alert.alert("Erreur DB", "Impossible de récupérer les events.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getEvents();
+  }, []);
   const renderItem = ({ item }) => (
     <TouchableOpacity style={styles.eventItem}>
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.name[0].toUpperCase()}</Text>
+        <Text style={styles.avatarText}>{item.Nom[0].toUpperCase()}</Text>
       </View>
-      <Text style={styles.eventName}>{item.name}</Text>
+      <Text style={styles.eventName}>{item.Nom}</Text>
       <Ionicons name="chevron-forward-outline" size={20} color="#000" />
     </TouchableOpacity>
   );
@@ -43,7 +60,7 @@ export function EventListScreen() {
       <FlatList
         data={events}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.UUID}
         contentContainerStyle={styles.listContainer}
       />
 
