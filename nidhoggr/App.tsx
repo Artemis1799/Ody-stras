@@ -4,19 +4,27 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { CreateEventScreen } from "./src/screens/addEvent";
 import { EventListScreen } from "./src/screens/eventList";
+import { SQLiteProvider } from "expo-sqlite";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Events" component={EventListScreen} />
-        <Stack.Screen name="AddEvent" component={CreateEventScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SQLiteProvider
+      databaseName="base.db"
+      assetSource={{ assetId: require("./data/base.db") }}
+    >
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Events" component={EventListScreen} />
+          <Stack.Screen name="AddEvent" component={CreateEventScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SQLiteProvider>
   );
 }
+
 /*
   <Stack.Screen name="Points" component={PointsScreen} />
   <Stack.Screen name="PointDetails" component={PointDetailsScreen} />
