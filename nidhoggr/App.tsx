@@ -4,6 +4,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { CreateEventScreen } from "./src/screens/addEvent";
 import { EventListScreen } from "./src/screens/eventList";
+import PointsScreen from "./src/screens/points";
 
 const Stack = createStackNavigator();
 
@@ -13,12 +14,13 @@ export default function App() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Events" component={EventListScreen} />
         <Stack.Screen name="AddEvent" component={CreateEventScreen} />
+        <Stack.Screen name="Points" component={PointsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 /*
-  <Stack.Screen name="Points" component={PointsScreen} />
+ 
   <Stack.Screen name="PointDetails" component={PointDetailsScreen} />
   <Stack.Screen name="SimulateScreen" component={SimulateScreen} />
   <Stack.Screen name="AddPoint" component={AddPointScreen} />
