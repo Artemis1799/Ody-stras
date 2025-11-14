@@ -21,7 +21,7 @@ export function EventListScreen() {
   ];
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.eventItem} onPress={() => {navigation.navigate('Points')}}>
+    <TouchableOpacity style={styles.eventItem} onPress={() => {navigation.navigate('Event')}}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.name[0].toUpperCase()}</Text>
       </View>
