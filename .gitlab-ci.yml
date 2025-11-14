@@ -1,0 +1,20 @@
+image: mcr.microsoft.com/dotnet/sdk:10.0.100
+
+stages:
+  - build
+  - test
+
+build_job:
+  stage: build
+  script:
+    - dotnet build
+
+test_job:
+  stage: test
+  script:
+    - dotnet test --logger "junit;LogFileName=test-results.xml" --no-build
+  artifacts:
+    reports:
+      junit: test-results.xml
+    paths:
+      - test-results.xml
