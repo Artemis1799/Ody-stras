@@ -14,17 +14,26 @@ import { useSQLiteContext } from "expo-sqlite";
 
 import { Ionicons } from "@expo/vector-icons";
 
-export function EventListScreen() {
-  const navigation = useNavigation<any>();
-  const db = useSQLiteContext();
+interface eventType {
+  UUID: string;
+  Nom: string;
+  Date_debut: Date;
+  Status: string;
+  Responsable: string;
+}
 
-  const [events, setEvents] = useState<any[]>([]);
+export function EventListScreen() {
+  const navigation = useNavigation();
+  const db = useSQLiteContext();
+  const [events, setEvents] = useState<eventType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getEvents = async () => {
       try {
-        const data = await (await db).getAllAsync("SELECT * FROM Evenement");
+        const data: eventType[] = await (
+          await db
+        ).getAllAsync("SELECT * FROM Evenement");
         console.log(data);
         setEvents(data);
       } catch (err) {
