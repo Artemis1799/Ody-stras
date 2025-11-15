@@ -32,10 +32,5 @@ namespace t5_back.Models
         
         [ForeignKey("Event_ID")]
         public Evenement Evenement { get; set; }
-        
-		[JsonIgnore]
-        public ICollection<Image_Point> ImagePoints { get; set; }
-		[JsonIgnore]
-        public ICollection<Point_Equipement>? PointEquipements { get; set; }
     }
 }

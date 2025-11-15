@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using t5_back.Data;
 using t5_back.Models;
-using Microsoft.EntityFrameworkCore;
+using t5_back.Services;
+
 
 namespace t5_back.Controllers
 {
@@ -9,44 +9,64 @@ namespace t5_back.Controllers
     [Route("api/[controller]")]
     public class EvenementController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IEvenementService _evenementService;
 
-        public EvenementController(AppDbContext context)
+        public EvenementController(IEvenementService evenementService)
         {
-            _context = context;
+            _evenementService = evenementService;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Evenement>>> GetAll()
         {
-            return await _context.Evenements.ToListAsync();
+            var evenements = await _evenementService.GetAllAsync();
+            return Ok(evenements);
         }
 
-		[HttpGet("{id}")]
+        [HttpGet("{id}")]
         public async Task<ActionResult<Evenement>> GetById(Guid id)
         {
-            var evenement = await _context.Evenements.FindAsync(id);
+            var evenement = await _evenementService.GetByIdAsync(id);
             
             if (evenement == null)
             {
                 return NotFound();
             }
             
-            return evenement;
+            return Ok(evenement);
         }
 
-		[HttpPost]
+        [HttpPost]
         public async Task<ActionResult<Evenement>> Create(Evenement evenement)
         {
-            if (evenement.UUID == Guid.Empty)
+            var createdEvenement = await _evenementService.CreateAsync(evenement);
+            return CreatedAtAction(nameof(GetById), new { id = createdEvenement.UUID }, createdEvenement);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Evenement>> Update(Guid id, Evenement evenement)
+        {
+            var updatedEvenement = await _evenementService.UpdateAsync(id, evenement);
+            
+            if (updatedEvenement == null)
             {
-                evenement.UUID = Guid.NewGuid();
+                return NotFound();
             }
+            
+            return Ok(updatedEvenement);
+        }
 
-            _context.Evenements.Add(evenement);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetById), new { id = evenement.UUID }, evenement);
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> Delete(Guid id)
+        {
+            var result = await _evenementService.DeleteAsync(id);
+            
+            if (!result)
+            {
+                return NotFound();
+            }
+            
+            return NoContent();
         }
     }
 }

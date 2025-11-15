@@ -5,7 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="074e1eb7-9fdc-45e1-af53-c80dffc74951" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitlab-ci.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.gitlab-ci.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Models/enum/EvenementStatus.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Service/Evenement/EvenementService.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Service/Evenement/IEvenementService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controller/EvenementController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/EvenementController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Data/AppDbContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Data/AppDbContext.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Models/Equipement.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Models/Evenement.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Models/Evenement.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Models/Image_Point.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Models/Photo.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Models/Point_Equipement.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,12 +31,15 @@
     <setting file="file://$PROJECT_DIR$/Data/AppDbContext.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Migrations/20251114124330_InitialCreate.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Models/Equipement.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Models/Evenement.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Models/Evenement.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Models/Image_Point.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Models/Photo.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Models/Photo.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Models/Point.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Models/Point_Equipement.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Models/enum/EvenementStatus.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Program.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Service/Evenement/EvenementService.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Service/Evenement/IEvenementService.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/bin/Debug/net10.0/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/obj/Debug/net10.0/.NETCoreApp,Version=v10.0.AssemblyAttributes.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/obj/Debug/net10.0/t5-back.AssemblyInfo.cs" root0="SKIP_HIGHLIGHTING" />
@@ -68,7 +82,8 @@
       <workItem from="1763046735405" duration="458000" />
       <workItem from="1763047336695" duration="2428000" />
       <workItem from="1763117907665" duration="1692000" />
-      <workItem from="1763123896604" duration="2893000" />
+      <workItem from="1763123896604" duration="4773000" />
+      <workItem from="1763214841597" duration="2844000" />
     </task>
     <servers />
   </component>

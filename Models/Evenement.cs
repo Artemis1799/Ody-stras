@@ -12,14 +12,14 @@ namespace t5_back.Models
         
         [Required]
         [MaxLength(255)]
-        public string Nom { get; set; }
+        public string Nom { get; set; } = string.Empty;
         
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
         
         public DateTime? Date_debut { get; set; }
         
-        [MaxLength(50)]
-        public string Status { get; set; }
+        [Required]
+        public EvenementStatus Status { get; set; }
         
         public Guid? Responsable { get; set; }
         
