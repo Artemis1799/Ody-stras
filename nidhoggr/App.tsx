@@ -4,6 +4,10 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { CreateEventScreen } from "./src/screens/addEvent";
 import { EventListScreen } from "./src/screens/eventList";
+
+import PointsScreen from "./src/screens/points";
+import EventScreen from "./src/screens/Event";
+
 import { SQLiteProvider } from "expo-sqlite";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
@@ -19,6 +23,7 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Events" component={EventListScreen} />
           <Stack.Screen name="AddEvent" component={CreateEventScreen} />
+          <Stack.Screen name="Event" component={EventScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SQLiteProvider>

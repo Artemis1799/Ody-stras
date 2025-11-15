@@ -13,8 +13,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { v4 as uuidv4 } from "uuid";
 import { useSQLiteContext } from "expo-sqlite";
 import uuid from "react-native-uuid";
+import { useNavigation } from "@react-navigation/native";
 
 export function CreateEventScreen() {
+  const navigation = useNavigation();
   const [nom, setNom] = useState("");
   const [description, setDescription] = useState("");
   const [dateDebut, setDateDebut] = useState(new Date());
@@ -28,7 +30,7 @@ export function CreateEventScreen() {
         "INSERT INTO Evenement (UUID, Nom, Description, Date_debut, Status) VALUES (?, ?, ?, ?, ?)",
         [uuid.v4(), nom, description, dateDebut.toISOString(), "A_ORGANISER"]
       );
-      alert("Événement créé : " + insert);
+      navigation.goBack();
     } catch (e) {
       console.log(e);
     }
@@ -37,6 +39,9 @@ export function CreateEventScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={28} color="white" />
+        </TouchableOpacity>
         <Image
           source={require("../../ressources/header.png")}
           style={styles.headerImage}

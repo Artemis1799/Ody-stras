@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback} from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -7,51 +7,26 @@ import {
   StyleSheet,
   Image,
   SafeAreaView,
-  Alert,
 } from "react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { useSQLiteContext } from "expo-sqlite";
+import { useNavigation } from "@react-navigation/native";
 
 import { Ionicons } from "@expo/vector-icons";
 
-interface eventType {
-  UUID: string;
-  Nom: string;
-  Date_debut: Date;
-  Status: string;
-  Responsable: string;
-}
+export default function PointsScreen() {
+  const navigation = useNavigation<any>();
 
-export function EventListScreen() {
-  const navigation = useNavigation();
-  const db = useSQLiteContext();
-  const [events, setEvents] = useState<eventType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const points = [
+    { id: "1", name: "Point 1" },
+    { id: "2", name: "Point 2" },
+    { id: "3", name: "Point 3" },
+  ];
 
-  useFocusEffect(
-    useCallback(() => {
-      const getEvents = async () => {
-        try {
-          const data: eventType[] = await db.getAllAsync("SELECT * FROM Evenement");
-          console.log(data);
-          setEvents(data);
-        } catch (err) {
-          console.error(err);
-          Alert.alert("Erreur DB", "Impossible de récupérer les events.");
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      getEvents();
-    }, [db])
-  );
-  const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.eventItem} onPress={() => {navigation.navigate('Event')}}>
+  const renderItem = ({ item }: { item: { id: string; name: string } }) => (
+    <TouchableOpacity style={styles.pointItem}>
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.Nom && item.Nom.length > 0 ? item.Nom[0].toUpperCase() : '?'/* A changer quand une contrainte non nulle sera appliquée */}</Text>
+        <Text style={styles.avatarText}>{item.name[0].toUpperCase()}</Text>
       </View>
-      <Text style={styles.eventName}>{item.Nom}</Text>
+      <Text style={styles.pointName}>{item.name}</Text>
       <Ionicons name="chevron-forward-outline" size={20} color="#000" />
     </TouchableOpacity>
   );
@@ -59,6 +34,9 @@ export function EventListScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back-outline" size={28} color="white" />
+        </TouchableOpacity>
         <Image
           source={require("../../ressources/header.png")}
           style={styles.headerImage}
@@ -67,15 +45,15 @@ export function EventListScreen() {
       </View>
 
       <FlatList
-        data={events}
+        data={points}
         renderItem={renderItem}
-        keyExtractor={(item) => item.UUID}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
       />
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate("AddEvent")}
+        onPress={() => console.log("Add point")}
       >
         <Ionicons name="add" size={30} color="white" />
       </TouchableOpacity>
@@ -100,7 +78,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 30,
     paddingBottom: 10,
-    paddingLeft: 30,
+    paddingLeft: 14,
     paddingRight: 14,
   },
   headerText: {
@@ -111,7 +89,7 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 20,
   },
-  eventItem: {
+  pointItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
@@ -136,7 +114,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#6B5EFF",
   },
-  eventName: {
+  pointName: {
     flex: 1,
     fontSize: 16,
   },
