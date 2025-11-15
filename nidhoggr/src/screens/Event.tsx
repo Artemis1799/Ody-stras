@@ -49,7 +49,6 @@ export default function EventScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color="white" />
@@ -61,7 +60,6 @@ export default function EventScreen() {
         <Ionicons name="person-circle-outline" size={28} color="white" />
       </View>
 
-      {/* Content */}
       <ScrollView style={styles.content}>
         {/* Event Title */}
         <View style={styles.titleContainer}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback} from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   SafeAreaView,
   Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -28,28 +28,28 @@ export function EventListScreen() {
   const [events, setEvents] = useState<eventType[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const getEvents = async () => {
-      try {
-        const data: eventType[] = await (
-          await db
-        ).getAllAsync("SELECT * FROM Evenement");
-        console.log(data);
-        setEvents(data);
-      } catch (err) {
-        console.error(err);
-        Alert.alert("Erreur DB", "Impossible de récupérer les events.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const getEvents = async () => {
+        try {
+          const data: eventType[] = await db.getAllAsync("SELECT * FROM Evenement");
+          console.log(data);
+          setEvents(data);
+        } catch (err) {
+          console.error(err);
+          Alert.alert("Erreur DB", "Impossible de récupérer les events.");
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    getEvents();
-  }, []);
+      getEvents();
+    }, [db])
+  );
   const renderItem = ({ item }) => (
     <TouchableOpacity style={styles.eventItem} onPress={() => {navigation.navigate('Event')}}>
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.Nom[0].toUpperCase()}</Text>
+        <Text style={styles.avatarText}>{item.Nom && item.Nom.length > 0 ? item.Nom[0].toUpperCase() : '?'/* A changer quand une contrainte non nulle sera appliquée */}</Text>
       </View>
       <Text style={styles.eventName}>{item.Nom}</Text>
       <Ionicons name="chevron-forward-outline" size={20} color="#000" />
