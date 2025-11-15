@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,25 +7,51 @@ import {
   StyleSheet,
   Image,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useSQLiteContext } from "expo-sqlite";
 
 import { Ionicons } from "@expo/vector-icons";
 
+interface eventType {
+  UUID: string;
+  Nom: string;
+  Date_debut: Date;
+  Status: string;
+  Responsable: string;
+}
+
 export function EventListScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
+  const db = useSQLiteContext();
+  const [events, setEvents] = useState<eventType[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const events = [
-    { id: "1", name: "Event 1" },
-    { id: "2", name: "Event 2" },
-  ];
+  useEffect(() => {
+    const getEvents = async () => {
+      try {
+        const data: eventType[] = await (
+          await db
+        ).getAllAsync("SELECT * FROM Evenement");
+        console.log(data);
+        setEvents(data);
+      } catch (err) {
+        console.error(err);
+        Alert.alert("Erreur DB", "Impossible de récupérer les events.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    getEvents();
+  }, []);
   const renderItem = ({ item }) => (
     <TouchableOpacity style={styles.eventItem} onPress={() => {navigation.navigate('Event')}}>
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.name[0].toUpperCase()}</Text>
+        <Text style={styles.avatarText}>{item.Nom[0].toUpperCase()}</Text>
       </View>
-      <Text style={styles.eventName}>{item.name}</Text>
+      <Text style={styles.eventName}>{item.Nom}</Text>
       <Ionicons name="chevron-forward-outline" size={20} color="#000" />
     </TouchableOpacity>
   );
@@ -43,7 +69,7 @@ export function EventListScreen() {
       <FlatList
         data={events}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.UUID}
         contentContainerStyle={styles.listContainer}
       />
 

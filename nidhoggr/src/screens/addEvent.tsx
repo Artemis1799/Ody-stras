@@ -10,16 +10,28 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
+import { v4 as uuidv4 } from "uuid";
+import { useSQLiteContext } from "expo-sqlite";
+import uuid from "react-native-uuid";
 
 export function CreateEventScreen() {
   const [nom, setNom] = useState("");
   const [description, setDescription] = useState("");
   const [dateDebut, setDateDebut] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const db = useSQLiteContext();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     console.log({ nom, description, dateDebut });
-    alert("Événement créé !");
+    try {
+      const insert = await db.runAsync(
+        "INSERT INTO Evenement (UUID, Nom, Description, Date_debut, Status) VALUES (?, ?, ?, ?, ?)",
+        [uuid.v4(), nom, description, dateDebut.toISOString(), "A_ORGANISER"]
+      );
+      alert("Événement créé : " + insert);
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   return (
