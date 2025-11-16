@@ -5,9 +5,14 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
+  Image,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import uuid from "react-native-uuid";
 import * as Location from "expo-location";
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
@@ -160,8 +165,20 @@ export function CreatePointScreen() {
     })();
   }, []);
   return (
-    <View style={styles.container}>
-      <MapView
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={28} color="white" />
+        </TouchableOpacity>
+        <Image
+          source={require("../../ressources/header.png")}
+          style={styles.headerImage}
+        />
+        <Ionicons name="person-circle-outline" size={28} color="white" />
+      </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <MapView
         style={styles.map}
         initialRegion={{
           latitude: userLocation?.latitude || 48.5839,
@@ -212,10 +229,12 @@ export function CreatePointScreen() {
         onChangeText={setQty}
       />
 
-      <TouchableOpacity style={styles.validateButton} onPress={validate}>
-        <Text style={styles.validateButtonText}>Valider</Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity style={styles.validateButton} onPress={validate}>
+            <Text style={styles.validateButtonText}>Valider</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableWithoutFeedback>
+    </SafeAreaView>
   );
 }
 
@@ -233,6 +252,19 @@ const styles = StyleSheet.create({
   },
 
   container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#8FB34E",
+  },
+  headerImage: {
+    width: 120,
+    height: 30,
+    resizeMode: "contain",
+  },
   map: { height: 250, width: "100%" },
   inputComment: {
     backgroundColor: "#fff",

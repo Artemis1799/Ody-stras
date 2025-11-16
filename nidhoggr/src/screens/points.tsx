@@ -62,7 +62,15 @@ export default function PointsScreen() {
   );
 
   const renderItem = ({ item }: { item: PointType }) => (
-    <TouchableOpacity style={styles.pointItem}>
+    <TouchableOpacity
+      style={styles.pointItem}
+      onPress={() =>
+        navigation.navigate("AddPoint", {
+          eventId: eventUUID,
+          pointId: item.UUID,
+        })
+      }
+    >
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.Ordre}</Text>
       </View>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
 import {
   useNavigation,
   useRoute,
@@ -64,9 +65,16 @@ export function MapScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.eventTitle}>{eventName}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={28} color="white" />
+        </TouchableOpacity>
+        <Image
+          source={require("../../ressources/header.png")}
+          style={styles.headerImage}
+        />
+        <Ionicons name="person-circle-outline" size={28} color="white" />
       </View>
 
       <MapView
@@ -104,18 +112,24 @@ export function MapScreen() {
       >
         <Text style={styles.addButtonText}>Placer un point</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    backgroundColor: "#9EC54D",
-    height: 80,
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#8FB34E",
   },
-  eventTitle: { color: "white", fontSize: 22, fontWeight: "600" },
+  headerImage: {
+    width: 120,
+    height: 30,
+    resizeMode: "contain",
+  },
   map: { flex: 1 },
   Marker: { width: 200, height: 200 },
   markerContainer: {

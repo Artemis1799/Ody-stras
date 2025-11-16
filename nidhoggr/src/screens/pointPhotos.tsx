@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  SafeAreaView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
@@ -81,12 +83,16 @@ export function PointPhotosScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={{ fontSize: 20 }}>←</Text>
+          <Ionicons name="arrow-back" size={28} color="white" />
         </TouchableOpacity>
+        <Image
+          source={require("../../ressources/header.png")}
+          style={styles.headerImage}
+        />
+        <Ionicons name="person-circle-outline" size={28} color="white" />
       </View>
 
       {/* Photos */}
@@ -104,13 +110,25 @@ export function PointPhotosScreen() {
       <TouchableOpacity style={styles.addButton} onPress={takePhoto}>
         <Text style={styles.addButtonText}>📸 Prendre une photo</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  header: { padding: 20 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#8FB34E",
+  },
+  headerImage: {
+    width: 120,
+    height: 30,
+    resizeMode: "contain",
+  },
   photoContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
