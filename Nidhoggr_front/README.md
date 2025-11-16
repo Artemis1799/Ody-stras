@@ -57,3 +57,24 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Docker
+
+This repository includes a multistage `Dockerfile` that builds the Angular SSR application and produces a small runtime image.
+
+Build the image (run in `Nidhoggr_front`):
+
+```powershell
+docker build -t nidhoggr-front:latest .
+```
+
+Run the container (maps port 4000 by default):
+
+```powershell
+docker run --rm -p 4000:4000 -e PORT=4000 nidhoggr-front:latest
+```
+
+Notes:
+- The image builds the app (requires dev dependencies) and then installs only production dependencies in the final image.
+- If you have a `package-lock.json`, it will be used for deterministic installs. If not, `npm install` is used during the build.
+- Adjust `PORT` if you prefer a different port.
