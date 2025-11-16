@@ -36,7 +36,6 @@ export default function App() {
           );
         `);
 
-        // Vérifier si la table est vide
         const rows = await db.getAllAsync(
           "SELECT COUNT(*) as count FROM Equipement"
         );
@@ -46,6 +45,7 @@ export default function App() {
           await db.runAsync(
             `INSERT INTO Equipement (UUID, Type, Description, Unite, Stock_total, Stock_restant)
              VALUES
+            ('f50252ce-31bb-4c8b-a70c-51b7bb630bc3', 'Aucun', 'Aucun', 'U', 0, 0),
             ('21ddc970-e5eb-4105-830b-80e1161eea72', 'Glissières béton armé (GBA)', '60 cm de large – Longueur de 2 mètres ou 1 mètre', 'U', 0, 0),
             ('1ce53d08-b85a-4fb0-8e0b-dfba5b2fb17b', 'Blocs de béton', 'Bloc de taille 0,6m x 0,6m x 1m ou 0,6m x 0,6m x 2,5m', 'U', 0, 0),
             ('60655695-a8ec-4e88-8d9f-0c770cb84a1a', 'Barrières Vauban', 'Barrières de 2 mètres', 'U', 0, 0),

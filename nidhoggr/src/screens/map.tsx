@@ -1,42 +1,51 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
-
-interface pointType {
-  UUID: string;
-  Nom: string;
-  Date_debut: Date;
-  Status: string;
-  Responsable: string;
-}
 
 export function MapScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const db = useSQLiteContext(); // <<< OK
+  const db = useSQLiteContext();
+
   const { eventId, eventName } = route.params;
 
   const [points, setPoints] = useState([]);
 
   const loadPoints = async () => {
     try {
-      const res = await db.getAllAsync(
-        "SELECT * FROM Point WHERE Event_ID = ?",
+      const sql = await db.getAllAsync(
+        `SELECT Point.*, Equipement.Type AS EquipType
+         FROM Point
+         LEFT JOIN Equipement ON Equipement.UUID = Point.Equipement_ID
+         WHERE Point.Event_ID = ?`,
         [eventId]
       );
-      console.log("==============RES===============");
-      console.log(res);
-      setPoints(res);
+
+      const pts = sql.map((row) => ({
+        UUID: row.UUID,
+        Latitude: row.Latitude,
+        Longitude: row.Longitude,
+        equipement_type: row.EquipType,
+        quantite: row.Equipement_quantite,
+      }));
+
+      setPoints(pts);
     } catch (e) {
       console.log("Erreur chargement points :", e);
     }
   };
 
-  useEffect(() => {
-    loadPoints();
-  }, [db]);
+  useFocusEffect(
+    useCallback(() => {
+      loadPoints();
+    }, [db])
+  );
 
   const handleMarkerPress = (point) => {
     navigation.navigate("AddPoint", {
@@ -67,9 +76,16 @@ export function MapScreen() {
               latitude: point.Latitude,
               longitude: point.Longitude,
             }}
-            pinColor="orange"
             onPress={() => handleMarkerPress(point)}
-          />
+            anchor={{ x: 0.5, y: 1 }}
+          >
+            <View style={styles.markerContainer}>
+              <Text style={styles.markerQty}>{point.quantite ?? 0}</Text>
+              <Text style={styles.markerType}>
+                {point.equipement_type ?? "Aucun équipement"}
+              </Text>
+            </View>
+          </Marker>
         ))}
       </MapView>
 
@@ -82,7 +98,6 @@ export function MapScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
@@ -91,14 +106,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  eventTitle: {
-    color: "white",
-    fontSize: 22,
-    fontWeight: "600",
+  eventTitle: { color: "white", fontSize: 22, fontWeight: "600" },
+  map: { flex: 1 },
+  Marker: { width: 200, height: 200 },
+  markerContainer: {
+    width: 50,
+    height: 50,
+    paddingVertical: 6,
+    backgroundColor: "white",
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#9EC54D",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  map: {
-    flex: 1,
-  },
+  markerQty: { fontSize: 10, fontWeight: "700", color: "#333" },
+  markerType: { fontSize: 8, color: "#555", textAlign: "center" },
   addButton: {
     backgroundColor: "#9EC54D",
     padding: 15,
@@ -106,9 +129,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "500",
-  },
+  addButtonText: { color: "#fff", fontSize: 18, fontWeight: "500" },
 });

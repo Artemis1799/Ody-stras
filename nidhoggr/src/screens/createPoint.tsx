@@ -12,7 +12,7 @@ import uuid from "react-native-uuid";
 import * as Location from "expo-location";
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import { useSQLiteContext } from "expo-sqlite";
-
+import DropDownPicker from "react-native-dropdown-picker";
 interface equipementType {
   UUID: string;
   Type: string;
@@ -21,20 +21,30 @@ interface equipementType {
   Stock_total: Float;
   Stock_restant: Float;
 }
+interface equipementListType {
+  label: string;
+  value: string;
+}
+interface point_equipementType {
+  Point_ID: string;
+  Equipement_ID: string;
+  Quantite: Int16Array;
+}
 interface pointType {
+  Equipement_quantite: any;
+  Equipement_ID: any;
   UUID: string;
   Latitude: Float;
   Longitude: Float;
   Commentaire: string;
 }
 export function CreatePointScreen() {
+  const [open, setOpen] = useState(false);
   const navigation = useNavigation();
   const [comment, setComment] = useState("");
-  const [type, setType] = useState("");
   const [qty, setQty] = useState("");
-  const [equipmentList, setEquipmentList] = useState<equipementType[]>([]);
-  const [equipment, setEquipment] = useState<equipementType>();
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [equipmentList, setEquipmentList] = useState<equipementListType[]>([]);
+  const [equipment, setEquipment] = useState<string | null>(null);
   const [pointId, setPointId] = useState("");
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -46,16 +56,41 @@ export function CreatePointScreen() {
   const eventId = route.params?.eventId;
   const validate = async () => {
     try {
-      console.log("validate called");
-      const insert = await db.runAsync(
-        "UPDATE Point SET Commentaire = ? WHERE UUID = ?",
-        [comment, pointId]
+      await db.runAsync("UPDATE Point SET Commentaire = ? WHERE UUID = ?", [
+        comment,
+        pointId,
+      ]);
+      if (!equipment) {
+        console.log("Aucun équipement sélectionné");
+        return;
+      }
+      await db.runAsync(
+        "UPDATE Point SET Equipement_quantite = ?, Equipement_ID = ? WHERE UUID = ? ",
+        [qty, equipment, pointId]
       );
+      /*const exist = await db.getAllAsync(
+        "SELECT * FROM Point_Equipement WHERE Point_ID = ? AND Equipement_ID = ?",
+        [pointId, equipment]
+      );
+
+      if (exist.length > 0) {
+      await db.runAsync(
+        "UPDATE Point_Equipement SET Quantite = ? Equipement_ID = ? WHERE Point_ID = ? ",
+        [qty, equipment, pointId]
+      );
+       } else {
+        await db.runAsync(
+          "INSERT INTO Point_Equipement (Point_ID, Equipement_ID, Quantite) VALUES (?, ?, ?)",
+          [pointId, equipment, qty]
+        );
+      }*/
+
       navigation.goBack();
     } catch (e) {
       console.log(e);
     }
   };
+
   useEffect(() => {
     (async () => {
       try {
@@ -84,24 +119,42 @@ export function CreatePointScreen() {
         );
         if (!route.params?.pointId) {
           await db.runAsync(
-            "INSERT INTO Point (UUID, Event_ID, Latitude, Longitude) VALUES (?, ?, ?, ?)",
-            [newId, eventId, coords.latitude, coords.longitude]
+            "INSERT INTO Point (UUID, Event_ID, Latitude, Longitude, Equipement_ID, Equipement_quantite) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+              newId,
+              eventId,
+              coords.latitude,
+              coords.longitude,
+              "f50252ce-31bb-4c8b-a70c-51b7bb630bc3",
+              0,
+            ]
           );
         } else {
           const res: pointType[] = await db.getAllAsync(
             "SELECT * FROM Point WHERE UUID = ?",
             [newId]
           );
-          console.log(res);
           setComment(res[0].Commentaire);
+
+          /*const exist: point_equipementType[] = await db.getAllAsync(
+            "SELECT * FROM Point_Equipement WHERE Point_ID = ?",
+            [newId]
+          );*/
+          if (res[0]?.Equipement_ID) setEquipment(res[0].Equipement_ID);
+          if (res[0]?.Equipement_quantite)
+            setQty(res[0].Equipement_quantite.toString());
         }
 
         const equipments: equipementType[] = await db.getAllAsync(
           "SELECT * FROM Equipement"
         );
-        console.log("equipments =");
         console.log(equipments);
-        setEquipmentList(equipments);
+        setEquipmentList(
+          equipments.map((e) => ({
+            label: e.Type,
+            value: e.UUID,
+          }))
+        );
       } catch (e) {
         console.log(e);
       }
@@ -141,25 +194,17 @@ export function CreatePointScreen() {
         <Text>Photos</Text>
         <Text>→</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity style={styles.inputFake}>
-        <Text>Type d’équipement</Text>
-        <Text>⌄</Text>
-      </TouchableOpacity>
-      <View style={styles.dropdown}>
-        {equipmentList.map((item) => (
-          <TouchableOpacity
-            key={item.UUID}
-            style={styles.dropdownItem}
-            onPress={() => {
-              setEquipment(item);
-              setShowDropdown(false);
-            }}
-          >
-            <Text>{item.Type}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <DropDownPicker
+        open={open}
+        value={equipment}
+        items={equipmentList}
+        setOpen={setOpen}
+        setValue={setEquipment}
+        setItems={setEquipmentList}
+        placeholder="Sélectionnez un équipement"
+        listMode="SCROLLVIEW"
+        style={styles.dropdown}
+      />
       <TextInput
         placeholder="Quantité"
         style={styles.input}
@@ -177,20 +222,17 @@ export function CreatePointScreen() {
 
 const styles = StyleSheet.create({
   dropdown: {
+    margin: 15,
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
     marginTop: 4,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#fff",
     overflow: "hidden",
+    width: "92%",
+    alignSelf: "center",
   },
 
-  dropdownItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
-  },
   container: { flex: 1 },
   map: { height: 250, width: "100%" },
   inputComment: {
