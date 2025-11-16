@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
-
+import { deleteDatabase } from "../hooks/databaseReset";
 import { Ionicons } from "@expo/vector-icons";
 
 interface eventType {
@@ -40,6 +40,7 @@ export function EventListScreen() {
   
       VACUUM;
     `);
+      deleteDatabase("base.db");
     } catch (e) {
       console.log(e);
     }

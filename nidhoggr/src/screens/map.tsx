@@ -19,6 +19,7 @@ export function MapScreen() {
 
   const loadPoints = async () => {
     try {
+      console.log("calling loadPoints");
       const sql = await db.getAllAsync(
         `SELECT Point.*, Equipement.Type AS EquipType
          FROM Point
@@ -34,7 +35,10 @@ export function MapScreen() {
         equipement_type: row.EquipType,
         quantite: row.Equipement_quantite,
       }));
-
+      console.log("sql===");
+      console.log(sql);
+      console.log("pts===");
+      console.log(pts);
       setPoints(pts);
     } catch (e) {
       console.log("Erreur chargement points :", e);
@@ -48,10 +52,15 @@ export function MapScreen() {
   );
 
   const handleMarkerPress = (point) => {
-    navigation.navigate("AddPoint", {
-      eventId,
-      pointId: point.UUID,
-    });
+    try {
+      console.log(point);
+      navigation.navigate("AddPoint", {
+        eventId,
+        pointId: point.UUID,
+      });
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   return (
