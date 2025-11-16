@@ -40,7 +40,7 @@ export function EventListScreen() {
   
       VACUUM;
     `);
-      deleteDatabase("base.db");
+      deleteDatabase("base.db", db);
     } catch (e) {
       console.log(e);
     }
