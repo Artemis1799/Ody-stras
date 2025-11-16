@@ -1,25 +1,20 @@
-image: node:20
+image: mcr.microsoft.com/dotnet/sdk:10.0.100
 
 stages:
-  - install
-  - prisma
+  - build
   - test
 
-install_job:
-  stage: install
+build_job:
+  stage: build
   script:
-    - npm ci
-
-prisma_job:
-  stage: prisma
-  script:
-    - npx prisma generate
+    - dotnet build
 
 test_job:
   stage: test
   script:
-    - npm test > test-results.xml
+    - dotnet test --logger "junit;LogFileName=test-results.xml" --no-build
   artifacts:
     reports:
       junit: test-results.xml
-  
+    paths:
+      - test-results.xml
