@@ -24,6 +24,7 @@ export default function App() {
           <Stack.Screen name="Events" component={EventListScreen} />
           <Stack.Screen name="AddEvent" component={CreateEventScreen} />
           <Stack.Screen name="Event" component={EventScreen} />
+          <Stack.Screen name="Points" component={PointsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SQLiteProvider>
@@ -31,7 +32,6 @@ export default function App() {
 }
 
 /*
-  <Stack.Screen name="Points" component={PointsScreen} />
   <Stack.Screen name="PointDetails" component={PointDetailsScreen} />
   <Stack.Screen name="SimulateScreen" component={SimulateScreen} />
   <Stack.Screen name="AddPoint" component={AddPointScreen} />

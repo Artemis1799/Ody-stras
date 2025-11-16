@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,26 +7,62 @@ import {
   StyleSheet,
   Image,
   SafeAreaView,
+  Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
+import { useSQLiteContext } from "expo-sqlite";
 
 import { Ionicons } from "@expo/vector-icons";
 
+interface PointType {
+  UUID: string;
+  Event_ID: string;
+  Latitude: number;
+  Longitude: number;
+  Commentaire: string;
+  Image_ID: string;
+  Ordre: number;
+  Valide: boolean;
+  Created: string;
+  Modified: string;
+}
+
 export default function PointsScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute();
+  const { eventUUID } = route.params as { eventUUID: string };
+  const db = useSQLiteContext();
+  const [points, setPoints] = useState<PointType[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const points = [
-    { id: "1", name: "Point 1" },
-    { id: "2", name: "Point 2" },
-    { id: "3", name: "Point 3" },
-  ];
+  useFocusEffect(
+    useCallback(() => {
+      const getPoints = async () => {
+        try {
+          const data: PointType[] = await db.getAllAsync(
+            "SELECT * FROM Point WHERE Event_ID = ? ORDER BY Ordre ASC",
+            [eventUUID]
+          );
+          console.log(data);
+          setPoints(data);
+        } catch (err) {
+          console.error(err);
+          Alert.alert("Erreur DB", "Impossible de récupérer les points.");
+        } finally {
+          setLoading(false);
+        }
+      };
 
-  const renderItem = ({ item }: { item: { id: string; name: string } }) => (
+      getPoints();
+    }, [db, eventUUID])
+  );
+
+  const renderItem = ({ item }: { item: PointType }) => (
     <TouchableOpacity style={styles.pointItem}>
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.name[0].toUpperCase()}</Text>
+        <Text style={styles.avatarText}>{item.Ordre}</Text>
       </View>
-      <Text style={styles.pointName}>{item.name}</Text>
+      <Text style={styles.pointName}>{item.Commentaire || `Point ${item.Ordre}`}</Text>
       <Ionicons name="chevron-forward-outline" size={20} color="#000" />
     </TouchableOpacity>
   );
@@ -47,7 +83,7 @@ export default function PointsScreen() {
       <FlatList
         data={points}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.UUID}
         contentContainerStyle={styles.listContainer}
       />
 
