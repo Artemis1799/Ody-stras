@@ -12,7 +12,7 @@ public class Photo
     public byte[] Picture { get; set; }
     
     [MaxLength(255)]
-    public string Picture_name { get; set; }
+    public string PictureName { get; set; }
     
     [JsonIgnore]
     public ICollection<ImagePoint>? ImagePoints { get; set; }

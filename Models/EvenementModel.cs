@@ -15,7 +15,7 @@ public class Evenement
     
     public string Description { get; set; } = string.Empty;
     
-    public DateTime? Date_debut { get; set; }
+    public DateTime? DateDebut { get; set; }
     
     [Required]
     public EvenementStatus Status { get; set; }

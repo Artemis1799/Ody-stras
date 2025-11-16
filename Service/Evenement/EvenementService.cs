@@ -50,7 +50,7 @@ public class EvenementService : IEvenementService
 
         existingEvenement.Nom = evenement.Nom;
         existingEvenement.Description = evenement.Description;
-        existingEvenement.Date_debut = evenement.Date_debut;
+        existingEvenement.DateDebut = evenement.DateDebut;
         existingEvenement.Status = evenement.Status;
         existingEvenement.Responsable = evenement.Responsable;
 
