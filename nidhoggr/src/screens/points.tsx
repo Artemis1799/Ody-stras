@@ -9,7 +9,11 @@ import {
   SafeAreaView,
   Alert,
 } from "react-native";
-import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -62,7 +66,9 @@ export default function PointsScreen() {
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.Ordre}</Text>
       </View>
-      <Text style={styles.pointName}>{item.Commentaire || `Point ${item.Ordre}`}</Text>
+      <Text style={styles.pointName}>
+        {item.Commentaire || `Point ${item.Ordre}`}
+      </Text>
       <Ionicons name="chevron-forward-outline" size={20} color="#000" />
     </TouchableOpacity>
   );

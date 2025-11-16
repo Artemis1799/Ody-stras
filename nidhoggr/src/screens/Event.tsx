@@ -21,11 +21,12 @@ interface EventScreenProps {
   eventStatus: string;
 }
 
-
 export default function EventScreen() {
   const route = useRoute();
-  const { eventUUID, eventName, eventDescription, eventDate, eventStatus } = route.params as EventScreenProps;
-  
+  const eventId = route.params?.eventUUID;
+  const { eventUUID, eventName, eventDescription, eventDate, eventStatus } =
+    route.params as EventScreenProps;
+
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
@@ -34,6 +35,7 @@ export default function EventScreen() {
 
   useEffect(() => {
     (async () => {
+      console.log(route.params);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         console.log("Permission de localisation refusée");
@@ -46,13 +48,15 @@ export default function EventScreen() {
         longitude: location.coords.longitude,
       };
       setUserLocation(coords);
-      
-      // Recentrer la carte sur la position utilisateur
-      mapRef.current?.animateToRegion({
-        ...coords,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }, 1000);
+
+      mapRef.current?.animateToRegion(
+        {
+          ...coords,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        1000
+      );
     })();
   }, []);
 
@@ -90,8 +94,7 @@ export default function EventScreen() {
             }}
             showsUserLocation={true}
             showsMyLocationButton={true}
-          >
-          </MapView>
+          ></MapView>
         </View>
 
         {/* Event Details */}
@@ -103,7 +106,9 @@ export default function EventScreen() {
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Date :</Text>
-            <Text style={styles.detailValue}>{new Date(eventDate).toLocaleDateString('fr-FR')}</Text>
+            <Text style={styles.detailValue}>
+              {new Date(eventDate).toLocaleDateString("fr-FR")}
+            </Text>
           </View>
 
           <View style={styles.detailRow}>
@@ -114,11 +119,19 @@ export default function EventScreen() {
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.pointsButton}>
+          <TouchableOpacity
+            style={styles.pointsButton}
+            onPress={() => {
+              navigation.navigate("Map", { eventId: eventId });
+            }}
+          >
             <Text style={styles.buttonText}>Ajouter des points</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.pointsButton} onPress={() => navigation.navigate('Points', { eventUUID })}>
+          <TouchableOpacity
+            style={styles.pointsButton}
+            onPress={() => navigation.navigate("Points", { eventUUID })}
+          >
             <Text style={styles.buttonText}>Gestion des points</Text>
           </TouchableOpacity>
         </View>
