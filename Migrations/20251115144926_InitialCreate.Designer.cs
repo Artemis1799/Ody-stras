@@ -62,7 +62,7 @@ namespace t5_back.Migrations
                     b.Property<DateTime>("Created")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("Event_ID")
+                    b.Property<Guid>("EventId")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("Image_ID")

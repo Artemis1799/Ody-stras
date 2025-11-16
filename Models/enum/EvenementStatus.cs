@@ -1,10 +1,9 @@
-namespace t5_back.Models
+namespace t5_back.Models;
+
+public enum EvenementStatus
 {
-    public enum EvenementStatus
-    {
-        EN_DESINSTALLATION,
-        TERMINE,
-        EN_INSTALLATION,
-        A_ORGANISER
-    }
+    EN_DESINSTALLATION,
+    TERMINE,
+    EN_INSTALLATION,
+    A_ORGANISER
 }
