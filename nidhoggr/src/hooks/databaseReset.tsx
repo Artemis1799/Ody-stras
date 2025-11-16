@@ -1,21 +1,13 @@
-import * as FileSystem from "expo-file-system/legacy";
+import * as SQLite from "expo-sqlite";
 
-export async function deleteDatabase(dbName: string = "base.db") {
+export async function deleteDatabase(dbName: string = "base.db", db) {
   try {
-    const clonePath = FileSystem.documentDirectory + dbName;
-
-    const info = await FileSystem.getInfoAsync(clonePath);
-
-    if (info.exists) {
-      await FileSystem.deleteAsync(clonePath, { idempotent: true });
-      console.log("Clone de la base supprimé :", clonePath);
-      return true;
-    } else {
-      console.log("Pas de clone de la base à supprimer.");
-      return false;
-    }
+    await db.closeAsync();
+    const res = await SQLite.deleteDatabaseAsync(dbName);
+    console.log("Base supprimée :", res);
+    return true;
   } catch (e) {
-    console.error("Erreur lors de la suppression du clone :", e);
+    console.error("Erreur lors de la suppression :", e);
     return false;
   }
 }
