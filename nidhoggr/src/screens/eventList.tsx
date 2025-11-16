@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback} from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -28,11 +28,31 @@ export function EventListScreen() {
   const [events, setEvents] = useState<eventType[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const resetDatabase = async () => {
+    try {
+      await db.execAsync(`
+      DELETE FROM Image_Point;
+      DELETE FROM Photo;
+      DELETE FROM Point_Equipement;
+      DELETE FROM Equipement;
+      DELETE FROM Point;
+      DELETE FROM Evenement;
+  
+      VACUUM;
+    `);
+    } catch (e) {
+      console.log(e);
+    }
+    console.log("Base vidée !");
+  };
+
   useFocusEffect(
     useCallback(() => {
       const getEvents = async () => {
         try {
-          const data: eventType[] = await db.getAllAsync("SELECT * FROM Evenement");
+          const data: eventType[] = await db.getAllAsync(
+            "SELECT * FROM Evenement"
+          );
           console.log(data);
           setEvents(data);
         } catch (err) {
@@ -47,9 +67,16 @@ export function EventListScreen() {
     }, [db])
   );
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.eventItem} onPress={() => {navigation.navigate('Event')}}>
+    <TouchableOpacity
+      style={styles.eventItem}
+      onPress={() => {
+        navigation.navigate("Event", { eventId: item.UUID });
+      }}
+    >
       <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.Nom && item.Nom.length > 0 ? item.Nom[0].toUpperCase() : '?'/* A changer quand une contrainte non nulle sera appliquée */}</Text>
+        <Text style={styles.avatarText}>
+          {item.Nom && item.Nom.length > 0 ? item.Nom[0].toUpperCase() : "?"}
+        </Text>
       </View>
       <Text style={styles.eventName}>{item.Nom}</Text>
       <Ionicons name="chevron-forward-outline" size={20} color="#000" />
@@ -64,6 +91,9 @@ export function EventListScreen() {
           style={styles.headerImage}
         />
         <Ionicons name="person-circle-outline" size={28} color="white" />
+        <TouchableOpacity onPress={resetDatabase}>
+          <Text>Reset DB</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList

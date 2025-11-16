@@ -11,10 +11,11 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { useNavigation } from "@react-navigation/native";
-
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 export default function EventScreen() {
+  const route = useRoute();
+  const eventId = route.params?.eventId;
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
@@ -23,6 +24,7 @@ export default function EventScreen() {
 
   useEffect(() => {
     (async () => {
+      console.log(route.params);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         console.log("Permission de localisation refusée");
@@ -35,13 +37,15 @@ export default function EventScreen() {
         longitude: location.coords.longitude,
       };
       setUserLocation(coords);
-      
-      // Recentrer la carte sur la position utilisateur
-      mapRef.current?.animateToRegion({
-        ...coords,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }, 1000);
+
+      mapRef.current?.animateToRegion(
+        {
+          ...coords,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        1000
+      );
     })();
   }, []);
 
@@ -79,8 +83,7 @@ export default function EventScreen() {
             }}
             showsUserLocation={true}
             showsMyLocationButton={true}
-          >
-          </MapView>
+          ></MapView>
         </View>
 
         {/* Event Details */}
@@ -103,7 +106,12 @@ export default function EventScreen() {
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.pointsButton}>
+          <TouchableOpacity
+            style={styles.pointsButton}
+            onPress={() => {
+              navigation.navigate("Map", { eventId: eventId });
+            }}
+          >
             <Text style={styles.buttonText}>Ajouter des points</Text>
           </TouchableOpacity>
 
