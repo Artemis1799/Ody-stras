@@ -69,6 +69,7 @@ export default function App() {
           <Stack.Screen name="AddPoint" component={CreatePointScreen} />
           <Stack.Screen name="AddPhoto" component={PointPhotosScreen} />
           <Stack.Screen name="Map" component={MapScreen} />
+          <Stack.Screen name="Points" component={PointsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SQLiteProvider>
@@ -76,7 +77,6 @@ export default function App() {
 }
 
 /*
-  <Stack.Screen name="Points" component={PointsScreen} />
   <Stack.Screen name="PointDetails" component={PointDetailsScreen} />
   <Stack.Screen name="SimulateScreen" component={SimulateScreen} />
 */

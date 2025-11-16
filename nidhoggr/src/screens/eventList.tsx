@@ -66,11 +66,17 @@ export function EventListScreen() {
       getEvents();
     }, [db])
   );
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }: { item: eventType }) => (
     <TouchableOpacity
       style={styles.eventItem}
       onPress={() => {
-        navigation.navigate("Event", { eventId: item.UUID });
+        navigation.navigate("Event", {
+          eventUUID: item.UUID,
+          eventName: item.Nom,
+          eventDescription: item.Description || "",
+          eventDate: item.Date_debut,
+          eventStatus: item.Status,
+        });
       }}
     >
       <View style={styles.avatar}>

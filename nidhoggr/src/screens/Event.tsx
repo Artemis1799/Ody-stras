@@ -13,9 +13,20 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
+interface EventScreenProps {
+  eventUUID: string;
+  eventName: string;
+  eventDescription: string;
+  eventDate: string;
+  eventStatus: string;
+}
+
 export default function EventScreen() {
   const route = useRoute();
-  const eventId = route.params?.eventId;
+  const eventId = route.params?.eventUUID;
+  const { eventUUID, eventName, eventDescription, eventDate, eventStatus } =
+    route.params as EventScreenProps;
+
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
@@ -67,7 +78,7 @@ export default function EventScreen() {
       <ScrollView style={styles.content}>
         {/* Event Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.eventTitle}>{"<Nom d'event>"}</Text>
+          <Text style={styles.eventTitle}>{eventName}</Text>
         </View>
 
         {/* Map Container */}
@@ -90,17 +101,19 @@ export default function EventScreen() {
         <View style={styles.detailsContainer}>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Description :</Text>
-            <Text style={styles.detailValue}></Text>
+            <Text style={styles.detailValue}>{eventDescription}</Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Date :</Text>
-            <Text style={styles.detailValue}></Text>
+            <Text style={styles.detailValue}>
+              {new Date(eventDate).toLocaleDateString("fr-FR")}
+            </Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Statut :</Text>
-            <Text style={styles.detailValue}></Text>
+            <Text style={styles.detailValue}>{eventStatus}</Text>
           </View>
         </View>
 
@@ -115,7 +128,10 @@ export default function EventScreen() {
             <Text style={styles.buttonText}>Ajouter des points</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.pointsButton}>
+          <TouchableOpacity
+            style={styles.pointsButton}
+            onPress={() => navigation.navigate("Points", { eventUUID })}
+          >
             <Text style={styles.buttonText}>Gestion des points</Text>
           </TouchableOpacity>
         </View>

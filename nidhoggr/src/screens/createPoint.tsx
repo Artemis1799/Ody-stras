@@ -148,7 +148,6 @@ export function CreatePointScreen() {
         const equipments: equipementType[] = await db.getAllAsync(
           "SELECT * FROM Equipement"
         );
-        console.log(equipments);
         setEquipmentList(
           equipments.map((e) => ({
             label: e.Type,
