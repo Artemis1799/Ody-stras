@@ -46,8 +46,14 @@ export function EventListScreen() {
       getEvents();
     }, [db])
   );
-  const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.eventItem} onPress={() => {navigation.navigate('Event')}}>
+  const renderItem = ({ item }: { item: eventType }) => (
+    <TouchableOpacity style={styles.eventItem} onPress={() => {navigation.navigate('Event', {
+      eventUUID: item.UUID,
+      eventName: item.Nom,
+      eventDescription: item.Description || '',
+      eventDate: item.Date_debut,
+      eventStatus: item.Status
+    })}}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.Nom && item.Nom.length > 0 ? item.Nom[0].toUpperCase() : '?'/* A changer quand une contrainte non nulle sera appliquée */}</Text>
       </View>
