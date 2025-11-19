@@ -16,6 +16,7 @@ export type RootStackParamList = {
     Status: string;
   };
   AddEvent: undefined;
+  ExportEvent: { eventUUID: string };
 };
 
 export type EventScreenNavigationProp = NativeStackNavigationProp<
