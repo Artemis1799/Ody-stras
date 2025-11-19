@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 export type RootStackParamList = {
   EventScreen: Evenement;
   Map: { eventId: string };
+  SimulateScreen: { eventUUID: string };
   Points: { eventUUID: string };
   AddPhoto: { pointId: string };
   AddPoint: { eventId: string } | { eventId: string; pointIdParam: string };
@@ -60,8 +61,8 @@ export interface Point {
   Latitude: Float;
   Longitude: Float;
   Commentaire: string;
-  Equipement_quantite: any;
-  Equipement_ID: any;
+  Equipement_quantite: number;
+  Equipement_ID: string;
   Event_ID: string;
   Ordre?: number;
 }

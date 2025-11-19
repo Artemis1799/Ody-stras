@@ -54,7 +54,7 @@ export function CreatePointScreen() {
       await update<Point>(
         db,
         "Point",
-        { Equipement_quantite: qty, Equipement_ID: equipment },
+        { Equipement_quantite: Number(qty), Equipement_ID: equipment },
         "UUID = ?",
         [pointId]
       );

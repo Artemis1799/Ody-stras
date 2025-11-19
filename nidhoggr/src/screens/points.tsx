@@ -17,11 +17,11 @@ import {
 import { useSQLiteContext } from "expo-sqlite";
 
 import { Ionicons } from "@expo/vector-icons";
-import { Point } from "../../types/types";
+import { EventScreenNavigationProp, Point } from "../../types/types";
 import { getAllWhere, update } from "../../database/queries";
 
 export default function PointsScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<EventScreenNavigationProp>();
   const route = useRoute();
   const { eventUUID } = route.params as { eventUUID: string };
   const db = useSQLiteContext();
@@ -147,7 +147,7 @@ export default function PointsScreen() {
         onPress={() =>
           navigation.navigate("AddPoint", {
             eventId: eventUUID,
-            pointId: item.UUID,
+            pointIdParam: item.UUID,
           })
         }
       >

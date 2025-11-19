@@ -12,11 +12,11 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, Polyline } from "react-native-maps";
-import { Point } from "../../types/types";
+import { EventScreenNavigationProp, Point } from "../../types/types";
 import { getAllWhere } from "../../database/queries";
 
 export default function SimulateScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<EventScreenNavigationProp>();
   const route = useRoute();
   const { eventUUID } = route.params as { eventUUID: string };
   const db = useSQLiteContext();
