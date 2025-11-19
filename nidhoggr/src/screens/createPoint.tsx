@@ -38,55 +38,41 @@ export function CreatePointScreen() {
   const [equipmentList, setEquipmentList] = useState<EquipementList[]>([]);
   const [equipment, setEquipment] = useState<string | null>(null);
   const [pointId, setPointId] = useState("");
+  const [isNewPoint, setIsNewPoint] = useState(false);
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const route = useRoute();
   const { eventId, pointIdParam } = route.params as createPointParams;
   const validate = async () => {
     try {
-      if (!comment.trim()) {
-        alert("Veuillez saisir un commentaire");
+      if (!comment) {
+        alert("Veuillez ajouter un commentaire");
         return;
       }
       if (!equipment) {
-        alert("Veuillez sélectionner un équipement");
+        alert("Veuillez sélectionner un type d'équipement");
         return;
       }
-      if (!qty || Number(qty) <= 0) {
-        alert("Veuillez saisir une quantité valide");
+      if (!qty || Number(qty) < 1) {
+        alert("Veuillez entrer une quantité supérieure à 0");
         return;
       }
 
-      if (pointIdParam) {
-        // Mode édition : mettre à jour le point existant
-        await update<Point>(db, "Point", { 
-          Commentaire: comment,
-          Equipement_quantite: Number(qty), 
-          Equipement_ID: equipment 
-        }, "UUID = ?", [
-          pointId,
-        ]);
-      } else {
-        // Mode création : créer le nouveau point
-        if (!userLocation) {
-          alert("Localisation non disponible");
-          return;
-        }
-        await insert<Point>(db, "Point", {
-          UUID: pointId,
-          Event_ID: eventId,
-          Latitude: userLocation.latitude,
-          Longitude: userLocation.longitude,
-          Commentaire: comment,
-          Equipement_ID: equipment,
-          Equipement_quantite: Number(qty),
-        });
-      }
+      await update<Point>(db, "Point", { Commentaire: comment }, "UUID = ?", [
+        pointId,
+      ]);
+      await update<Point>(
+        db,
+        "Point",
+        { Equipement_quantite: Number(qty), Equipement_ID: equipment },
+        "UUID = ?",
+        [pointId]
+      );
 
+      setIsNewPoint(false);
       navigation.goBack();
     } catch (e) {
       console.log(e);
-      alert("Erreur lors de la validation");
     }
   };
 
@@ -117,9 +103,17 @@ export function CreatePointScreen() {
           },
           1000
         );
-        
-        if (pointIdParam) {
-          // Mode édition : charger les données existantes
+        if (!pointIdParam) {
+          await insert<Point>(db, "Point", {
+            UUID: newId,
+            Event_ID: eventId,
+            Latitude: coords.latitude,
+            Longitude: coords.longitude,
+            Equipement_ID: "f50252ce-31bb-4c8b-a70c-51b7bb630bc3",
+            Equipement_quantite: 0,
+          });
+          setIsNewPoint(true);
+        } else {
           const res = await getAllWhere<Point>(db, "Point", ["UUID"], [newId]);
           if (res[0]) {
             setComment(res[0].Commentaire);
@@ -141,6 +135,21 @@ export function CreatePointScreen() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", async (e) => {
+      if (isNewPoint && (!comment || !equipment || !qty || Number(qty) < 1)) {
+        try {
+          await db.runAsync("DELETE FROM Point WHERE UUID = ?", [pointId]);
+          console.log("Point supprimé (non validé)");
+        } catch (error) {
+          console.log("Erreur lors de la suppression du point:", error);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, isNewPoint, comment, equipment, qty, pointId, db]);
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -207,7 +216,7 @@ export function CreatePointScreen() {
             style={styles.dropdown}
           />
           <TextInput
-            placeholder="Quantité (obligatoire)"
+            placeholder="Quantité"
             style={styles.input}
             keyboardType="numeric"
             value={qty}
