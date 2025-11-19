@@ -6,7 +6,7 @@ export type RootStackParamList = {
   Map: { eventId: string };
   Points: { eventUUID: string };
   AddPhoto: { pointId: string };
-  AddPoint: { eventId: string } | { eventId: string; pointId: string };
+  AddPoint: { eventId: string } | { eventId: string; pointIdParam: string };
   Event: {
     UUID: string;
     Nom: string;

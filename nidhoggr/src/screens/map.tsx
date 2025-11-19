@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
+  Platform,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
@@ -119,7 +120,7 @@ export function MapScreen() {
       console.log(point);
       navigation.navigate("AddPoint", {
         eventId,
-        pointId: point.UUID,
+        pointIdParam: point.UUID,
       });
     } catch (e) {
       console.log(e);
@@ -174,26 +175,28 @@ export function MapScreen() {
             </View>
           </Marker>
         ))}
-        <TouchableOpacity
-          style={{
-            position: "absolute",
-            bottom: 10,
-            right: 10,
-            backgroundColor: "#9EC54D",
-            borderRadius: 25,
-            width: 50,
-            height: 50,
-            alignItems: "center",
-            justifyContent: "center",
-            filter: "invert(1)",
-          }}
-          onPress={recenterOnMap}
-        >
-          <Image
-            source={require("../../ressources/recentrer.png")}
-            style={{ width: 30, height: 30 }}
-          />
-        </TouchableOpacity>
+        {Platform.OS === "ios" && (
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              bottom: 10,
+              right: 10,
+              backgroundColor: "#9EC54D",
+              borderRadius: 25,
+              width: 50,
+              height: 50,
+              alignItems: "center",
+              justifyContent: "center",
+              filter: "invert(1)",
+            }}
+            onPress={recenterOnMap}
+          >
+            <Image
+              source={require("../../ressources/recentrer.png")}
+              style={{ width: 30, height: 30 }}
+            />
+          </TouchableOpacity>
+        )}
       </MapView>
 
       <TouchableOpacity

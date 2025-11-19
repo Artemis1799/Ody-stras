@@ -55,16 +55,19 @@ export async function insert<T>(
   table: string,
   data: Partial<T>
 ): Promise<void> {
-  const keys = Object.keys(data);
-  const placeholders = keys.map(() => "?").join(",");
+  try {
+    const keys = Object.keys(data);
+    const placeholders = keys.map(() => "?").join(",");
 
-  const query = `INSERT INTO ${table} (${keys.join(
-    ","
-  )}) VALUES (${placeholders})`;
-  console.log(query);
-  const values: any[] = Object.values(data);
+    const query = `INSERT INTO ${table} (${keys.join(
+      ","
+    )}) VALUES (${placeholders})`;
+    const values: any[] = Object.values(data);
 
-  await db.runAsync(query, values);
+    await db.runAsync(query, values);
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 export async function update<T>(
@@ -78,7 +81,6 @@ export async function update<T>(
   const setters = keys.map((k) => `${k} = ?`).join(",");
 
   const query = `UPDATE ${table} SET ${setters} WHERE ${where}`;
-  console.log(query);
   const values = [...Object.values(data), ...whereValues];
 
   await db.runAsync(query, values);

@@ -68,6 +68,7 @@ export function CreatePointScreen() {
   useEffect(() => {
     (async () => {
       try {
+        console.log("pointIdParam : " + pointIdParam);
         let newId = pointIdParam ?? uuid.v4();
         setPointId(newId);
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -91,7 +92,7 @@ export function CreatePointScreen() {
           },
           1000
         );
-        if (pointIdParam) {
+        if (!pointIdParam) {
           await insert<Point>(db, "Point", {
             UUID: newId,
             Event_ID: eventId,
@@ -102,8 +103,8 @@ export function CreatePointScreen() {
           });
         } else {
           const res = await getAllWhere<Point>(db, "Point", ["UUID"], [newId]);
-          if (res) {
-            setComment(res[0].Commentaire || "");
+          if (res[0]) {
+            setComment(res[0].Commentaire);
             if (res[0]?.Equipement_ID) setEquipment(res[0].Equipement_ID);
             if (res[0]?.Equipement_quantite)
               setQty(res[0].Equipement_quantite.toString());
