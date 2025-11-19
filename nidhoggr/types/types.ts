@@ -1,5 +1,37 @@
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
+export type RootStackParamList = {
+  EventScreen: Evenement;
+  Map: { eventId: string };
+  Points: { eventUUID: string };
+  AddPhoto: { pointId: string };
+  AddPoint: { eventId: string } | { eventId: string; pointId: string };
+  Event: {
+    UUID: string;
+    Nom: string;
+    Description: string;
+    Date_debut: string;
+    Status: string;
+  };
+  AddEvent: undefined;
+};
+
+export type EventScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "EventScreen"
+>;
+export interface createPointParams {
+  eventId: string;
+  pointIdParam: string;
+}
+export interface mapParams {
+  eventId: string;
+  eventName: string;
+}
+export interface pointPhotoParams {
+  pointId: string;
+}
 export interface Evenement {
   UUID: string;
   Nom: string;
@@ -31,8 +63,15 @@ export interface Point {
   Equipement_quantite: any;
   Equipement_ID: any;
   Event_ID: string;
+  Ordre?: number;
 }
-
+export interface PointOnMap {
+  UUID: string;
+  Latitude: Float;
+  Longitude: Float;
+  EquipType: any;
+  Equipement_quantite: number;
+}
 export interface UserLocation {
   latitude: number;
   longitude: number;
@@ -44,4 +83,10 @@ export interface EventScreenProps {
   eventDescription: string;
   eventDate: string;
   eventStatus: string;
+}
+
+export interface Photos {
+  UUID: string;
+  Picture: string;
+  Picture_name?: string;
 }

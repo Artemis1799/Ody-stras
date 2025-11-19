@@ -21,8 +21,10 @@ import DropDownPicker from "react-native-dropdown-picker";
 import {
   Equipement,
   EquipementList,
+  EventScreenNavigationProp,
   Point,
   UserLocation,
+  createPointParams,
 } from "../../types/types";
 import { getAll, getAllWhere, insert, update } from "../../database/queries";
 
@@ -30,7 +32,7 @@ export function CreatePointScreen() {
   const db = useSQLiteContext();
 
   const [open, setOpen] = useState(false);
-  const navigation = useNavigation();
+  const navigation = useNavigation<EventScreenNavigationProp>();
   const [comment, setComment] = useState("");
   const [qty, setQty] = useState("");
   const [equipmentList, setEquipmentList] = useState<EquipementList[]>([]);
@@ -39,7 +41,7 @@ export function CreatePointScreen() {
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const route = useRoute();
-  const eventId = route.params?.eventId;
+  const { eventId, pointIdParam } = route.params as createPointParams;
   const validate = async () => {
     try {
       await update<Point>(db, "Point", { Commentaire: comment }, "UUID = ?", [
@@ -66,7 +68,7 @@ export function CreatePointScreen() {
   useEffect(() => {
     (async () => {
       try {
-        let newId = route.params?.pointId ?? uuid.v4();
+        let newId = pointIdParam ?? uuid.v4();
         setPointId(newId);
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
@@ -89,7 +91,7 @@ export function CreatePointScreen() {
           },
           1000
         );
-        if (!route.params?.pointId) {
+        if (pointIdParam) {
           await insert<Point>(db, "Point", {
             UUID: newId,
             Event_ID: eventId,
