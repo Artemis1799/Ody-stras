@@ -42,15 +42,37 @@ export function CreatePointScreen() {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const route = useRoute();
   const { eventId, pointIdParam } = route.params as createPointParams;
+
+  const handleGoBack = async () => {
+    if (!pointIdParam) {
+      try {
+        await db.runAsync("DELETE FROM Point WHERE UUID = ?", [pointId]);
+        console.log("Point supprimé (non validé)");
+      } catch (error) {
+        console.log("Erreur lors de la suppression du point:", error);
+      }
+    }
+    navigation.goBack();
+  };
+
   const validate = async () => {
     try {
+      if (!comment) {
+        alert("Veuillez ajouter un commentaire");
+        return;
+      }
+      if (!equipment) {
+        alert("Veuillez sélectionner un type d'équipement");
+        return;
+      }
+      if (!qty || Number(qty) < 1) {
+        alert("Veuillez entrer une quantité supérieure à 0");
+        return;
+      }
+
       await update<Point>(db, "Point", { Commentaire: comment }, "UUID = ?", [
         pointId,
       ]);
-      if (!equipment) {
-        console.log("Aucun équipement sélectionné");
-        return;
-      }
       await update<Point>(
         db,
         "Point",
@@ -123,10 +145,11 @@ export function CreatePointScreen() {
       }
     })();
   }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={28} color="white" />
         </TouchableOpacity>
         <Image
