@@ -4,23 +4,23 @@ using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace t5_back.Models;
-public class Evenement
+public class Event
 {
     [Key]
     public Guid UUID { get; set; }
     
     [Required]
     [MaxLength(255)]
-    public string Nom { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     
     public string Description { get; set; } = string.Empty;
     
-    public DateTime? DateDebut { get; set; }
+    public DateTime? StartDate { get; set; }
     
     [Required]
-    public EvenementStatus Status { get; set; }
+    public EventStatus Status { get; set; }
     
-    public Guid? Responsable { get; set; }
+    public Guid? ResponsibleId { get; set; }
     
     [JsonIgnore]
     public ICollection<Point>? Points { get; set; }
