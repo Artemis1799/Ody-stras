@@ -17,35 +17,27 @@ import {
 import { useSQLiteContext } from "expo-sqlite";
 
 import { Ionicons } from "@expo/vector-icons";
-
-interface PointType {
-  UUID: string;
-  Event_ID: string;
-  Latitude: number;
-  Longitude: number;
-  Commentaire: string;
-  Image_ID: string;
-  Ordre: number;
-  Valide: boolean;
-  Created: string;
-  Modified: string;
-}
+import { EventScreenNavigationProp, Point } from "../../types/types";
+import { getAllWhere, update } from "../../database/queries";
 
 export default function PointsScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<EventScreenNavigationProp>();
   const route = useRoute();
   const { eventUUID } = route.params as { eventUUID: string };
   const db = useSQLiteContext();
-  const [points, setPoints] = useState<PointType[]>([]);
+  const [points, setPoints] = useState<Point[]>([]);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       const getPoints = async () => {
         try {
-          const data: PointType[] = await db.getAllAsync(
-            "SELECT * FROM Point WHERE Event_ID = ? ORDER BY Ordre ASC",
-            [eventUUID]
+          const data: Point[] = await getAllWhere<Point>(
+            db,
+            "Point",
+            ["Event_ID"],
+            [eventUUID],
+            "Ordre ASC"
           );
           console.log(data);
           setPoints(data);
@@ -61,56 +53,74 @@ export default function PointsScreen() {
     }, [db, eventUUID])
   );
 
-  const movePoint = async (index: number, direction: 'up' | 'down') => {
+  const movePoint = async (index: number, direction: "up" | "down") => {
     if (
-      (direction === 'up' && index === 0) ||
-      (direction === 'down' && index === points.length - 1)
+      (direction === "up" && index === 0) ||
+      (direction === "down" && index === points.length - 1)
     ) {
       return;
     }
 
-    console.log('=== AVANT DÉPLACEMENT ===');
-    points.forEach((p, i) => console.log(`Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${p.Ordre}, Commentaire=${p.Commentaire}`));
+    console.log("=== AVANT DÉPLACEMENT ===");
+    points.forEach((p, i) =>
+      console.log(
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
+          p.Ordre
+        }, Commentaire=${p.Commentaire}`
+      )
+    );
 
     const newPoints = [...points];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+
     // Échanger les éléments
-    [newPoints[index], newPoints[targetIndex]] = [newPoints[targetIndex], newPoints[index]];
-    
+    [newPoints[index], newPoints[targetIndex]] = [
+      newPoints[targetIndex],
+      newPoints[index],
+    ];
+
     // Mettre à jour les numéros d'ordre de tous les points
-    const updatedPoints = newPoints.map((point, idx) => ({
+    const updatedPoints: Point[] = newPoints.map((point, idx) => ({
       ...point,
-      Ordre: idx + 1
+      Ordre: idx + 1,
     }));
-    
-    console.log('=== APRÈS DÉPLACEMENT ===');
-    updatedPoints.forEach((p, i) => console.log(`Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${p.Ordre}, Commentaire=${p.Commentaire}`));
-    
+
+    console.log("=== APRÈS DÉPLACEMENT ===");
+    updatedPoints.forEach((p, i) =>
+      console.log(
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
+          p.Ordre
+        }, Commentaire=${p.Commentaire}`
+      )
+    );
+
     setPoints(updatedPoints);
 
     // Mettre à jour l'ordre dans la base de données
     try {
-      console.log('=== MISE À JOUR BDD ===');
+      console.log("=== MISE À JOUR BDD ===");
       for (let i = 0; i < updatedPoints.length; i++) {
-        console.log(`UPDATE Point SET Ordre=${updatedPoints[i].Ordre} WHERE UUID=${updatedPoints[i].UUID.substring(0, 8)}`);
-        await db.runAsync(
-          "UPDATE Point SET Ordre = ? WHERE UUID = ?",
-          [updatedPoints[i].Ordre, updatedPoints[i].UUID]
-        );
+        if (updatedPoints[i].Ordre)
+          await update<Point>(
+            db,
+            "Point",
+            { Ordre: updatedPoints[i].Ordre },
+            "UUID = ?",
+            [updatedPoints[i].UUID]
+          );
       }
-      console.log('=== MISE À JOUR BDD TERMINÉE ===');
+      console.log("=== MISE À JOUR BDD TERMINÉE ===");
     } catch (err) {
       console.error("Erreur lors de la mise à jour de l'ordre:", err);
       Alert.alert("Erreur", "Impossible de mettre à jour l'ordre des points.");
     }
   };
 
-  const renderItem = ({ item, index }: { item: PointType; index: number }) => (
+  const renderItem = ({ item, index }: { item: Point; index: number }) => (
     <View style={styles.pointItemContainer}>
       <View style={styles.reorderButtons}>
         <TouchableOpacity
-          onPress={() => movePoint(index, 'up')}
+          onPress={() => movePoint(index, "up")}
           disabled={index === 0}
           style={styles.reorderButton}
         >
@@ -121,7 +131,7 @@ export default function PointsScreen() {
           />
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => movePoint(index, 'down')}
+          onPress={() => movePoint(index, "down")}
           disabled={index === points.length - 1}
           style={styles.reorderButton}
         >
@@ -137,7 +147,7 @@ export default function PointsScreen() {
         onPress={() =>
           navigation.navigate("AddPoint", {
             eventId: eventUUID,
-            pointId: item.UUID,
+            pointIdParam: item.UUID,
           })
         }
       >
@@ -177,7 +187,12 @@ export default function PointsScreen() {
           style={styles.simulateButton}
           onPress={() => navigation.navigate("SimulateScreen", { eventUUID })}
         >
-          <Ionicons name="navigate" size={20} color="white" style={styles.buttonIcon} />
+          <Ionicons
+            name="navigate"
+            size={20}
+            color="white"
+            style={styles.buttonIcon}
+          />
           <Text style={styles.simulateButtonText}>Simuler l'itinéraire</Text>
         </TouchableOpacity>
       </View>

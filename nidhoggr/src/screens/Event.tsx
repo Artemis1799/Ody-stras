@@ -12,20 +12,17 @@ import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useNavigation, useRoute } from "@react-navigation/native";
-
-interface EventScreenProps {
-  eventUUID: string;
-  eventName: string;
-  eventDescription: string;
-  eventDate: string;
-  eventStatus: string;
-}
+import { Evenement, EventScreenNavigationProp } from "../../types/types";
 
 export default function EventScreen() {
   const route = useRoute();
-  const eventId = route.params?.eventUUID;
-  const { eventUUID, eventName, eventDescription, eventDate, eventStatus } =
-    route.params as EventScreenProps;
+  const {
+    UUID: eventUUID,
+    Nom: eventName,
+    Description: eventDescription,
+    Date_debut: eventDate,
+    Status: eventStatus,
+  } = route.params as Evenement;
 
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -60,7 +57,7 @@ export default function EventScreen() {
     })();
   }, []);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<EventScreenNavigationProp>();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -122,7 +119,7 @@ export default function EventScreen() {
           <TouchableOpacity
             style={styles.pointsButton}
             onPress={() => {
-              navigation.navigate("Map", { eventId: eventId });
+              navigation.navigate("Map", { eventId: eventUUID });
             }}
           >
             <Text style={styles.buttonText}>Ajouter des points</Text>

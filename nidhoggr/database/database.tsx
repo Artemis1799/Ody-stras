@@ -1,4 +1,5 @@
 import { SQLiteDatabase } from "expo-sqlite";
+import * as SQLite from "expo-sqlite";
 
 export async function setupDatabase(db: SQLiteDatabase) {
   console.log("Initialisation de la base…");
@@ -61,7 +62,9 @@ export async function setupDatabase(db: SQLiteDatabase) {
     );
   `);
 
-  const rows = await db.getAllAsync("SELECT COUNT(*) AS count FROM Equipement");
+  const rows: { count: number }[] = await db.getAllAsync(
+    "SELECT COUNT(*) AS count FROM Equipement"
+  );
 
   if (rows[0].count === 0) {
     console.log("Insertion des équipements par défaut…");
@@ -82,6 +85,23 @@ export async function setupDatabase(db: SQLiteDatabase) {
   } else {
     console.log("Équipements déjà présents.");
   }
-
   console.log("Base initialisée !");
+}
+
+export async function deleteDatabase(
+  db: SQLiteDatabase,
+  dbName: string = "base.db"
+) {
+  if (!db) {
+    throw new Error("DB non initialisée — appelle initDatabase() dans App.tsx");
+  }
+  try {
+    await db.closeAsync();
+    const res = await SQLite.deleteDatabaseAsync(dbName);
+    console.log("Base supprimée :", res);
+    return true;
+  } catch (e) {
+    console.error("Erreur lors de la suppression :", e);
+    return false;
+  }
 }

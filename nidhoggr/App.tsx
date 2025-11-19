@@ -12,7 +12,7 @@ import  SimulateScreen from "./src/screens/simulateScreen";
 import PointsScreen from "./src/screens/points";
 import EventScreen from "./src/screens/Event";
 
-import { setupDatabase } from "./src/hooks/databaseSetup";
+import { setupDatabase } from "./database/database";
 import { SQLiteProvider } from "expo-sqlite";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 

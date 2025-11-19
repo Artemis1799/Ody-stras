@@ -11,49 +11,32 @@ import {
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
-import { deleteDatabase } from "../hooks/databaseReset";
-import { Ionicons } from "@expo/vector-icons";
+import { deleteDatabase } from "../../database/database";
 
-interface eventType {
-  UUID: string;
-  Nom: string;
-  Date_debut: Date;
-  Status: string;
-  Responsable: string;
-}
+import { Ionicons } from "@expo/vector-icons";
+import { Evenement, EventScreenNavigationProp } from "../../types/types";
+import { getAll } from "../../database/queries";
 
 export function EventListScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<EventScreenNavigationProp>();
   const db = useSQLiteContext();
-  const [events, setEvents] = useState<eventType[]>([]);
+  const [events, setEvents] = useState<Evenement[]>([]);
   const [loading, setLoading] = useState(true);
 
   const resetDatabase = async () => {
     try {
-      await db.execAsync(`
-      DELETE FROM Image_Point;
-      DELETE FROM Photo;
-      DELETE FROM Point_Equipement;
-      DELETE FROM Equipement;
-      DELETE FROM Point;
-      DELETE FROM Evenement;
-  
-      VACUUM;
-    `);
-      deleteDatabase("base.db", db);
+      deleteDatabase(db, "base.db");
     } catch (e) {
       console.log(e);
     }
-    console.log("Base vidée !");
+    console.log("Base supprimée !");
   };
 
   useFocusEffect(
     useCallback(() => {
       const getEvents = async () => {
         try {
-          const data: eventType[] = await db.getAllAsync(
-            "SELECT * FROM Evenement"
-          );
+          const data = await getAll<Evenement>(db, "Evenement");
           console.log(data);
           setEvents(data);
         } catch (err) {
@@ -67,16 +50,16 @@ export function EventListScreen() {
       getEvents();
     }, [db])
   );
-  const renderItem = ({ item }: { item: eventType }) => (
+  const renderItem = ({ item }: { item: Evenement }) => (
     <TouchableOpacity
       style={styles.eventItem}
       onPress={() => {
         navigation.navigate("Event", {
-          eventUUID: item.UUID,
-          eventName: item.Nom,
-          eventDescription: item.Description || "",
-          eventDate: item.Date_debut,
-          eventStatus: item.Status,
+          UUID: item.UUID,
+          Nom: item.Nom,
+          Description: item.Description || "",
+          Date_debut: item.Date_debut,
+          Status: item.Status,
         });
       }}
     >

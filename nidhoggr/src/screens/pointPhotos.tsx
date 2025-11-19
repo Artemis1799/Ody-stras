@@ -13,30 +13,22 @@ import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 import uuid from "react-native-uuid";
+import { Photos, pointPhotoParams } from "../../types/types";
+import { getPhotosForPoint, insert } from "../../database/queries";
 
 export function PointPhotosScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const db = useSQLiteContext();
 
-  const pointId = route.params?.pointId;
-  const [photos, setPhotos] = useState([]);
+  const { pointId } = route.params as pointPhotoParams;
+  const [photos, setPhotos] = useState<Photos[]>([]);
 
   const loadPhotos = async () => {
     try {
-      const result = await db.getAllAsync(
-        `SELECT Photo.* FROM Photo
-         JOIN Image_Point ON Photo.UUID = Image_Point.Image_ID
-         WHERE Image_Point.Point_ID = ?`,
-        [pointId]
-      );
-
-      setPhotos(
-        result.map((p) => ({
-          id: p.UUID,
-          base64: p.Picture,
-        }))
-      );
+      const result: Photos[] = await getPhotosForPoint(db, pointId);
+      console.log(result);
+      setPhotos(result);
     } catch (e) {
       console.log(e);
     }
@@ -63,20 +55,19 @@ export function PointPhotosScreen() {
 
       const base64 = res.assets[0].base64;
       const photoId = uuid.v4();
+      if (base64) {
+        await insert<Photos>(db, "Photo", {
+          UUID: photoId,
+          Picture: base64,
+          Picture_name: `${photoId}.jpg`,
+        });
+        await insert(db, "Image_Point", {
+          Image_ID: photoId,
+          Point_ID: pointId,
+        });
 
-      await db.runAsync(
-        `INSERT INTO Photo (UUID, Picture, Picture_name)
-         VALUES (?, ?, ?)`,
-        [photoId, base64, `${photoId}.jpg`]
-      );
-
-      await db.runAsync(
-        `INSERT INTO Image_Point (Image_ID, Point_ID)
-         VALUES (?, ?)`,
-        [photoId, pointId]
-      );
-
-      setPhotos((prev) => [...prev, { id: photoId, base64 }]);
+        setPhotos((prev) => [...prev, { UUID: photoId, Picture: base64 }]);
+      }
     } catch (e) {
       console.log(e);
     }
@@ -99,8 +90,8 @@ export function PointPhotosScreen() {
       <ScrollView contentContainerStyle={styles.photoContainer}>
         {photos.map((photo) => (
           <Image
-            key={photo.id}
-            source={{ uri: `data:image/jpeg;base64,${photo.base64}` }}
+            key={photo.UUID}
+            source={{ uri: `data:image/jpeg;base64,${photo.Picture}` }}
             style={styles.photo}
           />
         ))}

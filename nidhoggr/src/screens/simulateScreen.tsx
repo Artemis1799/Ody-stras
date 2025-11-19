@@ -12,27 +12,16 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, Polyline } from "react-native-maps";
-
-interface PointType {
-  UUID: string;
-  Event_ID: string;
-  Latitude: number;
-  Longitude: number;
-  Commentaire: string;
-  Image_ID: string;
-  Ordre: number;
-  Valide: boolean;
-  Created: string;
-  Modified: string;
-}
+import { EventScreenNavigationProp, Point } from "../../types/types";
+import { getAllWhere } from "../../database/queries";
 
 export default function SimulateScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<EventScreenNavigationProp>();
   const route = useRoute();
   const { eventUUID } = route.params as { eventUUID: string };
   const db = useSQLiteContext();
 
-  const [points, setPoints] = useState<PointType[]>([]);
+  const [points, setPoints] = useState<Point[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPosition, setCurrentPosition] = useState<{
     latitude: number;
@@ -42,7 +31,7 @@ export default function SimulateScreen() {
   const [distance, setDistance] = useState(0);
   const [completedPoints, setCompletedPoints] = useState<number[]>([]);
 
-  const simulationInterval = useRef<NodeJS.Timeout | null>(null);
+  const simulationInterval = useRef<number | null>(null);
   const mapRef = useRef<MapView>(null);
 
   // Seuil de détection d'arrivée (en mètres)
@@ -60,9 +49,12 @@ export default function SimulateScreen() {
 
   const loadPoints = async () => {
     try {
-      const data: PointType[] = await db.getAllAsync(
-        "SELECT * FROM Point WHERE Event_ID = ? ORDER BY Ordre ASC",
-        [eventUUID]
+      const data: Point[] = await getAllWhere<Point>(
+        db,
+        "Point",
+        ["Event_ID"],
+        [eventUUID],
+        "Ordre ASC"
       );
       setPoints(data);
       if (data.length > 0) {
@@ -178,29 +170,36 @@ export default function SimulateScreen() {
     if (currentIndex < points.length - 1) {
       // Passer au point suivant
       const nextIndex = currentIndex + 1;
-      
+
       Alert.alert(
         "Point atteint ! 🎯",
-        `Vous êtes arrivé à ${points[currentIndex].Commentaire || `Point ${points[currentIndex].Ordre}`}.\n\nDirection: ${points[nextIndex].Commentaire || `Point ${points[nextIndex].Ordre}`}`,
-        [{ 
-          text: "Continuer",
-          onPress: () => {
-            setCurrentIndex(nextIndex);
-            // Centrer la carte sur le nouveau point
-            if (mapRef.current) {
-              mapRef.current.animateToRegion({
-                latitude: points[nextIndex].Latitude,
-                longitude: points[nextIndex].Longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              });
-            }
-            // Redémarrer la simulation après un court délai
-            setTimeout(() => {
-              setIsSimulating(true);
-            }, 500);
-          }
-        }]
+        `Vous êtes arrivé à ${
+          points[currentIndex].Commentaire ||
+          `Point ${points[currentIndex].Ordre}`
+        }.\n\nDirection: ${
+          points[nextIndex].Commentaire || `Point ${points[nextIndex].Ordre}`
+        }`,
+        [
+          {
+            text: "Continuer",
+            onPress: () => {
+              setCurrentIndex(nextIndex);
+              // Centrer la carte sur le nouveau point
+              if (mapRef.current) {
+                mapRef.current.animateToRegion({
+                  latitude: points[nextIndex].Latitude,
+                  longitude: points[nextIndex].Longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                });
+              }
+              // Redémarrer la simulation après un court délai
+              setTimeout(() => {
+                setIsSimulating(true);
+              }, 500);
+            },
+          },
+        ]
       );
     } else {
       // Tous les points ont été visités
@@ -289,10 +288,7 @@ export default function SimulateScreen() {
       >
         {/* Position actuelle */}
         {currentPosition && (
-          <Marker
-            coordinate={currentPosition}
-            anchor={{ x: 0.5, y: 0.5 }}
-          >
+          <Marker coordinate={currentPosition} anchor={{ x: 0.5, y: 0.5 }}>
             <View style={styles.currentPositionMarker}>
               <View style={styles.currentPositionDot} />
             </View>
@@ -356,7 +352,12 @@ export default function SimulateScreen() {
             style={[
               styles.progressFill,
               {
-                width: `${((currentIndex + completedPoints.filter(i => i === currentIndex).length) / points.length) * 100}%`,
+                width: `${
+                  ((currentIndex +
+                    completedPoints.filter((i) => i === currentIndex).length) /
+                    points.length) *
+                  100
+                }%`,
               },
             ]}
           />
