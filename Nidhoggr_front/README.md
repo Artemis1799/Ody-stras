@@ -78,3 +78,45 @@ Notes:
 - The image builds the app (requires dev dependencies) and then installs only production dependencies in the final image.
 - If you have a `package-lock.json`, it will be used for deterministic installs. If not, `npm install` is used during the build.
 - Adjust `PORT` if you prefer a different port.
+
+## Local tile map (Eurométropole de Strasbourg)
+
+This project can display a local tile map (MBTiles) served by `tileserver-gl`.
+
+1. Install the tile server globally (requires npm):
+
+```powershell
+cd Nidhoggr_front
+nvm install 22.12.0 
+nvm use 22.12.0
+npm install -g tileserver-gl
+```
+
+2. Install `leaflet` in the project (adds map rendering library):
+
+```powershell
+cd Nidhoggr_front #(if needed)
+npm install --save leaflet 
+npm install maplibre-gl
+```
+
+3. Start the local tile server using the provided MBTiles file (`src/assets/tiles/tiles.mbtiles`):
+
+```powershell
+tileserver-gl --file "src/assets/tiles/tiles.mbtiles" --port 8080
+```
+
+By default `tileserver-gl` listens on port `8080`. Open `http://localhost:8080` to see the available styles and tile endpoints.
+
+4. Start the Angular app (in another terminal):
+
+```powershell
+cd Nidhoggr_front #(if needed)
+npm run start
+```
+
+5. Open the app at `http://localhost:4200/`. The root page contains a Leaflet map centered on Strasbourg and will try to load tiles from the local tile server.
+
+Notes:
+- The code probes a few common tileserver endpoints (for example `/data/tiles/{z}/{x}/{y}.png` or `/tiles/{z}/{x}/{y}.png`). If your tileserver exposes a different path, update the tile URL in `src/app/app.component.ts`.
+- The map is currently fixed to center/zoom for the Eurométropole de Strasbourg. Adjust the coordinates or zoom in `src/app/app.component.ts` as needed.
