@@ -30,5 +30,11 @@ var app = builder.Build();
 // enable CORS
 app.UseCors("AllowAngularDev");
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 app.MapControllers();
 app.Run();
