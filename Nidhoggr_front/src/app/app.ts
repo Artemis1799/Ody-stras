@@ -1,4 +1,9 @@
 import { Component, signal, OnInit } from '@angular/core';
+import { forkJoin } from 'rxjs';
+import { PointService } from '../service/PointService';
+import { PhotoService } from '../service/PhotoService';
+import { ImagePointService } from '../service/ImagePointsService';
+import { EquipmentService } from '../service/EquipmentService';
 
 @Component({
   selector: 'app-root',
@@ -7,9 +12,27 @@ import { Component, signal, OnInit } from '@angular/core';
 })
 export class App implements OnInit {
   protected readonly title = signal('Nidhoggr_front');
+
+  constructor(
+    private pointService: PointService,
+    private photoService: PhotoService,
+    private imagePointService: ImagePointService,
+    private equipmentService: EquipmentService,
+  ) {}
   async ngOnInit(): Promise<void> {
     try {
       if (typeof window === 'undefined') { return; }
+
+      // load data from services and log results (non-blocking)
+      forkJoin({
+        points: this.pointService.getAll(),
+        photos: this.photoService.getAll(),
+        imagePoints: this.imagePointService.getAll(),
+        equipments: this.equipmentService.getAll(),
+      }).subscribe({
+        next: result => console.log('App: data loaded', result),
+        error: err => console.error('App: error loading data', err),
+      });
       const L: any = (window as any).L;
       const center: [number, number] = [48.5846, 7.7507];
       const map = L.map('map', { center, zoom: 12 });
@@ -24,11 +47,6 @@ export class App implements OnInit {
       };
       const candidates = [
         '/assets/tiles/tiles/{z}/{x}/{y}.png',
-        '/assets/tiles/tiles/{z}/{x}/{y}.jpg',
-        '/assets/tiles/tiles/{z}/{x}/{y}.webp',
-        // 'http://localhost:8080/data/tiles/{z}/{x}/{y}.png',
-        // 'http://localhost:8080/tiles/{z}/{x}/{y}.png',
-        // 'http://localhost:8080/{z}/{x}/{y}.png'
       ];
       const saved = localStorage.getItem('tileUrlTemplate');
       if (saved) candidates.unshift(saved);
