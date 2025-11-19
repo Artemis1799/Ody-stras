@@ -44,24 +44,49 @@ export function CreatePointScreen() {
   const { eventId, pointIdParam } = route.params as createPointParams;
   const validate = async () => {
     try {
-      await update<Point>(db, "Point", { Commentaire: comment }, "UUID = ?", [
-        pointId,
-      ]);
-      if (!equipment) {
-        console.log("Aucun équipement sélectionné");
+      if (!comment.trim()) {
+        alert("Veuillez saisir un commentaire");
         return;
       }
-      await update<Point>(
-        db,
-        "Point",
-        { Equipement_quantite: Number(qty), Equipement_ID: equipment },
-        "UUID = ?",
-        [pointId]
-      );
+      if (!equipment) {
+        alert("Veuillez sélectionner un équipement");
+        return;
+      }
+      if (!qty || Number(qty) <= 0) {
+        alert("Veuillez saisir une quantité valide");
+        return;
+      }
+
+      if (pointIdParam) {
+        // Mode édition : mettre à jour le point existant
+        await update<Point>(db, "Point", { 
+          Commentaire: comment,
+          Equipement_quantite: Number(qty), 
+          Equipement_ID: equipment 
+        }, "UUID = ?", [
+          pointId,
+        ]);
+      } else {
+        // Mode création : créer le nouveau point
+        if (!userLocation) {
+          alert("Localisation non disponible");
+          return;
+        }
+        await insert<Point>(db, "Point", {
+          UUID: pointId,
+          Event_ID: eventId,
+          Latitude: userLocation.latitude,
+          Longitude: userLocation.longitude,
+          Commentaire: comment,
+          Equipement_ID: equipment,
+          Equipement_quantite: Number(qty),
+        });
+      }
 
       navigation.goBack();
     } catch (e) {
       console.log(e);
+      alert("Erreur lors de la validation");
     }
   };
 
@@ -92,16 +117,9 @@ export function CreatePointScreen() {
           },
           1000
         );
-        if (!pointIdParam) {
-          await insert<Point>(db, "Point", {
-            UUID: newId,
-            Event_ID: eventId,
-            Latitude: coords.latitude,
-            Longitude: coords.longitude,
-            Equipement_ID: "f50252ce-31bb-4c8b-a70c-51b7bb630bc3",
-            Equipement_quantite: 0,
-          });
-        } else {
+        
+        if (pointIdParam) {
+          // Mode édition : charger les données existantes
           const res = await getAllWhere<Point>(db, "Point", ["UUID"], [newId]);
           if (res[0]) {
             setComment(res[0].Commentaire);
@@ -189,7 +207,7 @@ export function CreatePointScreen() {
             style={styles.dropdown}
           />
           <TextInput
-            placeholder="Quantité"
+            placeholder="Quantité (obligatoire)"
             style={styles.input}
             keyboardType="numeric"
             value={qty}
