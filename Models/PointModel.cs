@@ -35,11 +35,11 @@ public class Point
 	public int EquipmentQuantity { get; set; } = 0;
     
     [ForeignKey("EventId")]
-    public Event Event { get; set; }
+    public Event? Event { get; set; }
 
-	[ForeignKey("EquipmentId")]
-    public Equipment Equipment { get; set; }
+    [ForeignKey("EquipmentId")]
+    public Equipment? Equipment { get; set; }
     
-	[JsonIgnore]
-    public ICollection<ImagePoint> ImagePoints { get; set; }
+    [JsonIgnore]
+    public ICollection<ImagePoint> ImagePoints { get; set; } = new List<ImagePoint>();
 }

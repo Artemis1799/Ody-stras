@@ -9,6 +9,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<IEquipmentService, EquipmentService>();
+builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IPointService, PointService>();
+builder.Services.AddScoped<IImagePointService, ImagePointService>();
 
 var app = builder.Build();
 
