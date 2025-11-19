@@ -132,6 +132,11 @@ export default function EventScreen() {
             <Text style={styles.buttonText}>Gestion des points</Text>
           </TouchableOpacity>
         </View>
+        <View>
+          <TouchableOpacity style={styles.exportButton} onPress={() => navigation.navigate("ExportEvent", { eventUUID })}>
+            <Text style={styles.buttonText}>Exporter l'événement</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -221,6 +226,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
+  },
+  exportButton: {
+    backgroundColor: "#8FB34E",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    marginLeft: 20,
+    marginRight: 20,
   },
   buttonText: {
     color: "white",
