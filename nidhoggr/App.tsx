@@ -7,7 +7,7 @@ import { EventListScreen } from "./src/screens/eventList";
 import { CreatePointScreen } from "./src/screens/createPoint";
 import { PointPhotosScreen } from "./src/screens/pointPhotos";
 import { MapScreen } from "./src/screens/map";
-import  SimulateScreen from "./src/screens/simulateScreen";
+import SimulateScreen from "./src/screens/simulateScreen";
 
 import PointsScreen from "./src/screens/points";
 import EventScreen from "./src/screens/Event";
@@ -15,6 +15,7 @@ import EventScreen from "./src/screens/Event";
 import { setupDatabase } from "./database/database";
 import { SQLiteProvider } from "expo-sqlite";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import exportEventScreen from "./src/screens/exportEvent";
 
 const Stack = createNativeStackNavigator();
 
@@ -38,6 +39,7 @@ export default function App() {
           <Stack.Screen name="Map" component={MapScreen} />
           <Stack.Screen name="Points" component={PointsScreen} />
           <Stack.Screen name="SimulateScreen" component={SimulateScreen} />
+          <Stack.Screen name="ExportEvent" component={exportEventScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SQLiteProvider>
