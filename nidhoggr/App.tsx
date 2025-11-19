@@ -7,6 +7,7 @@ import { EventListScreen } from "./src/screens/eventList";
 import { CreatePointScreen } from "./src/screens/createPoint";
 import { PointPhotosScreen } from "./src/screens/pointPhotos";
 import { MapScreen } from "./src/screens/map";
+import  SimulateScreen from "./src/screens/simulateScreen";
 
 import PointsScreen from "./src/screens/points";
 import EventScreen from "./src/screens/Event";
@@ -36,6 +37,7 @@ export default function App() {
           <Stack.Screen name="AddPhoto" component={PointPhotosScreen} />
           <Stack.Screen name="Map" component={MapScreen} />
           <Stack.Screen name="Points" component={PointsScreen} />
+          <Stack.Screen name="SimulateScreen" component={SimulateScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SQLiteProvider>
@@ -44,7 +46,6 @@ export default function App() {
 
 /*
   <Stack.Screen name="PointDetails" component={PointDetailsScreen} />
-  <Stack.Screen name="SimulateScreen" component={SimulateScreen} />
 */
 const styles = StyleSheet.create({
   container: {

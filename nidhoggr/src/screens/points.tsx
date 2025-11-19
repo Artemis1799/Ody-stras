@@ -61,24 +61,95 @@ export default function PointsScreen() {
     }, [db, eventUUID])
   );
 
-  const renderItem = ({ item }: { item: PointType }) => (
-    <TouchableOpacity
-      style={styles.pointItem}
-      onPress={() =>
-        navigation.navigate("AddPoint", {
-          eventId: eventUUID,
-          pointId: item.UUID,
-        })
+  const movePoint = async (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) ||
+      (direction === 'down' && index === points.length - 1)
+    ) {
+      return;
+    }
+
+    console.log('=== AVANT DÉPLACEMENT ===');
+    points.forEach((p, i) => console.log(`Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${p.Ordre}, Commentaire=${p.Commentaire}`));
+
+    const newPoints = [...points];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Échanger les éléments
+    [newPoints[index], newPoints[targetIndex]] = [newPoints[targetIndex], newPoints[index]];
+    
+    // Mettre à jour les numéros d'ordre de tous les points
+    const updatedPoints = newPoints.map((point, idx) => ({
+      ...point,
+      Ordre: idx + 1
+    }));
+    
+    console.log('=== APRÈS DÉPLACEMENT ===');
+    updatedPoints.forEach((p, i) => console.log(`Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${p.Ordre}, Commentaire=${p.Commentaire}`));
+    
+    setPoints(updatedPoints);
+
+    // Mettre à jour l'ordre dans la base de données
+    try {
+      console.log('=== MISE À JOUR BDD ===');
+      for (let i = 0; i < updatedPoints.length; i++) {
+        console.log(`UPDATE Point SET Ordre=${updatedPoints[i].Ordre} WHERE UUID=${updatedPoints[i].UUID.substring(0, 8)}`);
+        await db.runAsync(
+          "UPDATE Point SET Ordre = ? WHERE UUID = ?",
+          [updatedPoints[i].Ordre, updatedPoints[i].UUID]
+        );
       }
-    >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.Ordre}</Text>
+      console.log('=== MISE À JOUR BDD TERMINÉE ===');
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour de l'ordre:", err);
+      Alert.alert("Erreur", "Impossible de mettre à jour l'ordre des points.");
+    }
+  };
+
+  const renderItem = ({ item, index }: { item: PointType; index: number }) => (
+    <View style={styles.pointItemContainer}>
+      <View style={styles.reorderButtons}>
+        <TouchableOpacity
+          onPress={() => movePoint(index, 'up')}
+          disabled={index === 0}
+          style={styles.reorderButton}
+        >
+          <Ionicons
+            name="chevron-up"
+            size={20}
+            color={index === 0 ? "#ccc" : "#666"}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => movePoint(index, 'down')}
+          disabled={index === points.length - 1}
+          style={styles.reorderButton}
+        >
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={index === points.length - 1 ? "#ccc" : "#666"}
+          />
+        </TouchableOpacity>
       </View>
-      <Text style={styles.pointName}>
-        {item.Commentaire || `Point ${item.Ordre}`}
-      </Text>
-      <Ionicons name="chevron-forward-outline" size={20} color="#000" />
-    </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.pointItem}
+        onPress={() =>
+          navigation.navigate("AddPoint", {
+            eventId: eventUUID,
+            pointId: item.UUID,
+          })
+        }
+      >
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{item.Ordre}</Text>
+        </View>
+        <Text style={styles.pointName}>
+          {item.Commentaire || `Point ${item.Ordre}`}
+        </Text>
+        <Ionicons name="chevron-forward-outline" size={20} color="#000" />
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -101,12 +172,15 @@ export default function PointsScreen() {
         contentContainerStyle={styles.listContainer}
       />
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => console.log("Add point")}
-      >
-        <Ionicons name="add" size={30} color="white" />
-      </TouchableOpacity>
+      <View style={styles.bottomButtonContainer}>
+        <TouchableOpacity
+          style={styles.simulateButton}
+          onPress={() => navigation.navigate("SimulateScreen", { eventUUID })}
+        >
+          <Ionicons name="navigate" size={20} color="white" style={styles.buttonIcon} />
+          <Text style={styles.simulateButtonText}>Simuler l'itinéraire</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -139,7 +213,20 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 20,
   },
+  pointItemContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  reorderButtons: {
+    marginRight: 8,
+    justifyContent: "center",
+  },
+  reorderButton: {
+    padding: 4,
+  },
   pointItem: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
@@ -168,19 +255,29 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
   },
-  fab: {
-    position: "absolute",
-    bottom: 25,
-    right: 25,
+  bottomButtonContainer: {
+    padding: 20,
+    paddingBottom: 25,
+    backgroundColor: "#f8f8fc",
+  },
+  simulateButton: {
     backgroundColor: "#A6CE39",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 12,
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 4,
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  simulateButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
