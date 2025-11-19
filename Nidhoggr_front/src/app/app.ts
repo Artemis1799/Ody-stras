@@ -23,12 +23,12 @@ export class App implements OnInit {
         }
       };
       const candidates = [
-        '/assets/tiles/export/{z}/{x}/{y}.png',
-        '/assets/tiles/export/{z}/{x}/{y}.jpg',
-        '/assets/tiles/export/{z}/{x}/{y}.webp',
-        'http://localhost:8080/data/tiles/{z}/{x}/{y}.png',
-        'http://localhost:8080/tiles/{z}/{x}/{y}.png',
-        'http://localhost:8080/{z}/{x}/{y}.png'
+        '/assets/tiles/tiles/{z}/{x}/{y}.png',
+        '/assets/tiles/tiles/{z}/{x}/{y}.jpg',
+        '/assets/tiles/tiles/{z}/{x}/{y}.webp',
+        // 'http://localhost:8080/data/tiles/{z}/{x}/{y}.png',
+        // 'http://localhost:8080/tiles/{z}/{x}/{y}.png',
+        // 'http://localhost:8080/{z}/{x}/{y}.png'
       ];
       const saved = localStorage.getItem('tileUrlTemplate');
       if (saved) candidates.unshift(saved);

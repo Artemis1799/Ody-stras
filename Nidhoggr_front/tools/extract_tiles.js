@@ -10,19 +10,30 @@ function ensureDirSync(dir) {
 function detectExt(buffer) {
   if (buffer.length >= 4) {
     const head = buffer.slice(0, 4);
-    // PNG
+    // PNG signature
     if (head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4E && head[3] === 0x47) return 'png';
-    // JPEG
+    // JPEG signature
     if (head[0] === 0xFF && head[1] === 0xD8) return 'jpg';
-    // WEBP (RIFF....WEBP)
-    if (head.toString() === 'RIFF' && buffer.slice(8, 12).toString() === 'WEBP') return 'webp';
+    // WEBP (needs more bytes)
+    if (buffer.length >= 12) {
+      const riff = buffer.slice(0, 4).toString();
+      const webp = buffer.slice(8, 12).toString();
+      if (riff === 'RIFF' && webp === 'WEBP') return 'webp';
+    }
   }
   return 'png';
 }
 
-function tmsToY(z, tmsY) {
-  const max = Math.pow(2, z);
-  return (max - 1) - tmsY;
+function tmsToXYZ(z, x, tmsY) {
+  // MBTiles uses TMS (Tile Map Service) coordinate system
+  // where Y=0 is at the bottom
+  // We need to convert to XYZ (Slippy Map) where Y=0 is at the top
+  const maxY = Math.pow(2, z) - 1;
+  return {
+    z: z,
+    x: x,
+    y: maxY - tmsY
+  };
 }
 
 function main() {
@@ -37,39 +48,98 @@ function main() {
   console.log('Opening MBTiles:', mbtilesPath);
   const db = new Database(mbtilesPath, { readonly: true });
 
-  // Try to detect format from metadata
-  let format = null;
+  // Get metadata
   try {
-    const meta = db.prepare("SELECT value FROM metadata WHERE name = 'format'").get();
-    if (meta && meta.value) format = meta.value;
+    const metaRows = db.prepare("SELECT name, value FROM metadata").all();
+    console.log('\nMetadata:');
+    metaRows.forEach(row => {
+      console.log(`  ${row.name}: ${row.value}`);
+    });
   } catch (e) {
-    // ignore
+    console.log('Could not read metadata');
   }
-  console.log('Detected metadata format:', format || '(unknown)');
 
+  // Get tile statistics
+  try {
+    const stats = db.prepare(`
+      SELECT 
+        MIN(zoom_level) as min_zoom,
+        MAX(zoom_level) as max_zoom,
+        COUNT(*) as total_tiles
+      FROM tiles
+    `).get();
+    console.log('\nTile Statistics:');
+    console.log(`  Zoom levels: ${stats.min_zoom} - ${stats.max_zoom}`);
+    console.log(`  Total tiles: ${stats.total_tiles}`);
+  } catch (e) {
+    console.log('Could not read tile statistics');
+  }
+
+  // Extract tiles
   const stmt = db.prepare('SELECT zoom_level AS z, tile_column AS x, tile_row AS tms_y, tile_data AS data FROM tiles');
-  const rows = stmt.iterate();
+  const rows = stmt.all();
+  
+  console.log('\nExtracting tiles...');
   let count = 0;
+  let errorCount = 0;
+  const formatCounts = { png: 0, jpg: 0, webp: 0 };
+
   for (const row of rows) {
-    const z = row.z;
-    const x = row.x;
-    const tmsY = row.tms_y;
-    const data = row.data;
-    const y = tmsToY(z, tmsY);
-    const buf = Buffer.from(data);
+    const { z, x, y } = tmsToXYZ(row.z, row.x, row.tms_y);
+    
+    // Ensure data is a Buffer
+    let buf;
+    if (Buffer.isBuffer(row.data)) {
+      buf = row.data;
+    } else {
+      buf = Buffer.from(row.data);
+    }
+
+    // Verify buffer is valid
+    if (buf.length === 0) {
+      console.error(`Empty tile data at z=${z}, x=${x}, y=${y}`);
+      errorCount++;
+      continue;
+    }
+
     const ext = detectExt(buf);
+    formatCounts[ext] = (formatCounts[ext] || 0) + 1;
+
     const dir = path.join(outRoot, String(z), String(x));
     ensureDirSync(dir);
     const outFile = path.join(dir, `${y}.${ext}`);
+    
     try {
       fs.writeFileSync(outFile, buf);
-      count += 1;
-      if (count % 1000 === 0) process.stdout.write(`Extracted ${count} tiles...\r`);
+      count++;
+      if (count % 100 === 0) {
+        process.stdout.write(`\rExtracted ${count}/${rows.length} tiles...`);
+      }
     } catch (e) {
-      console.error('Failed writing file', outFile, e);
+      console.error(`\nFailed writing ${outFile}:`, e.message);
+      errorCount++;
     }
   }
-  console.log(`\nExtraction complete. ${count} tiles written to ${outRoot}`);
+
+  console.log(`\n\nExtraction complete!`);
+  console.log(`  Successfully written: ${count} tiles`);
+  console.log(`  Errors: ${errorCount}`);
+  console.log(`  Output directory: ${outRoot}`);
+  console.log(`\nFormat breakdown:`);
+  Object.entries(formatCounts).forEach(([format, cnt]) => {
+    console.log(`  ${format}: ${cnt} tiles`);
+  });
+
+  // Show sample tile locations for testing
+  if (count > 0) {
+    console.log('\nSample tile locations (for testing):');
+    const samples = rows.slice(0, 3);
+    samples.forEach(row => {
+      const { z, x, y } = tmsToXYZ(row.z, row.x, row.tms_y);
+      console.log(`  /${z}/${x}/${y}.${detectExt(Buffer.from(row.data))}`);
+    });
+  }
+
   db.close();
 }
 
