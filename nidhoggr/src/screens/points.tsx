@@ -172,12 +172,15 @@ export default function PointsScreen() {
         contentContainerStyle={styles.listContainer}
       />
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => console.log("Add point")}
-      >
-        <Ionicons name="add" size={30} color="white" />
-      </TouchableOpacity>
+      <View style={styles.bottomButtonContainer}>
+        <TouchableOpacity
+          style={styles.simulateButton}
+          onPress={() => navigation.navigate("SimulateScreen", { eventUUID })}
+        >
+          <Ionicons name="navigate" size={20} color="white" style={styles.buttonIcon} />
+          <Text style={styles.simulateButtonText}>Simuler l'itinéraire</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -252,19 +255,29 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
   },
-  fab: {
-    position: "absolute",
-    bottom: 25,
-    right: 25,
+  bottomButtonContainer: {
+    padding: 20,
+    paddingBottom: 25,
+    backgroundColor: "#f8f8fc",
+  },
+  simulateButton: {
     backgroundColor: "#A6CE39",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 12,
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 4,
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  simulateButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
