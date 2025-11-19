@@ -142,6 +142,12 @@ export function CreatePointScreen() {
               latitudeDelta: 0.01,
               longitudeDelta: 0.01,
             }}
+            showsUserLocation={true}
+            showsMyLocationButton={true}
+            followsUserLocation={true}
+            showsCompass={true}
+            rotateEnabled={true}
+            pitchEnabled={true}
           >
             <Marker
               coordinate={{

@@ -42,6 +42,12 @@
           "cameraPermission": "L'application a besoin d'accéder à votre caméra pour prendre une photo.",
           "photosPermission": "L'application doit accéder à vos photos pour les afficher."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
       ]
     ],
     "extra": {
