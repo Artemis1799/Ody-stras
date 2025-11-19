@@ -38,11 +38,23 @@ export function CreatePointScreen() {
   const [equipmentList, setEquipmentList] = useState<EquipementList[]>([]);
   const [equipment, setEquipment] = useState<string | null>(null);
   const [pointId, setPointId] = useState("");
-  const [isNewPoint, setIsNewPoint] = useState(false);
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const route = useRoute();
   const { eventId, pointIdParam } = route.params as createPointParams;
+
+  const handleGoBack = async () => {
+    if (!pointIdParam && (!comment || !equipment || !qty || Number(qty) < 1)) {
+      try {
+        await db.runAsync("DELETE FROM Point WHERE UUID = ?", [pointId]);
+        console.log("Point supprimé (non validé)");
+      } catch (error) {
+        console.log("Erreur lors de la suppression du point:", error);
+      }
+    }
+    navigation.goBack();
+  };
+
   const validate = async () => {
     try {
       if (!comment) {
@@ -69,7 +81,6 @@ export function CreatePointScreen() {
         [pointId]
       );
 
-      setIsNewPoint(false);
       navigation.goBack();
     } catch (e) {
       console.log(e);
@@ -112,7 +123,6 @@ export function CreatePointScreen() {
             Equipement_ID: "f50252ce-31bb-4c8b-a70c-51b7bb630bc3",
             Equipement_quantite: 0,
           });
-          setIsNewPoint(true);
         } else {
           const res = await getAllWhere<Point>(db, "Point", ["UUID"], [newId]);
           if (res[0]) {
@@ -136,24 +146,10 @@ export function CreatePointScreen() {
     })();
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", async (e) => {
-      if (isNewPoint && (!comment || !equipment || !qty || Number(qty) < 1)) {
-        try {
-          await db.runAsync("DELETE FROM Point WHERE UUID = ?", [pointId]);
-          console.log("Point supprimé (non validé)");
-        } catch (error) {
-          console.log("Erreur lors de la suppression du point:", error);
-        }
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation, isNewPoint, comment, equipment, qty, pointId, db]);
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={28} color="white" />
         </TouchableOpacity>
         <Image
