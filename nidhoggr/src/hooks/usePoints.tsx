@@ -1,14 +1,6 @@
 import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useState } from "react";
 
-interface pointType {
-  UUID: string;
-  Nom: string;
-  Date_debut: Date;
-  Status: string;
-  Responsable: string;
-}
-
 export function usePoints(eventId: string) {
   const db = useSQLiteContext();
   const [points, setPoints] = useState([]);

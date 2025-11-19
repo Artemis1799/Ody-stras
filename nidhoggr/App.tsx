@@ -11,7 +11,7 @@ import { MapScreen } from "./src/screens/map";
 import PointsScreen from "./src/screens/points";
 import EventScreen from "./src/screens/Event";
 
-import { setupDatabase } from "./src/hooks/databaseSetup";
+import { setupDatabase } from "./database/database";
 import { SQLiteProvider } from "expo-sqlite";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 

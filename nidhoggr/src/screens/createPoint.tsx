@@ -18,77 +18,44 @@ import * as Location from "expo-location";
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import { useSQLiteContext } from "expo-sqlite";
 import DropDownPicker from "react-native-dropdown-picker";
-interface equipementType {
-  UUID: string;
-  Type: string;
-  Description?: string;
-  Unite?: string;
-  Stock_total: Float;
-  Stock_restant: Float;
-}
-interface equipementListType {
-  label: string;
-  value: string;
-}
-interface point_equipementType {
-  Point_ID: string;
-  Equipement_ID: string;
-  Quantite: Int16Array;
-}
-interface pointType {
-  Equipement_quantite: any;
-  Equipement_ID: any;
-  UUID: string;
-  Latitude: Float;
-  Longitude: Float;
-  Commentaire: string;
-}
+import {
+  Equipement,
+  EquipementList,
+  Point,
+  UserLocation,
+} from "../../types/types";
+import { getAll, getAllWhere, insert, update } from "../../database/queries";
+
 export function CreatePointScreen() {
+  const db = useSQLiteContext();
+
   const [open, setOpen] = useState(false);
   const navigation = useNavigation();
   const [comment, setComment] = useState("");
   const [qty, setQty] = useState("");
-  const [equipmentList, setEquipmentList] = useState<equipementListType[]>([]);
+  const [equipmentList, setEquipmentList] = useState<EquipementList[]>([]);
   const [equipment, setEquipment] = useState<string | null>(null);
   const [pointId, setPointId] = useState("");
   const mapRef = useRef<MapView>(null);
-  const [userLocation, setUserLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  const db = useSQLiteContext();
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const route = useRoute();
   const eventId = route.params?.eventId;
   const validate = async () => {
     try {
-      await db.runAsync("UPDATE Point SET Commentaire = ? WHERE UUID = ?", [
-        comment,
+      await update<Point>(db, "Point", { Commentaire: comment }, "UUID = ?", [
         pointId,
       ]);
       if (!equipment) {
         console.log("Aucun équipement sélectionné");
         return;
       }
-      await db.runAsync(
-        "UPDATE Point SET Equipement_quantite = ?, Equipement_ID = ? WHERE UUID = ? ",
-        [qty, equipment, pointId]
+      await update<Point>(
+        db,
+        "Point",
+        { Equipement_quantite: qty, Equipement_ID: equipment },
+        "UUID = ?",
+        [pointId]
       );
-      /*const exist = await db.getAllAsync(
-        "SELECT * FROM Point_Equipement WHERE Point_ID = ? AND Equipement_ID = ?",
-        [pointId, equipment]
-      );
-
-      if (exist.length > 0) {
-      await db.runAsync(
-        "UPDATE Point_Equipement SET Quantite = ? Equipement_ID = ? WHERE Point_ID = ? ",
-        [qty, equipment, pointId]
-      );
-       } else {
-        await db.runAsync(
-          "INSERT INTO Point_Equipement (Point_ID, Equipement_ID, Quantite) VALUES (?, ?, ?)",
-          [pointId, equipment, qty]
-        );
-      }*/
 
       navigation.goBack();
     } catch (e) {
@@ -123,36 +90,25 @@ export function CreatePointScreen() {
           1000
         );
         if (!route.params?.pointId) {
-          await db.runAsync(
-            "INSERT INTO Point (UUID, Event_ID, Latitude, Longitude, Equipement_ID, Equipement_quantite) VALUES (?, ?, ?, ?, ?, ?)",
-            [
-              newId,
-              eventId,
-              coords.latitude,
-              coords.longitude,
-              "f50252ce-31bb-4c8b-a70c-51b7bb630bc3",
-              0,
-            ]
-          );
+          await insert<Point>(db, "Point", {
+            UUID: newId,
+            Event_ID: eventId,
+            Latitude: coords.latitude,
+            Longitude: coords.longitude,
+            Equipement_ID: "f50252ce-31bb-4c8b-a70c-51b7bb630bc3",
+            Equipement_quantite: 0,
+          });
         } else {
-          const res: pointType[] = await db.getAllAsync(
-            "SELECT * FROM Point WHERE UUID = ?",
-            [newId]
-          );
-          setComment(res[0].Commentaire);
-
-          /*const exist: point_equipementType[] = await db.getAllAsync(
-            "SELECT * FROM Point_Equipement WHERE Point_ID = ?",
-            [newId]
-          );*/
-          if (res[0]?.Equipement_ID) setEquipment(res[0].Equipement_ID);
-          if (res[0]?.Equipement_quantite)
-            setQty(res[0].Equipement_quantite.toString());
+          const res = await getAllWhere<Point>(db, "Point", ["UUID"], [newId]);
+          if (res) {
+            setComment(res[0].Commentaire || "");
+            if (res[0]?.Equipement_ID) setEquipment(res[0].Equipement_ID);
+            if (res[0]?.Equipement_quantite)
+              setQty(res[0].Equipement_quantite.toString());
+          }
         }
 
-        const equipments: equipementType[] = await db.getAllAsync(
-          "SELECT * FROM Equipement"
-        );
+        const equipments = await getAll<Equipement>(db, "Equipement");
         setEquipmentList(
           equipments.map((e) => ({
             label: e.Type,
@@ -179,55 +135,57 @@ export function CreatePointScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1 }}>
           <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: userLocation?.latitude || 48.5839,
-          longitude: userLocation?.longitude || 7.7455,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-      >
-        <Marker
-          coordinate={{
-            latitude: userLocation?.latitude || 48.5839,
-            longitude: userLocation?.longitude || 7.7455,
-          }}
-        />
-      </MapView>
+            style={styles.map}
+            initialRegion={{
+              latitude: userLocation?.latitude || 48.5839,
+              longitude: userLocation?.longitude || 7.7455,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }}
+          >
+            <Marker
+              coordinate={{
+                latitude: userLocation?.latitude || 48.5839,
+                longitude: userLocation?.longitude || 7.7455,
+              }}
+            />
+          </MapView>
 
-      <TextInput
-        placeholder="Commentaire"
-        style={styles.inputComment}
-        multiline
-        value={comment}
-        onChangeText={setComment}
-      />
+          <TextInput
+            placeholder="Commentaire"
+            style={styles.inputComment}
+            multiline
+            value={comment}
+            onChangeText={setComment}
+          />
 
-      <TouchableOpacity
-        style={styles.inputFake}
-        onPress={() => navigation.navigate("AddPhoto", { pointId: pointId })}
-      >
-        <Text>Photos</Text>
-        <Text>→</Text>
-      </TouchableOpacity>
-      <DropDownPicker
-        open={open}
-        value={equipment}
-        items={equipmentList}
-        setOpen={setOpen}
-        setValue={setEquipment}
-        setItems={setEquipmentList}
-        placeholder="Sélectionnez un équipement"
-        listMode="SCROLLVIEW"
-        style={styles.dropdown}
-      />
-      <TextInput
-        placeholder="Quantité"
-        style={styles.input}
-        keyboardType="numeric"
-        value={qty}
-        onChangeText={setQty}
-      />
+          <TouchableOpacity
+            style={styles.inputFake}
+            onPress={() =>
+              navigation.navigate("AddPhoto", { pointId: pointId })
+            }
+          >
+            <Text>Photos</Text>
+            <Text>→</Text>
+          </TouchableOpacity>
+          <DropDownPicker
+            open={open}
+            value={equipment}
+            items={equipmentList}
+            setOpen={setOpen}
+            setValue={setEquipment}
+            setItems={setEquipmentList}
+            placeholder="Sélectionnez un équipement"
+            listMode="SCROLLVIEW"
+            style={styles.dropdown}
+          />
+          <TextInput
+            placeholder="Quantité"
+            style={styles.input}
+            keyboardType="numeric"
+            value={qty}
+            onChangeText={setQty}
+          />
 
           <TouchableOpacity style={styles.validateButton} onPress={validate}>
             <Text style={styles.validateButtonText}>Valider</Text>

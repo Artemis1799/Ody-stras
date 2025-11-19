@@ -7,20 +7,17 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Cette app utilise la caméra pour prendre des photos."
       }
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -28,13 +25,15 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.adelaye.nidhoggr"
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
     },
-
     "plugins": [
       "expo-sqlite",
       [
@@ -44,6 +43,11 @@
           "photosPermission": "L'application doit accéder à vos photos pour les afficher."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "469667ae-a578-49f9-a775-3a4e80e283e5"
+      }
+    }
   }
 }

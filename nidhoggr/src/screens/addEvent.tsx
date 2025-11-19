@@ -10,10 +10,11 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
-import { v4 as uuidv4 } from "uuid";
 import { useSQLiteContext } from "expo-sqlite";
 import uuid from "react-native-uuid";
 import { useNavigation } from "@react-navigation/native";
+import { insert } from "../../database/queries";
+import { Evenement } from "../../types/types";
 
 export function CreateEventScreen() {
   const navigation = useNavigation();
@@ -26,10 +27,13 @@ export function CreateEventScreen() {
   const handleSubmit = async () => {
     console.log({ nom, description, dateDebut });
     try {
-      const insert = await db.runAsync(
-        "INSERT INTO Evenement (UUID, Nom, Description, Date_debut, Status) VALUES (?, ?, ?, ?, ?)",
-        [uuid.v4(), nom, description, dateDebut.toISOString(), "A_ORGANISER"]
-      );
+      await insert<Evenement>(db, "Evenement", {
+        UUID: uuid.v4(),
+        Nom: nom,
+        Description: description,
+        Date_debut: dateDebut.toISOString(),
+        Status: "A_ORGANISER",
+      });
       navigation.goBack();
     } catch (e) {
       console.log(e);
