@@ -179,55 +179,61 @@ export function CreatePointScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1 }}>
           <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: userLocation?.latitude || 48.5839,
-          longitude: userLocation?.longitude || 7.7455,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-      >
-        <Marker
-          coordinate={{
-            latitude: userLocation?.latitude || 48.5839,
-            longitude: userLocation?.longitude || 7.7455,
-          }}
-        />
-      </MapView>
+            style={styles.map}
+            initialRegion={{
+              latitude: userLocation?.latitude || 48.5839,
+              longitude: userLocation?.longitude || 7.7455,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }}
+            showsUserLocation={true}
+            showsMyLocationButton={true}
+            followsUserLocation={true}
+            showsCompass={true}
+            rotateEnabled={true}
+            pitchEnabled={true}
+          >
+            <Marker
+              coordinate={{
+                latitude: userLocation?.latitude || 48.5839,
+                longitude: userLocation?.longitude || 7.7455,
+              }}
+            />
+          </MapView>
 
-      <TextInput
-        placeholder="Commentaire"
-        style={styles.inputComment}
-        multiline
-        value={comment}
-        onChangeText={setComment}
-      />
+          <TextInput
+            placeholder="Commentaire"
+            style={styles.inputComment}
+            multiline
+            value={comment}
+            onChangeText={setComment}
+          />
 
-      <TouchableOpacity
-        style={styles.inputFake}
-        onPress={() => navigation.navigate("AddPhoto", { pointId: pointId })}
-      >
-        <Text>Photos</Text>
-        <Text>→</Text>
-      </TouchableOpacity>
-      <DropDownPicker
-        open={open}
-        value={equipment}
-        items={equipmentList}
-        setOpen={setOpen}
-        setValue={setEquipment}
-        setItems={setEquipmentList}
-        placeholder="Sélectionnez un équipement"
-        listMode="SCROLLVIEW"
-        style={styles.dropdown}
-      />
-      <TextInput
-        placeholder="Quantité"
-        style={styles.input}
-        keyboardType="numeric"
-        value={qty}
-        onChangeText={setQty}
-      />
+          <TouchableOpacity
+            style={styles.inputFake}
+            onPress={() => navigation.navigate("AddPhoto", { pointId: pointId })}
+          >
+            <Text>Photos</Text>
+            <Text>→</Text>
+          </TouchableOpacity>
+          <DropDownPicker
+            open={open}
+            value={equipment}
+            items={equipmentList}
+            setOpen={setOpen}
+            setValue={setEquipment}
+            setItems={setEquipmentList}
+            placeholder="Sélectionnez un équipement"
+            listMode="SCROLLVIEW"
+            style={styles.dropdown}
+          />
+          <TextInput
+            placeholder="Quantité"
+            style={styles.input}
+            keyboardType="numeric"
+            value={qty}
+            onChangeText={setQty}
+          />
 
           <TouchableOpacity style={styles.validateButton} onPress={validate}>
             <Text style={styles.validateButtonText}>Valider</Text>

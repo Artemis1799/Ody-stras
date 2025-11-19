@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,15 +8,31 @@ import {
   useFocusEffect,
 } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
+import * as Location from 'expo-location';
+
 
 export function MapScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const db = useSQLiteContext();
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const mapRef = useRef<MapView>(null);
 
   const { eventId, eventName } = route.params;
 
   const [points, setPoints] = useState([]);
+
+  const recenterOnMap = () => {
+    if (latitude && longitude && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: latitude,
+        longitude: longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 1000);
+    }
+  };
 
   const loadPoints = async () => {
     try {
@@ -52,6 +68,37 @@ export function MapScreen() {
     }, [db])
   );
 
+  useEffect(() => {
+    const getLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.log('Permission de localisation refusée');
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        setLatitude(location.coords.latitude);
+        setLongitude(location.coords.longitude);
+
+        // Centrer la carte sur la position de l'utilisateur
+        if (mapRef.current) {
+          mapRef.current.animateToRegion({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }, 1000);
+        }
+      } catch (error) {
+        console.log('Erreur lors de la récupération de la localisation:', error);
+      }
+    };
+
+    getLocation();
+  }, []);
+
+
   const handleMarkerPress = (point) => {
     try {
       console.log(point);
@@ -78,10 +125,16 @@ export function MapScreen() {
       </View>
 
       <MapView
+        ref={mapRef}
         style={styles.map}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        showsCompass={true}
+        rotateEnabled={true}
+        pitchEnabled={true}
         initialRegion={{
-          latitude: 48.5846,
-          longitude: 7.7507,
+          latitude: latitude ?? 48.5839,
+          longitude: longitude ?? 7.7507,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }}
@@ -104,6 +157,26 @@ export function MapScreen() {
             </View>
           </Marker>
         ))}
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 10,
+            right: 10,
+            backgroundColor: '#9EC54D',
+            borderRadius: 25,
+            width: 50,
+            height: 50,
+            alignItems: 'center',
+            justifyContent: 'center',
+            filter: 'invert(1)',
+          }}
+          onPress={recenterOnMap}
+        >
+          <Image
+            source={require("../../ressources/recentrer.png")}
+            style={{ width: 30, height: 30 }}
+          />
+        </TouchableOpacity>
       </MapView>
 
       <TouchableOpacity
@@ -112,7 +185,7 @@ export function MapScreen() {
       >
         <Text style={styles.addButtonText}>Placer un point</Text>
       </TouchableOpacity>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 const styles = StyleSheet.create({
