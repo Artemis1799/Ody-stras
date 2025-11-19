@@ -20,13 +20,13 @@ public class Point
     
     public float? Longitude { get; set; }
     
-    public string Commentaire { get; set; }
+    public string? Comment { get; set; }
     
     public Guid? ImageId { get; set; }
     
-    public int? Ordre { get; set; }
+    public int? Order { get; set; }
     
-    public bool Valide { get; set; } = false;
+    public bool IsValid { get; set; } = false;
     
     public DateTime Created { get; set; } = DateTime.UtcNow;
     
@@ -35,7 +35,7 @@ public class Point
 	public int EquipmentQuantity { get; set; } = 0;
     
     [ForeignKey("EventId")]
-    public Evenement Evenement { get; set; }
+    public Event Event { get; set; }
 
 	[ForeignKey("EquipmentId")]
     public Equipment Equipment { get; set; }

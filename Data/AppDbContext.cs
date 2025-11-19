@@ -10,7 +10,7 @@ public class AppDbContext : DbContext
     {
     }
 
-    public DbSet<Evenement> Evenements { get; set; }
+    public DbSet<Event> Events { get; set; }
     public DbSet<Point> Points { get; set; }
     public DbSet<Photo> Photos { get; set; }
     public DbSet<ImagePoint> ImagePoints { get; set; }
@@ -22,7 +22,7 @@ public class AppDbContext : DbContext
             .HasKey(ip => new { ip.ImageId, ip.PointId });
 
         modelBuilder.Entity<Point>()
-            .HasOne(p => p.Evenement)
+            .HasOne(p => p.Event)
             .WithMany(e => e.Points)
             .HasForeignKey(p => p.EventId)
             .OnDelete(DeleteBehavior.Cascade);

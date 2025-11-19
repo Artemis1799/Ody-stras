@@ -15,11 +15,11 @@ public class Equipment
     public string Description { get; set; }
     
     [MaxLength(50)]
-    public string Unite { get; set; }
+    public string Unit { get; set; }
     
-    public float? StockTotal { get; set; }
+    public float? TotalStock { get; set; }
     
-    public float? StockRestant { get; set; }
+    public float? RemainingStock { get; set; }
     
     [JsonIgnore]
     public ICollection<Point>? Points { get; set; }

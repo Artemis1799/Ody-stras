@@ -27,10 +27,10 @@ namespace t5_back.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<float?>("StockRestant")
+                    b.Property<float?>("RemainingStock")
                         .HasColumnType("REAL");
 
-                    b.Property<float?>("StockTotal")
+                    b.Property<float?>("TotalStock")
                         .HasColumnType("REAL");
 
                     b.Property<string>("Type")
@@ -38,7 +38,7 @@ namespace t5_back.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Unite")
+                    b.Property<string>("Unit")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
@@ -48,25 +48,25 @@ namespace t5_back.Migrations
                     b.ToTable("Equipments");
                 });
 
-            modelBuilder.Entity("t5_back.Models.Evenement", b =>
+            modelBuilder.Entity("t5_back.Models.Event", b =>
                 {
                     b.Property<Guid>("UUID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("DateDebut")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Nom")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("Responsable")
+                    b.Property<Guid?>("ResponsibleId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StartDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Status")
@@ -74,7 +74,7 @@ namespace t5_back.Migrations
 
                     b.HasKey("UUID");
 
-                    b.ToTable("Evenements");
+                    b.ToTable("Events");
                 });
 
             modelBuilder.Entity("t5_back.Models.ImagePoint", b =>
@@ -118,8 +118,7 @@ namespace t5_back.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Commentaire")
-                        .IsRequired()
+                    b.Property<string>("Comment")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Created")
@@ -137,6 +136,9 @@ namespace t5_back.Migrations
                     b.Property<Guid?>("ImageId")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsValid")
+                        .HasColumnType("INTEGER");
+
                     b.Property<float?>("Latitude")
                         .HasColumnType("REAL");
 
@@ -146,10 +148,7 @@ namespace t5_back.Migrations
                     b.Property<DateTime>("Modified")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("Ordre")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("Valide")
+                    b.Property<int?>("Order")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("UUID");
@@ -188,7 +187,7 @@ namespace t5_back.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("t5_back.Models.Evenement", "Evenement")
+                    b.HasOne("t5_back.Models.Event", "Event")
                         .WithMany("Points")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -196,7 +195,7 @@ namespace t5_back.Migrations
 
                     b.Navigation("Equipment");
 
-                    b.Navigation("Evenement");
+                    b.Navigation("Event");
                 });
 
             modelBuilder.Entity("t5_back.Models.Equipment", b =>
@@ -204,7 +203,7 @@ namespace t5_back.Migrations
                     b.Navigation("Points");
                 });
 
-            modelBuilder.Entity("t5_back.Models.Evenement", b =>
+            modelBuilder.Entity("t5_back.Models.Event", b =>
                 {
                     b.Navigation("Points");
                 });
