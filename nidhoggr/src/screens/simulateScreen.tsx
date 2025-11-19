@@ -27,11 +27,14 @@ export default function SimulateScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [distance, setDistance] = useState(0);
   const [completedPoints, setCompletedPoints] = useState<number[]>([]);
+  const [isWaitingBetweenPoints, setIsWaitingBetweenPoints] = useState(false);
 
   const simulationInterval = useRef<number | null>(null);
+  const waitingTimeout = useRef<number | null>(null);
+  const hasMovedRef = useRef(false);
   const mapRef = useRef<MapView>(null);
 
   // Seuil de détection d'arrivée (en mètres)
@@ -93,7 +96,9 @@ export default function SimulateScreen() {
 
   // Effet pour gérer l'intervalle de simulation
   useEffect(() => {
-    if (!isSimulating || currentIndex >= points.length) {
+    console.log('useEffect simulation', { isRunning, currentIndex, hasMovedRef: hasMovedRef.current });
+    
+    if (!isRunning || currentIndex >= points.length) {
       if (simulationInterval.current) {
         clearInterval(simulationInterval.current);
         simulationInterval.current = null;
@@ -101,7 +106,8 @@ export default function SimulateScreen() {
       return;
     }
 
-    simulationInterval.current = setInterval(() => {
+    console.log('Démarrage de l\'intervalle de simulation');
+    simulationInterval.current = Number(setInterval(() => {
       setCurrentPosition((prevPos) => {
         if (!prevPos || currentIndex >= points.length) return prevPos;
 
@@ -115,8 +121,8 @@ export default function SimulateScreen() {
 
         setDistance(dist);
 
-        // Vérifier si on est arrivé au point
-        if (dist < ARRIVAL_THRESHOLD) {
+        // Vérifier si on est arrivé au point (seulement après avoir bougé)
+        if (dist < ARRIVAL_THRESHOLD && hasMovedRef.current) {
           handleArrival();
           return prevPos;
         }
@@ -126,99 +132,127 @@ export default function SimulateScreen() {
         const lonDiff = targetPoint.Longitude - prevPos.longitude;
         const ratio = Math.min(SIMULATION_SPEED / (dist / 111000), 1);
 
-        return {
+        const newPos = {
           latitude: prevPos.latitude + latDiff * ratio,
           longitude: prevPos.longitude + lonDiff * ratio,
         };
+
+        // Marquer qu'on a bougé
+        if (!hasMovedRef.current) {
+          hasMovedRef.current = true;
+        }
+
+        return newPos;
       });
-    }, 100);
+    }, 100));
 
     return () => {
       if (simulationInterval.current) {
         clearInterval(simulationInterval.current);
       }
     };
-  }, [isSimulating, currentIndex]);
+  }, [isRunning, currentIndex]);
 
-  // Démarrer la simulation
+  // Démarrer/reprendre la simulation
   const startSimulation = () => {
-    if (points.length === 0 || currentIndex >= points.length) {
+    if (points.length === 0) {
       Alert.alert("Info", "Aucun point à visiter.");
       return;
     }
-
-    setIsSimulating(true);
+    console.log('Démarrage/reprise simulation', {
+      currentIndex,
+      isRunning,
+      hasMovedRef: hasMovedRef.current,
+      completedPoints
+    });
+    
+    // Si le point actuel est déjà complété, passer au suivant
+    if (completedPoints.includes(currentIndex) && currentIndex < points.length - 1) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      hasMovedRef.current = false;
+      
+      // Centrer la carte sur le nouveau point
+      if (mapRef.current && points[nextIndex]) {
+        mapRef.current.animateToRegion({
+          latitude: points[nextIndex].Latitude,
+          longitude: points[nextIndex].Longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+    }
+    
+    setIsRunning(true);
   };
 
-  // Arrêter la simulation
-  const stopSimulation = () => {
-    setIsSimulating(false);
+  // Mettre en pause la simulation
+  const pauseSimulation = () => {
+    setIsRunning(false);
+    setIsWaitingBetweenPoints(false);
     if (simulationInterval.current) {
       clearInterval(simulationInterval.current);
       simulationInterval.current = null;
+    }
+    if (waitingTimeout.current) {
+      clearTimeout(waitingTimeout.current);
+      waitingTimeout.current = null;
     }
   };
 
   // Gérer l'arrivée à un point
   const handleArrival = () => {
-    // Arrêter la simulation d'abord pour éviter les boucles
-    stopSimulation();
-
+    // Vérifier si le point n'est pas déjà complété
+    if (completedPoints.includes(currentIndex)) {
+      return;
+    }
+    
+    // Marquer qu'on attend entre les points
+    setIsWaitingBetweenPoints(true);
+    setIsRunning(false);
+    hasMovedRef.current = false;
+    
     const newCompletedPoints = [...completedPoints, currentIndex];
     setCompletedPoints(newCompletedPoints);
+    
+    console.log(`Point ${currentIndex + 1} complété!`, newCompletedPoints);
 
     if (currentIndex < points.length - 1) {
-      // Passer au point suivant
-      const nextIndex = currentIndex + 1;
-
-      Alert.alert(
-        "Point atteint ! 🎯",
-        `Vous êtes arrivé à ${
-          points[currentIndex].Commentaire ||
-          `Point ${points[currentIndex].Ordre}`
-        }.\n\nDirection: ${
-          points[nextIndex].Commentaire || `Point ${points[nextIndex].Ordre}`
-        }`,
-        [
-          {
-            text: "Continuer",
-            onPress: () => {
-              setCurrentIndex(nextIndex);
-              // Centrer la carte sur le nouveau point
-              if (mapRef.current) {
-                mapRef.current.animateToRegion({
-                  latitude: points[nextIndex].Latitude,
-                  longitude: points[nextIndex].Longitude,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                });
-              }
-              // Redémarrer la simulation après un court délai
-              setTimeout(() => {
-                setIsSimulating(true);
-              }, 500);
-            },
-          },
-        ]
-      );
-    } else {
-      // Tous les points ont été visités
-      Alert.alert(
-        "Parcours terminé ! 🏁",
-        "Vous avez visité tous les points d'intérêt.",
-        [
-          {
-            text: "OK",
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      // Attendre 3 secondes avant de passer au point suivant
+      waitingTimeout.current = Number(setTimeout(() => {
+        const nextIndex = currentIndex + 1;
+        setCurrentIndex(nextIndex);
+        
+        // Centrer la carte sur le nouveau point
+        if (mapRef.current) {
+          mapRef.current.animateToRegion({
+            latitude: points[nextIndex].Latitude,
+            longitude: points[nextIndex].Longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+        }
+        
+        // Reprendre automatiquement
+        setIsWaitingBetweenPoints(false);
+        setIsRunning(true);
+      }, 3000));
     }
   };
 
   // Réinitialiser la simulation
   const resetSimulation = () => {
-    stopSimulation();
+    setIsRunning(false);
+    setIsWaitingBetweenPoints(false);
+    hasMovedRef.current = false;
+    if (simulationInterval.current) {
+      clearInterval(simulationInterval.current);
+      simulationInterval.current = null;
+    }
+    if (waitingTimeout.current) {
+      clearTimeout(waitingTimeout.current);
+      waitingTimeout.current = null;
+    }
     setCurrentIndex(0);
     setCompletedPoints([]);
     if (points.length > 0) {
@@ -352,19 +386,14 @@ export default function SimulateScreen() {
             style={[
               styles.progressFill,
               {
-                width: `${
-                  ((currentIndex +
-                    completedPoints.filter((i) => i === currentIndex).length) /
-                    points.length) *
-                  100
-                }%`,
+                width: `${(completedPoints.length / points.length) * 100}%`,
               },
             ]}
           />
         </View>
 
         <Text style={styles.progressText}>
-          Point {currentIndex + 1} / {points.length}
+          {completedPoints.length} / {points.length} points complétés
         </Text>
 
         {currentPoint && (
@@ -401,18 +430,25 @@ export default function SimulateScreen() {
 
       {/* Boutons de contrôle */}
       <View style={styles.controls}>
-        {!isSimulating ? (
+        {currentIndex >= points.length - 1 && completedPoints.length > 0 ? (
           <TouchableOpacity
             style={styles.startButton}
-            onPress={startSimulation}
+            onPress={resetSimulation}
           >
+            <Ionicons name="refresh" size={24} color="white" />
+            <Text style={styles.buttonText}>Recommencer le parcours</Text>
+          </TouchableOpacity>
+        ) : !isRunning && !isWaitingBetweenPoints ? (
+          <TouchableOpacity style={styles.startButton} onPress={startSimulation}>
             <Ionicons name="play" size={24} color="white" />
-            <Text style={styles.buttonText}>Démarrer</Text>
+            <Text style={styles.buttonText}>
+              {completedPoints.length > 0 ? "Reprendre" : "Démarrer le parcours"}
+            </Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.stopButton} onPress={stopSimulation}>
+          <TouchableOpacity style={styles.stopButton} onPress={pauseSimulation}>
             <Ionicons name="pause" size={24} color="white" />
-            <Text style={styles.buttonText}>Arrêter</Text>
+            <Text style={styles.buttonText}>Pause</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -593,6 +629,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 16,
     borderRadius: 12,
+  },
+  waitingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: "#F0F0F0",
+  },
+  waitingText: {
+    color: "#666",
+    fontSize: 18,
+    fontWeight: "600",
+    marginLeft: 8,
   },
   buttonText: {
     color: "white",
