@@ -44,7 +44,7 @@ export function CreatePointScreen() {
   const { eventId, pointIdParam } = route.params as createPointParams;
 
   const handleGoBack = async () => {
-    if (!pointIdParam && (!comment || !equipment || !qty || Number(qty) < 1)) {
+    if (!pointIdParam) {
       try {
         await db.runAsync("DELETE FROM Point WHERE UUID = ?", [pointId]);
         console.log("Point supprimé (non validé)");
