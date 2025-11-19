@@ -1,0 +1,59 @@
+.layout {
+	display: flex;
+	height: 100vh;
+	min-height: 100vh;
+}
+
+.sidebar {
+	width: 15%;
+	min-width: 180px;
+	background: #fafafa;
+	padding: 12px;
+	box-sizing: border-box;
+	border-right: 1px solid #e6e6e6;
+	overflow: auto;
+}
+
+.sidebar h3 {
+	margin: 0 0 8px 0;
+	font-size: 16px;
+}
+
+.map-area {
+	width: 85%;
+	flex: 1 1 auto;
+	position: relative;
+}
+
+#map {
+	height: 100%;
+	width: 100%;
+}
+
+#tile-control {
+	position: static;
+	z-index: 1;
+	background: transparent;
+	padding: 0;
+	display: block;
+	gap: 0;
+}
+
+#tile-control input {
+	width: 100%;
+	padding: 6px 8px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	box-sizing: border-box;
+}
+
+#tile-control button {
+	margin-top: 8px;
+	padding: 6px 10px;
+}
+
+#tileStatus {
+	margin-top: 8px;
+	font-size: 12px;
+	color: #333;
+}

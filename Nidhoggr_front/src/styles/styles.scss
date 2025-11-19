@@ -1,0 +1,15 @@
+html, body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+/* The component .layout handles the overall height; ensure root elements expand */
+app-root, body, html {
+	height: 100%;
+}
+
+#map {
+	height: 100%;
+	width: 100%;
+}
