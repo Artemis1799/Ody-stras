@@ -33,8 +33,15 @@ public class PointController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Point>> Create(Point point)
     {
-        var created = await _pointService.CreateAsync(point);
-        return CreatedAtAction(nameof(GetById), new { id = created.UUID }, created);
+        try
+        {
+            var created = await _pointService.CreateAsync(point);
+            return CreatedAtAction(nameof(GetById), new { id = created.UUID }, created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
     }
 
     [HttpPut("{id}")]

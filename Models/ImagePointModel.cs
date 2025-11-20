@@ -12,8 +12,8 @@ public class ImagePoint
     public Guid PointId { get; set; }
     
     [ForeignKey("ImageId")]
-    public Photo Photo { get; set; }
+    public Photo? Photo { get; set; }
     
     [ForeignKey("PointId")]
-    public Point Point { get; set; }
+    public Point? Point { get; set; }
 }
