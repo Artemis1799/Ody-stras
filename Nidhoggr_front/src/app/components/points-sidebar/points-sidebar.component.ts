@@ -6,6 +6,8 @@ import { PointService } from '../../../service/PointService';
 import { MapService } from '../../../service/MapService';
 import { Point } from '../../../classe/pointModel';
 import { Subscription } from 'rxjs';
+import * as QRCode from 'qrcode';
+import { WebSocketExportService } from '../../../service/WebSocketExportService';
 
 @Component({
   selector: 'app-points-sidebar',
@@ -20,11 +22,17 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   errorMessage = '';
   selectedPoint: Point | null = null;
   private pointsSubscription?: Subscription;
+  
+  // Modal QR Code
+  showQRModal = false;
+  qrCodeDataUrl = '';
+  wsUrl = 'ws://172.20.10.3:8765';
 
   constructor(
     private pointService: PointService,
     private mapService: MapService,
-    private router: Router
+    private router: Router,
+    private wsExportService: WebSocketExportService
   ) {}
 
   ngOnInit(): void {
@@ -155,5 +163,31 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         });
       }
     }, 100);
+  }
+
+  async openExportModal(): Promise<void> {
+    this.showQRModal = true;
+    
+    // Démarrer le serveur et se connecter
+    await this.wsExportService.startServerAndConnect();
+    
+    // Générer le QR code
+    try {
+      this.qrCodeDataUrl = await QRCode.toDataURL(this.wsUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+    } catch (error) {
+      console.error('Erreur génération QR code:', error);
+    }
+  }
+
+  closeExportModal(): void {
+    this.showQRModal = false;
+    this.wsExportService.disconnect();
   }
 }
