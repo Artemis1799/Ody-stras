@@ -1,16 +1,20 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { PointService } from '../../../service/PointService';
 import { MapService } from '../../../service/MapService';
+import { NominatimService, NominatimResult } from '../../../service/NominatimService';
 import { Point } from '../../../classe/pointModel';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { ExportPopup } from '../../shared/export-popup/export-popup';
 
 @Component({
   selector: 'app-points-sidebar',
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [CommonModule, DragDropModule, FormsModule, ExportPopup],
   templateUrl: './points-sidebar.component.html',
   styleUrls: ['./points-sidebar.component.scss']
 })
@@ -20,10 +24,20 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   errorMessage = '';
   selectedPoint: Point | null = null;
   private pointsSubscription?: Subscription;
+  
+  // Search properties
+  searchQuery = '';
+  searchResults: NominatimResult[] = [];
+  private searchSubject = new Subject<string>();
+  private searchSubscription?: Subscription;
+  
+  // Export popup
+  showExportPopup = false;
 
   constructor(
     private pointService: PointService,
     private mapService: MapService,
+    private nominatimService: NominatimService,
     private router: Router
   ) {}
 
@@ -36,11 +50,35 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         this.points = points;
       }
     });
+    
+    // Setup debounced search (300ms)
+    this.searchSubscription = this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(query => {
+        if (!query || query.trim().length < 2) {
+          this.searchResults = [];
+          return [];
+        }
+        return this.nominatimService.search(query);
+      })
+    ).subscribe({
+      next: (results) => {
+        this.searchResults = results;
+      },
+      error: (error) => {
+        console.error('Erreur lors de la recherche:', error);
+        this.searchResults = [];
+      }
+    });
   }
 
   ngOnDestroy(): void {
     if (this.pointsSubscription) {
       this.pointsSubscription.unsubscribe();
+    }
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
     }
   }
 
@@ -155,5 +193,49 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         });
       }
     }, 100);
+  }
+  
+  onSearch(): void {
+    // Trigger debounced search via Subject
+    this.searchSubject.next(this.searchQuery);
+  }
+  
+  goToLocation(result: NominatimResult): void {
+    const lat = parseFloat(result.lat);
+    const lon = parseFloat(result.lon);
+    
+    const map = this.mapService.getMapInstance();
+    if (map) {
+      map.setView([lat, lon], 16, {
+        animate: true,
+        duration: 0.5
+      });
+      
+      // Ajouter un marqueur temporaire
+      const L = (window as any).L;
+      if (L) {
+        const marker = L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup(result.display_name)
+          .openPopup();
+        
+        // Retirer le marqueur après 5 secondes
+        setTimeout(() => {
+          map.removeLayer(marker);
+        }, 5000);
+      }
+    }
+    
+    // Clear search
+    this.searchResults = [];
+    this.searchQuery = '';
+  }
+  
+  openExport(): void {
+    this.showExportPopup = true;
+  }
+  
+  closeExport(): void {
+    this.showExportPopup = false;
   }
 }
