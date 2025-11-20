@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { InputText } from 'primeng/inputtext';
 import { InputNumber } from 'primeng/inputnumber';
-import { Button } from 'primeng/button';
 import { EquipmentService } from '../../../service/EquipmentService';
 import { PointService } from '../../../service/PointService';
 import { Equipment } from '../../../classe/equipmentModel';
@@ -17,8 +16,7 @@ import { Point } from '../../../classe/pointModel';
     CommonModule,
     FormsModule,
     InputText,
-    InputNumber,
-    Button
+    InputNumber
   ],
   templateUrl: './equipment-manager.component.html',
   styleUrls: ['./equipment-manager.component.scss']

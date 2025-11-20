@@ -3,9 +3,13 @@ import { Subject } from 'rxjs';
 import { PointService } from './PointService';
 import { PhotoService } from './PhotoService';
 import { EquipmentService } from './EquipmentService';
+import { EventService } from './EventService';
+import { ImagePointService } from './ImagePointsService';
 import { Point } from '../classe/pointModel';
 import { Photo } from '../classe/photoModel';
 import { Equipment } from '../classe/equipmentModel';
+import { ImagePoint } from '../classe/imagePointsModel';
+import { EventStatus } from '../classe/eventModel';
 
 export interface WebSocketMessage {
   type: string;
@@ -23,11 +27,16 @@ export class WebSocketExportService {
   private existingPoints: Map<string, Point> = new Map();
   private existingPhotos: Map<string, Photo> = new Map();
   private existingEquipments: Map<string, Equipment> = new Map();
+  
+  // Event ID fixe pour tous les points
+  private readonly DEFAULT_EVENT_ID = '89a3c61e-b614-4cbf-9224-e159929ca26d';
 
   constructor(
     private pointService: PointService,
     private photoService: PhotoService,
-    private equipmentService: EquipmentService
+    private equipmentService: EquipmentService,
+    private eventService: EventService,
+    private imagePointService: ImagePointService
   ) {
     this.loadExistingData();
   }
@@ -81,6 +90,9 @@ export class WebSocketExportService {
    */
   async startServerAndConnect(): Promise<void> {
     console.log('🚀 Démarrage du processus de connexion WebSocket');
+    
+    // Créer l'Event par défaut si nécessaire
+    await this.ensureEventExists(this.DEFAULT_EVENT_ID);
     
     // Vérifier si le serveur tourne déjà
     const isRunning = await this.checkServerStatus();
@@ -157,13 +169,15 @@ export class WebSocketExportService {
         try {
           const parsedData = JSON.parse(event.data);
           console.log('📬 Message parsé:', parsedData);
+          console.log('📬 Type du message:', parsedData.type);
+          console.log('📬 Appel de processReceivedData...');
           this.processReceivedData(parsedData);
           this.progressSubject.next({
             type: 'message',
             data: parsedData
           });
         } catch (e) {
-          console.log('📬 Message texte reçu:', event.data);
+          console.log('📬 Message texte reçu (non-JSON):', event.data);
           this.progressSubject.next({
             type: 'message',
             data: event.data
@@ -179,29 +193,95 @@ export class WebSocketExportService {
   /**
    * Traite les données reçues du WebSocket
    */
-  private processReceivedData(data: any): void {
-    console.log('📨 Message WebSocket reçu');
+  private async processReceivedData(data: any): Promise<void> {
+    console.log('📨 Message WebSocket reçu dans processReceivedData');
     console.log('   Type:', data.type);
-    console.log('   Données:', data);
+    console.log('   data.point existe?', !!data.point);
+    console.log('   data.photo existe?', !!data.photo);
+    console.log('   Données complètes:', JSON.stringify(data, null, 2));
     
     if (data.type === 'point' && data.point) {
-      console.log('📍 Traitement d\'un point...');
-      this.processPoint(data.point);
+      console.log('✅ CONDITION POINT REMPLIE - Appel de processPoint');
+      try {
+        await this.processPoint(data.point);
+        console.log('✅ processPoint terminé');
+      } catch (error) {
+        console.error('❌ Erreur dans processPoint:', error);
+      }
     } else if (data.type === 'photo' && data.photo) {
-      console.log('📸 Traitement d\'une photo...');
-      this.processPhoto(data.photo, data.pointUUID);
+      console.log('✅ CONDITION PHOTO REMPLIE - Appel de processPhoto');
+      try {
+        await this.processPhoto(data.photo, data.pointUUID);
+        console.log('✅ processPhoto terminé');
+      } catch (error) {
+        console.error('❌ Erreur dans processPhoto:', error);
+      }
     } else if (data.type === 'end') {
-      console.log('✅ Fin de réception - Rechargement des données');
-      this.loadExistingData();
+      console.log('✅ CONDITION END REMPLIE - Rechargement des données');
+      try {
+        await this.loadExistingData();
+        console.log('✅ loadExistingData terminé');
+      } catch (error) {
+        console.error('❌ Erreur dans loadExistingData:', error);
+      }
     } else {
-      console.log('⚠️ Type de message non géré ou données manquantes');
+      console.log('⚠️ AUCUNE CONDITION REMPLIE');
+      console.log('   Type de message:', data.type);
+      console.log('   Données manquantes ou type non géré');
+    }
+  }
+
+  /**
+   * Vérifie si un Event existe, sinon le crée
+   */
+  private async ensureEventExists(eventId: string): Promise<void> {
+    console.log('   🔍 Vérification Event:', eventId);
+    
+    try {
+      await new Promise<void>((resolve, reject) => {
+        this.eventService.getById(eventId).subscribe({
+          next: () => {
+            console.log('   ✅ Event existe déjà');
+            resolve();
+          },
+          error: (err) => {
+            if (err.status === 404) {
+              console.log('   ➕ Event n\'existe pas, création...');
+              
+              const newEvent = {
+                uuid: eventId,
+                name: 'Event Mobile Import',
+                description: 'Event créé automatiquement lors de l\'import des données mobiles',
+                startDate: new Date(),
+                status: EventStatus.Active
+              };
+              
+              this.eventService.create(newEvent).subscribe({
+                next: (created) => {
+                  console.log('   ✅ Event créé:', created.uuid);
+                  resolve();
+                },
+                error: (createErr) => {
+                  console.error('   ❌ Erreur création Event:', createErr);
+                  reject(createErr);
+                }
+              });
+            } else {
+              console.error('   ❌ Erreur vérification Event:', err);
+              reject(err);
+            }
+          }
+        });
+      });
+    } catch (error) {
+      console.error('   ⚠️ Impossible de garantir l\'existence de l\'Event');
     }
   }
 
   /**
    * Traite un point reçu (création ou modification)
    */
-  private processPoint(pointData: any): void {
+  private async processPoint(pointData: any): Promise<void> {
     console.log('🔧 processPoint appelé');
     console.log('   Données brutes:', pointData);
     
@@ -211,18 +291,67 @@ export class WebSocketExportService {
     // Convertir du format API (PascalCase) vers TypeScript (camelCase)
     const point: any = {
       uuid: pointData.UUID,
-      eventId: pointData.Event_ID,
-      equipmentId: pointData.Equipement_ID,
+      eventId: this.DEFAULT_EVENT_ID, // Utiliser l'Event ID fixe
+      equipmentId: '', // Sera défini après vérification de l'équipement
       latitude: pointData.Latitude,
       longitude: pointData.Longitude,
       comment: pointData.Commentaire,
       imageId: pointData.Image_ID,
       order: pointData.Ordre,
       isValid: pointData.Valide === 1,
-      equipmentQuantity: pointData.Equipement_quantite
+      equipmentQuantity: 0, // Sera défini après vérification de l'équipement
+      created: pointData.Created ? new Date(pointData.Created) : new Date(),
+      modified: pointData.Modified ? new Date(pointData.Modified) : new Date()
     };
     
     console.log('   📦 Point converti:', point);
+    console.log('   ℹ️ Event_ID utilisé:', this.DEFAULT_EVENT_ID);
+    console.log('   ℹ️ Equipement_ID du mobile:', pointData.Equipement_ID);
+    
+    // Si un équipement est spécifié, vérifier s'il existe ou le créer
+    if (pointData.Equipement_ID && pointData.EquipType) {
+      console.log('   ⚙️ Traitement de l\'équipement...');
+      
+      // Vérifier si l'équipement existe
+      const equipmentExists = this.existingEquipments.has(pointData.Equipement_ID);
+      
+      if (equipmentExists) {
+        console.log('   ✅ Équipement existe déjà:', pointData.Equipement_ID);
+        point.equipmentId = pointData.Equipement_ID;
+        point.equipmentQuantity = pointData.Equipement_quantite || 0;
+      } else {
+        console.log('   ➕ Création de l\'équipement:', pointData.Equipement_ID);
+        
+        // Créer l'équipement d'abord
+        const newEquipment: any = {
+          uuid: pointData.Equipement_ID,
+          type: pointData.EquipType,
+          description: pointData.EquipType,
+          totalStock: pointData.Equipement_quantite || 0,
+          remainingStock: pointData.Equipement_quantite || 0
+        };
+        
+        // Essayer de créer l'équipement de manière synchrone
+        await new Promise<void>((resolve) => {
+          this.equipmentService.create(newEquipment).subscribe({
+            next: (created) => {
+              console.log('   ✅ Équipement créé:', created.uuid);
+              this.existingEquipments.set(created.uuid, created);
+              point.equipmentId = created.uuid;
+              point.equipmentQuantity = pointData.Equipement_quantite || 0;
+              resolve();
+            },
+            error: (err) => {
+              console.error('   ⚠️ Impossible de créer l\'équipement:', err);
+              // Continuer sans équipement
+              resolve();
+            }
+          });
+        });
+      }
+    }
+    
+    console.log('   📦 Point final avant envoi:', point);
     console.log('   🔍 Vérification existence dans l\'API...');
     
     // Vérifier si le point existe déjà dans l'API
@@ -230,6 +359,7 @@ export class WebSocketExportService {
       next: (existingPoint) => {
         // Le point existe -> UPDATE
         console.log('   🔄 Point trouvé dans l\'API -> MISE À JOUR');
+        console.log('   📤 Données envoyées pour UPDATE:', point);
         this.pointService.update(uuid, point).subscribe({
           next: (updated) => {
             console.log(`   ✅ Point ${uuid} mis à jour dans la BD`);
@@ -245,17 +375,13 @@ export class WebSocketExportService {
       },
       error: (err) => {
         if (err.status === 404) {
-          // Le point n'existe pas -> CREATE (sans UUID, l'API le générera)
+          // Le point n'existe pas -> CREATE (garder l'UUID du mobile)
           console.log('   ➕ Point non trouvé dans l\'API (404) -> CRÉATION');
-          const pointWithoutUuid = { ...point };
-          delete pointWithoutUuid.uuid; // Retirer l'UUID pour laisser l'API le générer
+          console.log('   📤 Données envoyées pour CREATE:', point);
           
-          console.log('   📤 Envoi à l\'API:', pointWithoutUuid);
-          
-          this.pointService.create(pointWithoutUuid).subscribe({
+          this.pointService.create(point).subscribe({
             next: (created) => {
               console.log(`   ✅ Point créé dans la BD avec UUID: ${created.uuid}`);
-              console.log(`   ℹ️ UUID mobile ${uuid} -> UUID BD ${created.uuid}`);
               this.existingPoints.set(created.uuid, created);
             },
             error: (createErr) => {
@@ -263,6 +389,7 @@ export class WebSocketExportService {
               console.error('   Status:', createErr.status);
               console.error('   Message:', createErr.message);
               console.error('   Détails:', createErr.error);
+              console.error('   📦 Données envoyées:', point);
             }
           });
         } else {
@@ -273,15 +400,7 @@ export class WebSocketExportService {
       }
     });
 
-    // Gérer l'équipement associé
-    if (pointData.Equipement_ID) {
-      console.log('   ⚙️ Traitement équipement:', pointData.Equipement_ID);
-      this.processEquipment({
-        uuid: pointData.Equipement_ID,
-        type: pointData.EquipType,
-        quantity: pointData.Equipement_quantite
-      });
-    }
+    // Gérer l'équipement associé (déjà géré dans la conversion ci-dessus)
   }
 
   /**
@@ -297,11 +416,8 @@ export class WebSocketExportService {
     // Convertir du format API vers TypeScript
     const photo: any = {
       uuid: photoData.UUID,
-      pointId: pointUUID,
       pictureName: photoData.Picture_name,
-      picture: photoData.Picture,
-      created: new Date(),
-      modified: new Date()
+      picture: photoData.Picture
     };
     
     console.log('   📦 Photo convertie:', { ...photo, picture: '(base64 omis)' });
@@ -313,6 +429,8 @@ export class WebSocketExportService {
         next: (updated) => {
           console.log(`   ✅ Photo ${uuid} mise à jour dans la BD`);
           this.existingPhotos.set(uuid, updated);
+          // Créer la relation ImagePoint
+          this.createImagePointRelation(uuid, pointUUID);
         },
         error: (err) => {
           console.error(`   ❌ Erreur mise à jour photo ${uuid}:`, err);
@@ -325,6 +443,8 @@ export class WebSocketExportService {
         next: (created) => {
           console.log(`   ✅ Photo ${uuid} créée dans la BD`);
           this.existingPhotos.set(uuid, created);
+          // Créer la relation ImagePoint
+          this.createImagePointRelation(uuid, pointUUID);
         },
         error: (err) => {
           console.error(`   ❌ Erreur création photo ${uuid}:`, err);
@@ -332,6 +452,52 @@ export class WebSocketExportService {
         }
       });
     }
+  }
+
+  /**
+   * Crée la relation ImagePoint entre une photo et un point
+   */
+  private createImagePointRelation(imageId: string, pointId: string): void {
+    console.log('   🔗 Création de la relation ImagePoint');
+    console.log('   ImageId:', imageId, 'PointId:', pointId);
+    
+    // Vérifier si la relation existe déjà
+    this.imagePointService.getByIds(imageId, pointId).subscribe({
+      next: (existing: ImagePoint) => {
+        console.log('   ℹ️ Relation ImagePoint existe déjà');
+      },
+      error: (err: any) => {
+        console.log('   📝 Statut de la vérification:', err.status);
+        if (err.status === 404) {
+          // La relation n'existe pas, on la crée
+          // IMPORTANT: L'API C# attend PascalCase (ImageId, PointId)
+          const imagePoint: any = {
+            ImageId: imageId,
+            PointId: pointId
+          };
+          
+          console.log('   📤 Envoi de ImagePoint à l\'API:', imagePoint);
+          
+          this.imagePointService.create(imagePoint).subscribe({
+            next: (created: ImagePoint) => {
+              console.log('   ✅ Relation ImagePoint créée avec succès!');
+              console.log('   📦 Données retournées:', created);
+            },
+            error: (createErr: any) => {
+              console.error('   ❌ ERREUR CRÉATION ImagePoint:');
+              console.error('   Status:', createErr.status);
+              console.error('   Message:', createErr.message);
+              console.error('   Erreur complète:', createErr);
+              console.error('   Détails erreur:', createErr.error);
+            }
+          });
+        } else {
+          console.error('   ❌ Erreur vérification ImagePoint (status != 404):');
+          console.error('   Status:', err.status);
+          console.error('   Erreur:', err);
+        }
+      }
+    });
   }
 
   /**
@@ -347,9 +513,9 @@ export class WebSocketExportService {
     const equipment: any = {
       uuid: equipmentData.uuid,
       type: equipmentData.type,
-      quantity: equipmentData.quantity,
-      created: new Date(),
-      modified: new Date()
+      description: equipmentData.type,
+      totalStock: equipmentData.quantity || 0,
+      remainingStock: equipmentData.quantity || 0
     };
     
     console.log('   📦 Équipement converti:', equipment);

@@ -1,10 +1,13 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { PointService } from '../../../service/PointService';
+import { EquipmentService } from '../../../service/EquipmentService';
+import { EventService } from '../../../service/EventService';
 import { MapService } from '../../../service/MapService';
 import { Point } from '../../../classe/pointModel';
+import { EventStatus } from '../../../classe/eventModel';
 import { Subscription } from 'rxjs';
 import * as QRCode from 'qrcode';
 import { WebSocketExportService } from '../../../service/WebSocketExportService';
@@ -22,17 +25,22 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   errorMessage = '';
   selectedPoint: Point | null = null;
   private pointsSubscription?: Subscription;
+  private reloadSubscription?: Subscription;
+  private refreshInterval?: any;
   
   // Modal QR Code
   showQRModal = false;
   qrCodeDataUrl = '';
-  wsUrl = 'ws://172.20.10.3:8765';
+  wsUrl = 'ws://192.168.1.128:8765';
 
   constructor(
     private pointService: PointService,
+    private equipmentService: EquipmentService,
+    private eventService: EventService,
     private mapService: MapService,
     private router: Router,
-    private wsExportService: WebSocketExportService
+    private wsExportService: WebSocketExportService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -44,11 +52,45 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         this.points = points;
       }
     });
+
+    // Recharger les points automatiquement toutes les 5 secondes
+    this.refreshInterval = setInterval(() => {
+      this.loadPoints();
+    }, 5000);
+    
+    // S'abonner au point sélectionné pour suspendre le polling pendant l'édition
+    this.mapService.selectedPoint$.subscribe(point => {
+      if (point) {
+        // Suspendre le polling quand un point est sélectionné (drawer ouvert)
+        if (this.refreshInterval) {
+          clearInterval(this.refreshInterval);
+          this.refreshInterval = null;
+        }
+      } else {
+        // Réactiver le polling quand le drawer est fermé
+        if (!this.refreshInterval) {
+          this.refreshInterval = setInterval(() => {
+            this.loadPoints();
+          }, 5000);
+        }
+      }
+    });
+    
+    // S'abonner au trigger de rechargement depuis le MapService
+    this.reloadSubscription = this.mapService.reloadPoints$.subscribe(() => {
+      this.loadPoints();
+    });
   }
 
   ngOnDestroy(): void {
     if (this.pointsSubscription) {
       this.pointsSubscription.unsubscribe();
+    }
+    if (this.reloadSubscription) {
+      this.reloadSubscription.unsubscribe();
+    }
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
     }
   }
 
@@ -78,11 +120,15 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         if (withoutOrder.length > 0) {
           this.updateOrdersInDatabase();
         }
+        
+        // Forcer la détection de changement
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Erreur lors du chargement des points:', error);
         this.errorMessage = 'Impossible de charger les points';
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
