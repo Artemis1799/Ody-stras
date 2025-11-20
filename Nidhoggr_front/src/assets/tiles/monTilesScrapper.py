@@ -6,7 +6,7 @@ import time
 import requests
 
 # --- CONFIG ---
-ZOOM = 9
+ZOOM = 17
 OUT_DIR = "tiles"
 # Alternative tile servers (choisissez-en UN)
 # Option 1: Tile servers alternatifs OSM (rotation a/b/c)
