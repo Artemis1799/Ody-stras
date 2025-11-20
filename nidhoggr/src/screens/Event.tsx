@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,18 +11,18 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
+import { useSQLiteContext } from "expo-sqlite";
 import { Evenement, EventScreenNavigationProp } from "../../types/types";
+import { getAllWhere } from "../../database/queries";
 
 export default function EventScreen() {
   const route = useRoute();
-  const {
-    UUID: eventUUID,
-    Nom: eventName,
-    Description: eventDescription,
-    Date_debut: eventDate,
-    Status: eventStatus,
-  } = route.params as Evenement;
+  const db = useSQLiteContext();
+  const params = route.params as Evenement;
+  const eventUUID = params.UUID;
+
+  const [eventData, setEventData] = useState<Evenement>(params);
 
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -57,6 +57,27 @@ export default function EventScreen() {
     })();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      const loadEvent = async () => {
+        try {
+          const events = await getAllWhere<Evenement>(
+            db,
+            "Evenement",
+            ["UUID"],
+            [eventUUID]
+          );
+          if (events.length > 0) {
+            setEventData(events[0]);
+          }
+        } catch (err) {
+          console.error("Erreur lors du chargement de l'événement:", err);
+        }
+      };
+      loadEvent();
+    }, [db, eventUUID])
+  );
+
   const navigation = useNavigation<EventScreenNavigationProp>();
 
   return (
@@ -75,7 +96,7 @@ export default function EventScreen() {
       <ScrollView style={styles.content}>
         {/* Event Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.eventTitle}>{eventName}</Text>
+          <Text style={styles.eventTitle}>{eventData.Nom}</Text>
         </View>
 
         {/* Map Container */}
@@ -98,19 +119,19 @@ export default function EventScreen() {
         <View style={styles.detailsContainer}>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Description :</Text>
-            <Text style={styles.detailValue}>{eventDescription}</Text>
+            <Text style={styles.detailValue}>{eventData.Description}</Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Date :</Text>
             <Text style={styles.detailValue}>
-              {new Date(eventDate).toLocaleDateString("fr-FR")}
+              {new Date(eventData.Date_debut).toLocaleDateString("fr-FR")}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Statut :</Text>
-            <Text style={styles.detailValue}>{eventStatus}</Text>
+            <Text style={styles.detailValue}>{eventData.Status}</Text>
           </View>
         </View>
 

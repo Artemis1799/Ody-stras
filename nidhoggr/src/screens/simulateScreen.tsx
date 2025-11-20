@@ -50,6 +50,25 @@ export default function SimulateScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', async () => {
+      // Mettre à jour le statut si tous les points sont complétés
+      if (completedPoints.length === points.length && points.length > 0) {
+        try {
+          await db.runAsync(
+            "UPDATE Evenement SET Status = ? WHERE UUID = ?",
+            ["TERMINE", eventUUID]
+          );
+          console.log("Événement mis à jour en TERMINE");
+        } catch (error) {
+          console.error("Erreur lors de la mise à jour du statut:", error);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, completedPoints, points, eventUUID]);
+
   const loadPoints = async () => {
     try {
       const data: Point[] = await getAllWhere<Point>(
@@ -201,7 +220,7 @@ export default function SimulateScreen() {
   };
 
   // Gérer l'arrivée à un point
-  const handleArrival = () => {
+  const handleArrival = async () => {
     // Vérifier si le point n'est pas déjà complété
     if (completedPoints.includes(currentIndex)) {
       return;
@@ -237,6 +256,17 @@ export default function SimulateScreen() {
         setIsWaitingBetweenPoints(false);
         setIsRunning(true);
       }, 3000));
+    } else {
+      // Tous les points sont complétés, mettre à jour le statut de l'événement
+      try {
+        await db.runAsync(
+          "UPDATE Evenement SET Status = ? WHERE UUID = ?",
+          ["TERMINE", eventUUID]
+        );
+        console.log("Événement terminé!");
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour du statut:", error);
+      }
     }
   };
 
