@@ -28,6 +28,15 @@ public class ImagePointService : IImagePointService
             .FirstOrDefaultAsync(ip => ip.ImageId == imageId && ip.PointId == pointId);
     }
 
+    public async Task<IEnumerable<ImagePoint>> GetByPointIdAsync(Guid pointId)
+    {
+        return await _context.ImagePoints
+            .Include(ip => ip.Photo)
+            .Include(ip => ip.Point)
+            .Where(ip => ip.PointId == pointId)
+            .ToListAsync();
+    }
+
     public async Task<ImagePoint> CreateAsync(ImagePoint imagePoint)
     {
         _context.ImagePoints.Add(imagePoint);

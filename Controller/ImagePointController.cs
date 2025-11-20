@@ -16,10 +16,15 @@ public class ImagePointController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ImagePoint>>> GetAll()
+    public async Task<ActionResult<IEnumerable<ImagePoint>>> GetAll([FromQuery] Guid? pointId)
     {
-        var list = await _imagePointService.GetAllAsync();
-        return Ok(list);
+        if (pointId.HasValue)
+        {
+            var list = await _imagePointService.GetByPointIdAsync(pointId.Value);
+            return Ok(list);
+        }
+        var allList = await _imagePointService.GetAllAsync();
+        return Ok(allList);
     }
 
     [HttpGet("{imageId}/{pointId}")]
