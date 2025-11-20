@@ -7,7 +7,7 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 To start a local development server, run:
 
 ```bash
-ng serve
+npm run start 
 ```
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
@@ -120,3 +120,23 @@ npm run start
 Notes:
 - The code probes a few common tileserver endpoints (for example `/data/tiles/{z}/{x}/{y}.png` or `/tiles/{z}/{x}/{y}.png`). If your tileserver exposes a different path, update the tile URL in `src/app/app.component.ts`.
 - The map is currently fixed to center/zoom for the Eurométropole de Strasbourg. Adjust the coordinates or zoom in `src/app/app.component.ts` as needed.
+
+
+
+## Ajout des librairies pour excel et pdf 
+
+```powershell
+cd Nidhoggr_front #(if needed)
+npm install jspdf xlsx
+```
+
+
+
+## lancement du docker pour les recherches : 
+
+```powershell
+# Dans le répertoire contenant docker-compose.yml
+docker-compose up -d
+# Tester l'API (environ 10min de dl)
+curl "http://localhost:8080/search?q=Strasbourg&format=json"
+```

@@ -21,6 +21,32 @@
     </div>
   </div>
   
+  <div class="search-box">
+    <input 
+      type="text" 
+      placeholder="Rechercher un lieu..." 
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearch()"
+      (keyup.enter)="searchResults.length > 0 && goToLocation(searchResults[0])"
+    />
+    <button (click)="onSearch()">🔍</button>
+  </div>
+  
+  <!-- Search results autocomplete -->
+  <div class="search-results" *ngIf="searchResults.length > 0">
+    <div 
+      *ngFor="let result of searchResults" 
+      class="result-item"
+      (click)="goToLocation(result)"
+    >
+      {{ result.display_name }}
+    </div>
+  </div>
+
+  <div *ngIf="points.length === 0 && !isLoading && !errorMessage" class="empty-state">
+    Aucun point disponible
+  </div>
+  
   <div *ngIf="isLoading" class="loading">
     Chargement...
   </div>
@@ -55,9 +81,7 @@
     </div>
   </div>
   
-  <div *ngIf="points.length === 0 && !isLoading && !errorMessage" class="empty-state">
-    Aucun point disponible
-  </div>
+  <button class="export-btn" (click)="openExport()">Exporter</button>
 </aside>
 
 <!-- Modal QR Code -->
@@ -77,3 +101,6 @@
     </div>
   </div>
 </div>
+@if (showExportPopup) {
+  <app-export-popup (close)="closeExport()"></app-export-popup>
+}
