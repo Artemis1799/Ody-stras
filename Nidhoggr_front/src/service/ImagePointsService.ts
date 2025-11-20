@@ -16,6 +16,10 @@ export class ImagePointService {
     return this.http.get<ImagePoint[]>(this.apiUrl);
   }
 
+  getByPointId(pointId: string): Observable<ImagePoint[]> {
+    return this.http.get<ImagePoint[]>(`${this.apiUrl}?pointId=${pointId}`);
+  }
+
   getByIds(imageId: string, pointId: string): Observable<ImagePoint> {
     return this.http.get<ImagePoint>(`${this.apiUrl}/${imageId}/${pointId}`);
   }

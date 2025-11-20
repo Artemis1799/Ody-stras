@@ -90,20 +90,98 @@
     <div class="drawer-footer">
       <button 
         type="button" 
-        class="delete-button"
-        (click)="deletePoint()"
+        class="photo-button"
+        (click)="loadPhotosForPoint()"
+        [disabled]="loadingPhotos"
       >
-        <span class="pi pi-trash"></span>
-        Supprimer
+        <span class="pi pi-image"></span>
+        {{ loadingPhotos ? 'Chargement...' : 'Voir photos' }}
       </button>
-      <button 
-        type="button" 
-        class="save-button"
-        (click)="saveChanges()"
-      >
-        <span class="pi pi-check"></span>
-        Enregistrer
-      </button>
+      <div class="action-buttons">
+        <button 
+          type="button" 
+          class="delete-button"
+          (click)="deletePoint()"
+        >
+          <span class="pi pi-trash"></span>
+          Supprimer
+        </button>
+        <button 
+          type="button" 
+          class="save-button"
+          (click)="saveChanges()"
+        >
+          <span class="pi pi-check"></span>
+          Enregistrer
+        </button>
+      </div>
     </div>
   </ng-template>
 </p-drawer>
+
+<!-- Dialog pour afficher les photos -->
+<p-dialog 
+  [(visible)]="showPhotoDialog" 
+  [modal]="true"
+  [closable]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{width: '90vw', maxWidth: '900px'}"
+  styleClass="photo-dialog"
+  header="Photos du point"
+>
+  <!-- État de chargement -->
+  <div *ngIf="loadingPhotos" class="loading-state">
+    <div class="loading-spinner">
+      <span class="pi pi-spin pi-spinner"></span>
+    </div>
+    <p class="loading-text">Chargement des photos...</p>
+  </div>
+
+  <!-- Affichage des photos -->
+  <div class="photo-viewer" *ngIf="!loadingPhotos && currentPhoto">
+    <div class="photo-container">
+      <img 
+        [src]="getPhotoSrc(currentPhoto)" 
+        [alt]="currentPhoto.pictureName"
+        class="photo-image"
+      />
+    </div>
+    
+    <div class="photo-navigation">
+      <button 
+        type="button"
+        class="nav-button"
+        (click)="previousPhoto()"
+        [disabled]="currentPhotoIndex === 0"
+      >
+        <span class="pi pi-chevron-left"></span>
+      </button>
+      
+      <span class="photo-counter">{{ photoCountText }}</span>
+      
+      <button 
+        type="button"
+        class="nav-button"
+        (click)="nextPhoto()"
+        [disabled]="currentPhotoIndex === photos.length - 1"
+      >
+        <span class="pi pi-chevron-right"></span>
+      </button>
+    </div>
+    
+    <div class="photo-info">
+      <p>{{ currentPhoto.pictureName }}</p>
+    </div>
+  </div>
+  
+  <!-- Aucune photo -->
+  <div *ngIf="!loadingPhotos && !currentPhoto" class="no-photos">
+    <div class="no-photos-icon">
+      <span class="pi pi-image"></span>
+    </div>
+    <h3 class="no-photos-title">Aucune photo disponible</h3>
+    <p class="no-photos-text">Ce point ne contient pas encore de photos.</p>
+  </div>
+</p-dialog>

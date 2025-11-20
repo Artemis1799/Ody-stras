@@ -1,12 +1,17 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { PointService } from '../../../service/PointService';
+import { EquipmentService } from '../../../service/EquipmentService';
+import { EventService } from '../../../service/EventService';
 import { MapService } from '../../../service/MapService';
 import { NominatimService, NominatimResult } from '../../../service/NominatimService';
 import { Point } from '../../../classe/pointModel';
+import { EventStatus } from '../../../classe/eventModel';
+import * as QRCode from 'qrcode';
+import { WebSocketExportService } from '../../../service/WebSocketExportService';
 import { Subscription, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ExportPopup } from '../../shared/export-popup/export-popup';
@@ -24,6 +29,13 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   errorMessage = '';
   selectedPoint: Point | null = null;
   private pointsSubscription?: Subscription;
+  private reloadSubscription?: Subscription;
+  private refreshInterval?: any;
+  
+  // Modal QR Code
+  showQRModal = false;
+  qrCodeDataUrl = '';
+  wsUrl = 'ws://192.168.1.128:8765';
   
   // Search properties
   searchQuery = '';
@@ -36,9 +48,13 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   constructor(
     private pointService: PointService,
+    private equipmentService: EquipmentService,
+    private eventService: EventService,
     private mapService: MapService,
+    private router: Router,
+    private wsExportService: WebSocketExportService,
+    private cdr: ChangeDetectorRef,
     private nominatimService: NominatimService,
-    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -49,6 +65,34 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       if (points.length > 0) {
         this.points = points;
       }
+    });
+
+    // Recharger les points automatiquement toutes les 5 secondes
+    this.refreshInterval = setInterval(() => {
+      this.loadPoints();
+    }, 5000);
+    
+    // S'abonner au point sélectionné pour suspendre le polling pendant l'édition
+    this.mapService.selectedPoint$.subscribe(point => {
+      if (point) {
+        // Suspendre le polling quand un point est sélectionné (drawer ouvert)
+        if (this.refreshInterval) {
+          clearInterval(this.refreshInterval);
+          this.refreshInterval = null;
+        }
+      } else {
+        // Réactiver le polling quand le drawer est fermé
+        if (!this.refreshInterval) {
+          this.refreshInterval = setInterval(() => {
+            this.loadPoints();
+          }, 5000);
+        }
+      }
+    });
+    
+    // S'abonner au trigger de rechargement depuis le MapService
+    this.reloadSubscription = this.mapService.reloadPoints$.subscribe(() => {
+      this.loadPoints();
     });
     
     // Setup debounced search (300ms)
@@ -76,6 +120,12 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.pointsSubscription) {
       this.pointsSubscription.unsubscribe();
+    }
+    if (this.reloadSubscription) {
+      this.reloadSubscription.unsubscribe();
+    }
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
     }
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
@@ -108,11 +158,15 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         if (withoutOrder.length > 0) {
           this.updateOrdersInDatabase();
         }
+        
+        // Forcer la détection de changement
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Erreur lors du chargement des points:', error);
         this.errorMessage = 'Impossible de charger les points';
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -193,6 +247,32 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         });
       }
     }, 100);
+  }
+
+  async openExportModal(): Promise<void> {
+    this.showQRModal = true;
+    
+    // Démarrer le serveur et se connecter
+    await this.wsExportService.startServerAndConnect();
+    
+    // Générer le QR code
+    try {
+      this.qrCodeDataUrl = await QRCode.toDataURL(this.wsUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+    } catch (error) {
+      console.error('Erreur génération QR code:', error);
+    }
+  }
+
+  closeExportModal(): void {
+    this.showQRModal = false;
+    this.wsExportService.disconnect();
   }
   
   onSearch(): void {

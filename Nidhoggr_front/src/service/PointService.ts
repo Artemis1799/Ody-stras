@@ -20,11 +20,11 @@ export class PointService {
     return this.http.get<Point>(`${this.apiUrl}/${id}`);
   }
 
-  create(point: Point): Observable<Point> {
+  create(point: any): Observable<Point> {
     return this.http.post<Point>(this.apiUrl, point);
   }
 
-  update(id: string, point: Point): Observable<Point> {
+  update(id: string, point: any): Observable<Point> {
     return this.http.put<Point>(`${this.apiUrl}/${id}`, point);
   }
 

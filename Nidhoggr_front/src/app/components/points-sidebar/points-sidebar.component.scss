@@ -23,6 +23,12 @@
       color: #333;
     }
 
+    .header-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .export-button,
     .equipment-button {
       background-color: #3b82f6;
       color: white;
@@ -43,6 +49,14 @@
 
       &:active {
         transform: translateY(1px);
+      }
+    }
+
+    .export-button {
+      background-color: #10b981;
+
+      &:hover {
+        background-color: #059669;
       }
     }
   }
@@ -266,4 +280,127 @@
 // Animation pour le drag & drop
 .cdk-drop-list-dragging .point-item:not(.cdk-drag-placeholder) {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// Modal QR Code
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  animation: slideIn 0.3s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #333;
+  }
+
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #f0f0f0;
+      color: #333;
+    }
+  }
+}
+
+.modal-body {
+  padding: 2rem;
+  text-align: center;
+
+  .instructions {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 1.5rem;
+  }
+
+  .qr-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 0.5rem;
+
+    img {
+      max-width: 300px;
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  .url-info {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #2196f3;
+    background: #e3f2fd;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+    word-break: break-all;
+  }
+
+  .status-info {
+    font-size: 0.9rem;
+    color: #10b981;
+    margin-top: 1rem;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
