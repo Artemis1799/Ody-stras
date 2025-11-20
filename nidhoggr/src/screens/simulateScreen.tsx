@@ -12,8 +12,8 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, Polyline } from "react-native-maps";
-import { EventScreenNavigationProp, Point } from "../../types/types";
-import { getAllWhere } from "../../database/queries";
+import { EventScreenNavigationProp, Point, Evenement } from "../../types/types";
+import { getAllWhere, update } from "../../database/queries";
 
 export default function SimulateScreen() {
   const navigation = useNavigation<EventScreenNavigationProp>();
@@ -201,7 +201,7 @@ export default function SimulateScreen() {
   };
 
   // Gérer l'arrivée à un point
-  const handleArrival = () => {
+  const handleArrival = async () => {
     // Vérifier si le point n'est pas déjà complété
     if (completedPoints.includes(currentIndex)) {
       return;
@@ -237,6 +237,20 @@ export default function SimulateScreen() {
         setIsWaitingBetweenPoints(false);
         setIsRunning(true);
       }, 3000));
+    } else {
+      // Tous les points sont complétés, mettre à jour le statut de l'événement
+      try {
+        await update<Evenement>(
+          db,
+          "Evenement",
+          { Status: "TERMINE" },
+          "UUID = ?",
+          [eventUUID]
+        );
+        console.log("Événement terminé!");
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour du statut:", error);
+      }
     }
   };
 

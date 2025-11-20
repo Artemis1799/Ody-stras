@@ -26,7 +26,7 @@ import {
   UserLocation,
   createPointParams,
 } from "../../types/types";
-import { getAll, getAllWhere, insert, update } from "../../database/queries";
+import { getAll, getAllWhere, insert, update, deleteWhere } from "../../database/queries";
 
 export function CreatePointScreen() {
   const db = useSQLiteContext();
@@ -48,7 +48,7 @@ export function CreatePointScreen() {
   const handleGoBack = async () => {
     if (!pointIdParam) {
       try {
-        await db.runAsync("DELETE FROM Point WHERE UUID = ?", [pointId]);
+        await deleteWhere(db, "Point", ["UUID"], [pointId]);
         console.log("Point supprimé (non validé)");
       } catch (error) {
         console.log("Erreur lors de la suppression du point:", error);
@@ -148,6 +148,15 @@ export function CreatePointScreen() {
           1000
         );
         if (!pointIdParam) {
+          // Récupérer le nombre de points existants pour définir l'ordre
+          const existingPoints = await getAllWhere<Point>(
+            db,
+            "Point",
+            ["Event_ID"],
+            [eventId]
+          );
+          const nextOrdre = existingPoints.length + 1;
+
           await insert<Point>(db, "Point", {
             UUID: newId,
             Event_ID: eventId,
@@ -155,6 +164,7 @@ export function CreatePointScreen() {
             Longitude: coords.longitude,
             Equipement_ID: "f50252ce-31bb-4c8b-a70c-51b7bb630bc3",
             Equipement_quantite: 0,
+            Ordre: nextOrdre,
           });
         } else {
           const res = await getAllWhere<Point>(db, "Point", ["UUID"], [newId]);
