@@ -12,8 +12,8 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, Polyline } from "react-native-maps";
-import { EventScreenNavigationProp, Point } from "../../types/types";
-import { getAllWhere } from "../../database/queries";
+import { EventScreenNavigationProp, Point, Evenement } from "../../types/types";
+import { getAllWhere, update } from "../../database/queries";
 
 export default function SimulateScreen() {
   const navigation = useNavigation<EventScreenNavigationProp>();
@@ -49,25 +49,6 @@ export default function SimulateScreen() {
       }
     };
   }, []);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', async () => {
-      // Mettre à jour le statut si tous les points sont complétés
-      if (completedPoints.length === points.length && points.length > 0) {
-        try {
-          await db.runAsync(
-            "UPDATE Evenement SET Status = ? WHERE UUID = ?",
-            ["TERMINE", eventUUID]
-          );
-          console.log("Événement mis à jour en TERMINE");
-        } catch (error) {
-          console.error("Erreur lors de la mise à jour du statut:", error);
-        }
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation, completedPoints, points, eventUUID]);
 
   const loadPoints = async () => {
     try {
@@ -259,9 +240,12 @@ export default function SimulateScreen() {
     } else {
       // Tous les points sont complétés, mettre à jour le statut de l'événement
       try {
-        await db.runAsync(
-          "UPDATE Evenement SET Status = ? WHERE UUID = ?",
-          ["TERMINE", eventUUID]
+        await update<Evenement>(
+          db,
+          "Evenement",
+          { Status: "TERMINE" },
+          "UUID = ?",
+          [eventUUID]
         );
         console.log("Événement terminé!");
       } catch (error) {
