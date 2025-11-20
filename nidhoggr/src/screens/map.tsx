@@ -141,6 +141,7 @@ export function MapScreen() {
       </View>
 
       <MapView
+        key={points.length}
         ref={mapRef}
         style={styles.map}
         showsUserLocation={true}
