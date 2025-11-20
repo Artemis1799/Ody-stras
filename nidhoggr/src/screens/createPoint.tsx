@@ -40,6 +40,8 @@ export function CreatePointScreen() {
   const [pointId, setPointId] = useState("");
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
+  const [markerPosition, setMarkerPosition] = useState<UserLocation | null>(null);
   const route = useRoute();
   const { eventId, pointIdParam } = route.params as createPointParams;
 
@@ -53,6 +55,36 @@ export function CreatePointScreen() {
       }
     }
     navigation.goBack();
+  };
+
+  const toggleEditLocation = async () => {
+    if (isEditingLocation) {
+      // Mode validation : on sauvegarde la position
+      if (markerPosition) {
+        try {
+          await update<Point>(
+            db,
+            "Point",
+            { Latitude: markerPosition.latitude, Longitude: markerPosition.longitude },
+            "UUID = ?",
+            [pointId]
+          );
+          console.log("Position mise à jour");
+        } catch (error) {
+          console.log("Erreur lors de la mise à jour de la position:", error);
+        }
+      }
+    }
+    setIsEditingLocation(!isEditingLocation);
+  };
+
+  const handleRegionChange = (region: any) => {
+    if (isEditingLocation) {
+      setMarkerPosition({
+        latitude: region.latitude,
+        longitude: region.longitude,
+      });
+    }
   };
 
   const validate = async () => {
@@ -105,6 +137,7 @@ export function CreatePointScreen() {
           longitude: location.coords.longitude,
         };
         setUserLocation(coords);
+        setMarkerPosition(coords);
 
         mapRef.current?.animateToRegion(
           {
@@ -130,6 +163,22 @@ export function CreatePointScreen() {
             if (res[0]?.Equipement_ID) setEquipment(res[0].Equipement_ID);
             if (res[0]?.Equipement_quantite)
               setQty(res[0].Equipement_quantite.toString());
+            // Charger la position du point existant
+            if (res[0].Latitude && res[0].Longitude) {
+              const existingCoords = {
+                latitude: res[0].Latitude,
+                longitude: res[0].Longitude,
+              };
+              setMarkerPosition(existingCoords);
+              mapRef.current?.animateToRegion(
+                {
+                  ...existingCoords,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                },
+                1000
+              );
+            }
           }
         }
 
@@ -160,28 +209,56 @@ export function CreatePointScreen() {
       </View>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1 }}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: userLocation?.latitude || 48.5839,
-              longitude: userLocation?.longitude || 7.7455,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-            showsUserLocation={true}
-            showsMyLocationButton={true}
-            followsUserLocation={true}
-            showsCompass={true}
-            rotateEnabled={true}
-            pitchEnabled={true}
-          >
-            <Marker
-              coordinate={{
+          <View style={styles.mapContainer}>
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              initialRegion={{
                 latitude: userLocation?.latitude || 48.5839,
                 longitude: userLocation?.longitude || 7.7455,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
               }}
+              showsUserLocation={true}
+              showsMyLocationButton={!isEditingLocation}
+              followsUserLocation={false}
+              showsCompass={true}
+              rotateEnabled={!isEditingLocation}
+              pitchEnabled={!isEditingLocation}
+              scrollEnabled={isEditingLocation}
+              zoomEnabled={isEditingLocation}
+              onRegionChangeComplete={handleRegionChange}
+            >
+              {!isEditingLocation && markerPosition && (
+                <Marker
+                  coordinate={{
+                    latitude: markerPosition.latitude,
+                    longitude: markerPosition.longitude,
+                  }}
+                />
+              )}
+            </MapView>
+            {isEditingLocation && (
+              <View style={styles.centerMarker}>
+                <Ionicons name="location-sharp" size={48} color="#8DC63F" />
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.editLocationButton}
+            onPress={toggleEditLocation}
+          >
+            <Ionicons
+              name={isEditingLocation ? "checkmark-circle" : "location"}
+              size={20}
+              color="#8DC63F"
+              style={{ marginRight: 8 }}
             />
-          </MapView>
+            <Text style={styles.editLocationButtonText}>
+              {isEditingLocation ? "Valider la position" : "Modifier le repère"}
+            </Text>
+          </TouchableOpacity>
 
           <TextInput
             placeholder="Commentaire"
@@ -255,7 +332,41 @@ const styles = StyleSheet.create({
     height: 30,
     resizeMode: "contain",
   },
-  map: { height: 250, width: "100%" },
+  mapContainer: {
+    height: 250,
+    width: "100%",
+    position: "relative",
+  },
+  map: {
+    height: "100%",
+    width: "100%"
+  },
+  centerMarker: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginLeft: -24,
+    marginTop: -48,
+    zIndex: 1000,
+  },
+  editLocationButton: {
+    backgroundColor: "#fff",
+    marginHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#8DC63F",
+  },
+  editLocationButtonText: {
+    color: "#8DC63F",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   inputComment: {
     backgroundColor: "#fff",
     margin: 15,
