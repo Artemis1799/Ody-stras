@@ -32,8 +32,20 @@ public class PointService : IPointService
 
     public async Task<Point> CreateAsync(Point point)
     {
+        // If caller didn't provide a UUID, generate one
         if (point.UUID == Guid.Empty)
+        {
             point.UUID = Guid.NewGuid();
+        }
+        else
+        {
+            // If caller provided a UUID, ensure it's not already used
+            var exists = await _context.Points.AnyAsync(p => p.UUID == point.UUID);
+            if (exists)
+            {
+                throw new InvalidOperationException($"A Point with UUID {point.UUID} already exists.");
+            }
+        }
 
         _context.Points.Add(point);
         await _context.SaveChangesAsync();
