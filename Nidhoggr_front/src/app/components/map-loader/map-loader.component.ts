@@ -1,12 +1,11 @@
 import { AfterViewInit, Component, OnDestroy } from '@angular/core';
-import { PointsSidebarComponent } from '../points-sidebar/points-sidebar.component';
 import { MapService } from '../../../service/MapService';
 import { Point } from '../../../classe/pointModel';
 
 @Component({
   selector: 'app-map-loader',
   standalone: true,
-  imports: [PointsSidebarComponent],
+  imports: [],
   templateUrl: './map-loader.component.html',
   styleUrls: ['./map-loader.component.scss']
 })
@@ -149,7 +148,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
         // Clic sur le marker
         marker.on('click', () => {
-          this.mapService.selectPoint(point);
+          this.onMarkerClick(point);
         });
 
         this.markers.set(point.uuid, marker);
@@ -171,6 +170,19 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       return point.comment;
     }
     return `Point ${point.uuid.substring(0, 8)}`;
+  }
+
+  private onMarkerClick(point: Point): void {
+    // Fermer le drawer s'il est ouvert
+    this.mapService.selectPoint(null);
+    
+    // Zoomer et centrer sur le point (sans ouvrir le drawer)
+    if (this.map && point.latitude && point.longitude) {
+      this.map.setView([point.latitude, point.longitude], 17, {
+        animate: true,
+        duration: 0.5
+      });
+    }
   }
 
   ngOnDestroy(): void {

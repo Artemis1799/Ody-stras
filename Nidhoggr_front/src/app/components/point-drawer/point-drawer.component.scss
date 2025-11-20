@@ -1,0 +1,253 @@
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  
+  h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    color: #6b7280;
+    transition: all 0.2s;
+    border-radius: 0.375rem;
+
+    &:hover {
+      color: #1f2937;
+      background-color: #f3f4f6;
+    }
+  }
+}
+
+.drawer-content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-field {
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #374151;
+  }
+
+  .stock-indicator {
+    display: block;
+    margin-top: 0.5rem;
+    color: #6b7280;
+    font-size: 0.8125rem;
+    font-style: italic;
+  }
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+
+  label {
+    margin: 0 !important;
+    cursor: pointer;
+    font-weight: 500;
+    color: #374151;
+  }
+}
+
+.stock-info {
+  margin-left: 0.5rem;
+  color: #6b7280;
+  font-size: 0.8125rem;
+}
+
+.point-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #1f2937;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0.5rem 0;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    line-height: 1.5;
+
+    strong {
+      color: #374151;
+      margin-right: 0.5rem;
+      font-weight: 600;
+    }
+  }
+}
+
+.drawer-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  .delete-button {
+    background-color: #ef4444;
+    color: white;
+
+    &:hover {
+      background-color: #dc2626;
+      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .save-button {
+    background-color: #22c55e;
+    color: white;
+
+    &:hover {
+      background-color: #16a34a;
+      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+::ng-deep {
+  .p-drawer {
+    width: 420px !important;
+    max-width: 90vw;
+    background-color: white !important;
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+    z-index: 1000 !important;
+  }
+
+  .p-drawer-mask {
+    z-index: 999 !important;
+  }
+
+  .p-drawer-header {
+    padding: 1.5rem;
+    background-color: white !important;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .p-drawer-content {
+    padding: 1.5rem;
+    background-color: white !important;
+    overflow-y: auto;
+  }
+  
+  .p-drawer-footer {
+    padding: 1.25rem 1.5rem;
+    background-color: white !important;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  // Styles pour les inputs
+  .p-inputtext,
+  .p-inputnumber-input {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+    
+    &:focus {
+      border-color: #3b82f6;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+  }
+  
+  // Styles pour le select
+  .p-select {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    
+    &:focus,
+    &:focus-within {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .p-select-label {
+      padding: 0.625rem 0.75rem;
+      font-size: 0.9375rem;
+    }
+  }
+  
+  // Styles pour inputnumber
+  .p-inputnumber {
+    width: 100%;
+    
+    .p-inputnumber-button {
+      width: 2.5rem;
+      
+      &:hover {
+        background-color: #f3f4f6;
+      }
+    }
+  }
+  
+  // Styles pour checkbox
+  .p-checkbox {
+    .p-checkbox-box {
+      width: 1.25rem;
+      height: 1.25rem;
+      border: 2px solid #d1d5db;
+      border-radius: 0.375rem;
+      transition: all 0.2s;
+      
+      &:hover {
+        border-color: #3b82f6;
+      }
+      
+      &.p-highlight {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+      }
+    }
+  }
+}

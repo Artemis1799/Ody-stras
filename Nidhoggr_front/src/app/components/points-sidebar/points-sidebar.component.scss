@@ -1,12 +1,51 @@
 .sidebar {
   width: 300px;
-  padding: 1rem;
+  padding: 0;
   background: #f7f7f7;
   border-right: 1px solid #ddd;
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+
+  .sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: white;
+    border-bottom: 2px solid #e0e0e0;
+
+    h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .equipment-button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      font-size: 1.125rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background-color: #2563eb;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      &:active {
+        transform: translateY(1px);
+      }
+    }
+  }
 
   h3 {
     margin: 0 0 1rem 0;

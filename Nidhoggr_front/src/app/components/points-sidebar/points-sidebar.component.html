@@ -1,5 +1,15 @@
 <aside class="sidebar">
-  <h3>Points</h3>
+  <div class="sidebar-header">
+    <h3>Points</h3>
+    <button 
+      type="button" 
+      class="equipment-button"
+      (click)="openEquipmentManager()"
+      title="Gérer les équipements"
+    >
+      <span class="pi pi-cog"></span>
+    </button>
+  </div>
   
   <div *ngIf="isLoading" class="loading">
     Chargement...

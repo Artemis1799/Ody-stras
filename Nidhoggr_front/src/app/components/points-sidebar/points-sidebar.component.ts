@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { PointService } from '../../../service/PointService';
 import { MapService } from '../../../service/MapService';
 import { Point } from '../../../classe/pointModel';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-points-sidebar',
@@ -12,19 +14,34 @@ import { Point } from '../../../classe/pointModel';
   templateUrl: './points-sidebar.component.html',
   styleUrls: ['./points-sidebar.component.scss']
 })
-export class PointsSidebarComponent implements OnInit {
+export class PointsSidebarComponent implements OnInit, OnDestroy {
   points: Point[] = [];
   isLoading = false;
   errorMessage = '';
   selectedPoint: Point | null = null;
+  private pointsSubscription?: Subscription;
 
   constructor(
     private pointService: PointService,
-    private mapService: MapService
+    private mapService: MapService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
     this.loadPoints();
+    
+    // S'abonner aux changements de points depuis le MapService
+    this.pointsSubscription = this.mapService.points$.subscribe(points => {
+      if (points.length > 0) {
+        this.points = points;
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.pointsSubscription) {
+      this.pointsSubscription.unsubscribe();
+    }
   }
 
   loadPoints(): void {
@@ -78,6 +95,15 @@ export class PointsSidebarComponent implements OnInit {
     // Partager les points mis à jour
     this.mapService.setPoints(this.points);
 
+    // Si un point est sélectionné, le mettre à jour dans le drawer
+    if (this.selectedPoint) {
+      // Retrouver le point sélectionné mis à jour
+      const updatedPoint = this.points.find(p => p.uuid === this.selectedPoint!.uuid);
+      if (updatedPoint) {
+        this.mapService.selectPoint(updatedPoint);
+      }
+    }
+
     // Mettre à jour la base de données
     this.updateOrdersInDatabase();
   }
@@ -100,14 +126,34 @@ export class PointsSidebarComponent implements OnInit {
     return `Point ${point.uuid.substring(0, 8)}`;
   }
 
+  openEquipmentManager(): void {
+    // Fermer le drawer s'il est ouvert
+    this.mapService.selectPoint(null);
+    this.router.navigate(['/equipments']);
+  }
+
   onPointClick(point: Point): void {
     this.selectedPoint = point;
+    
+    // Sélectionner le point d'abord (ouvrira le drawer)
     this.mapService.selectPoint(point);
     
-    // Centrer la map sur le point si coordonnées disponibles
-    const map = this.mapService.getMapInstance();
-    if (map && point.latitude && point.longitude) {
-      map.setView([point.latitude, point.longitude], 16);
-    }
+    // Attendre que le drawer s'ouvre puis recentrer avec offset
+    setTimeout(() => {
+      const map = this.mapService.getMapInstance();
+      if (map && point.latitude && point.longitude) {
+        // Calculer l'offset pour compenser la sidebar (300px) et le drawer (420px)
+        // On décale vers la droite (+) pour que le point apparaisse à gauche/centre
+        const offsetX = 15; // Décalage vers la droite pour centrer dans l'espace visible
+        const point2D = map.latLngToContainerPoint([point.latitude, point.longitude]);
+        point2D.x += offsetX;
+        const targetLatLng = map.containerPointToLatLng(point2D);
+        
+        map.setView(targetLatLng, 17, {
+          animate: true,
+          duration: 0.5
+        });
+      }
+    }, 100);
   }
 }
