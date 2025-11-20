@@ -26,7 +26,7 @@ import {
   UserLocation,
   createPointParams,
 } from "../../types/types";
-import { getAll, getAllWhere, insert, update } from "../../database/queries";
+import { getAll, getAllWhere, insert, update, deleteWhere } from "../../database/queries";
 
 export function CreatePointScreen() {
   const db = useSQLiteContext();
@@ -48,7 +48,7 @@ export function CreatePointScreen() {
   const handleGoBack = async () => {
     if (!pointIdParam) {
       try {
-        await db.runAsync("DELETE FROM Point WHERE UUID = ?", [pointId]);
+        await deleteWhere(db, "Point", ["UUID"], [pointId]);
         console.log("Point supprimé (non validé)");
       } catch (error) {
         console.log("Erreur lors de la suppression du point:", error);

@@ -110,3 +110,29 @@ export async function getPhotosForPoint<T>(
     [pointId]
   )) as T[];
 }
+
+export async function deleteWhere(
+  db: SQLiteDatabase,
+  table: string,
+  columns: string[],
+  values: any[]
+): Promise<number> {
+  try {
+    if (columns.length === 0) {
+      throw new Error("deleteWhere: columns cannot be empty — refusing full table delete.");
+    }
+
+    const where = columns.map((col) => `${col} = ?`).join(" AND ");
+
+    const query = `DELETE FROM ${table} WHERE ${where}`;
+    console.log("Executing delete:", query, values);
+
+    const res = await db.runAsync(query, values);
+
+    // runAsync returns { changes, lastId }
+    return res.changes ?? 0;
+  } catch (error) {
+    console.error("Error in deleteWhere:", error);
+    return 0;
+  }
+}
