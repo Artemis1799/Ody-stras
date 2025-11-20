@@ -10,7 +10,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Region } from "react-native-maps";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import uuid from "react-native-uuid";
@@ -78,7 +78,7 @@ export function CreatePointScreen() {
     setIsEditingLocation(!isEditingLocation);
   };
 
-  const handleRegionChange = (region: any) => {
+  const handleRegionChange = (region: Region) => {
     if (isEditingLocation) {
       setMarkerPosition({
         latitude: region.latitude,
