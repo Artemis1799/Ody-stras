@@ -1,0 +1,25 @@
+<div class="export-overlay">
+	<div class="export-dialog">
+		<button class="export-close" (click)="close.emit()">✕</button>
+		<h4>Exporter les données</h4>
+		<p>Sélectionnez le format d'export souhaité pour télécharger vos données.</p>
+		<div class="export-actions">
+			<p-button 
+				label="Excel" 
+				icon="pi pi-file-excel" 
+				severity="success"
+				size="large"
+				(onClick)="exportExcel()"
+				[outlined]="true"
+			></p-button>
+			<p-button 
+				label="PDF" 
+				icon="pi pi-file-pdf" 
+				severity="danger"
+				size="large"
+				(onClick)="exportPDF()"
+				[outlined]="true"
+			></p-button>
+		</div>
+	</div>
+</div>
