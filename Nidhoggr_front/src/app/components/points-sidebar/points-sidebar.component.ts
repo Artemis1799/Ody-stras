@@ -3,23 +3,21 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
-import { PointService } from '../../../service/PointService';
-import { EquipmentService } from '../../../service/EquipmentService';
-import { EventService } from '../../../service/EventService';
-import { MapService } from '../../../service/MapService';
-import { NominatimService, NominatimResult } from '../../../service/NominatimService';
-import { Point } from '../../../classe/pointModel';
-import { EventStatus } from '../../../classe/eventModel';
-import * as QRCode from 'qrcode';
-import { WebSocketExportService } from '../../../service/WebSocketExportService';
+import { PointService } from '../../services/PointService';
+import { EquipmentService } from '../../services/EquipmentService';
+import { EventService } from '../../services/EventService';
+import { MapService } from '../../services/MapService';
+import { NominatimService, NominatimResult } from '../../services/NominatimService';
+import { Point } from '../../models/pointModel';
 import { Subscription, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ExportPopup } from '../../shared/export-popup/export-popup';
+import { ImportPopup } from '../../shared/import-popup/import-popup';
 
 @Component({
   selector: 'app-points-sidebar',
   standalone: true,
-  imports: [CommonModule, DragDropModule, FormsModule, ExportPopup],
+  imports: [CommonModule, DragDropModule, FormsModule, ExportPopup, ImportPopup],
   templateUrl: './points-sidebar.component.html',
   styleUrls: ['./points-sidebar.component.scss']
 })
@@ -35,7 +33,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Modal QR Code
   showQRModal = false;
   qrCodeDataUrl = '';
-  wsUrl = 'ws://192.168.1.128:8765';
+  wsUrl = 'ws://172.20.10.3:8765';
   
   // Search properties
   searchQuery = '';
@@ -43,8 +41,9 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
   
-  // Export popup
+  // Popups
   showExportPopup = false;
+  showImportPopup = false;
 
   constructor(
     private pointService: PointService,
@@ -52,7 +51,6 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     private eventService: EventService,
     private mapService: MapService,
     private router: Router,
-    private wsExportService: WebSocketExportService,
     private cdr: ChangeDetectorRef,
     private nominatimService: NominatimService,
   ) {}
@@ -249,30 +247,12 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
-  async openExportModal(): Promise<void> {
-    this.showQRModal = true;
-    
-    // Démarrer le serveur et se connecter
-    await this.wsExportService.startServerAndConnect();
-    
-    // Générer le QR code
-    try {
-      this.qrCodeDataUrl = await QRCode.toDataURL(this.wsUrl, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
-    } catch (error) {
-      console.error('Erreur génération QR code:', error);
-    }
+  openImport(): void {
+    this.showImportPopup = true;
   }
 
-  closeExportModal(): void {
-    this.showQRModal = false;
-    this.wsExportService.disconnect();
+  closeImport(): void {
+    this.showImportPopup = false;
   }
   
   onSearch(): void {

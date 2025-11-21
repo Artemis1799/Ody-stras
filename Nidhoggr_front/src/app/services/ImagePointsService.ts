@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ImagePoint } from '../classe/imagePointsModel';
-import { environment } from '../environments/environment';
+import { environment } from '../../environments/environment';
+import { ImagePoint } from '../models/imagePointsModel';
 
 @Injectable({
   providedIn: 'root'

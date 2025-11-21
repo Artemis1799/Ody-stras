@@ -5,11 +5,11 @@ import { PhotoService } from './PhotoService';
 import { EquipmentService } from './EquipmentService';
 import { EventService } from './EventService';
 import { ImagePointService } from './ImagePointsService';
-import { Point } from '../classe/pointModel';
-import { Photo } from '../classe/photoModel';
-import { Equipment } from '../classe/equipmentModel';
-import { ImagePoint } from '../classe/imagePointsModel';
-import { EventStatus } from '../classe/eventModel';
+import { Point } from '../models/pointModel';
+import { Photo } from '../models/photoModel';
+import { Equipment } from '../models/equipmentModel';
+import { EventStatus } from '../models/eventModel';
+import { ImagePoint } from '../models/imagePointsModel';
 
 export interface WebSocketMessage {
   type: string;
@@ -29,7 +29,7 @@ export class WebSocketExportService {
   private existingEquipments: Map<string, Equipment> = new Map();
   
   // Event ID fixe pour tous les points
-  private readonly DEFAULT_EVENT_ID = '89a3c61e-b614-4cbf-9224-e159929ca26d';
+  private readonly DEFAULT_EVENT_ID = 'c2fdce2f-e3aa-4a00-95d9-424f61354e31';
 
   constructor(
     private pointService: PointService,
@@ -327,6 +327,7 @@ export class WebSocketExportService {
           uuid: pointData.Equipement_ID,
           type: pointData.EquipType,
           description: pointData.EquipType,
+          unit: 'pièce', // Unité par défaut (obligatoire en base de données)
           totalStock: pointData.Equipement_quantite || 0,
           remainingStock: pointData.Equipement_quantite || 0
         };

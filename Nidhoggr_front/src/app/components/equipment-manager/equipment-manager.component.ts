@@ -4,10 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { InputText } from 'primeng/inputtext';
 import { InputNumber } from 'primeng/inputnumber';
-import { EquipmentService } from '../../../service/EquipmentService';
-import { PointService } from '../../../service/PointService';
-import { Equipment } from '../../../classe/equipmentModel';
-import { Point } from '../../../classe/pointModel';
+import { EquipmentService } from '../../services/EquipmentService';
+import { PointService } from '../../services/PointService';
+import { Equipment } from '../../models/equipmentModel';
 
 @Component({
   selector: 'app-equipment-manager',

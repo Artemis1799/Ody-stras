@@ -1,10 +1,10 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { PointService } from '../service/PointService';
-import { PhotoService } from '../service/PhotoService';
-import { ImagePointService } from '../service/ImagePointsService';
-import { EquipmentService } from '../service/EquipmentService';
+import { PointService } from './services/PointService';
+import { PhotoService } from './services/PhotoService';
+import { ImagePointService } from './services/ImagePointsService';
+import { EquipmentService } from './services/EquipmentService';
 
 @Component({
   selector: 'app-root',

@@ -12,7 +12,7 @@
       class="add-button"
       (click)="toggleAddForm()"
     >
-      <span class="pi pi-plus"></span>
+      <span class="pi" [ngClass]="showAddForm ? 'pi-times' : 'pi-plus'"></span>
       {{ showAddForm ? 'Annuler' : 'Ajouter un équipement' }}
     </button>
   </div>

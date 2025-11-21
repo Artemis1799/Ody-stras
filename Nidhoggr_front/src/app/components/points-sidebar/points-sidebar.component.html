@@ -1,24 +1,6 @@
 <aside class="sidebar">
   <div class="sidebar-header">
     <h3>Points</h3>
-    <div class="header-buttons">
-      <button 
-        type="button" 
-        class="export-button"
-        (click)="openExportModal()"
-        title="Exporter les données"
-      >
-        <span class="pi pi-upload"></span>
-      </button>
-      <button 
-        type="button" 
-        class="equipment-button"
-        (click)="openEquipmentManager()"
-        title="Gérer les équipements"
-      >
-        <span class="pi pi-cog"></span>
-      </button>
-    </div>
   </div>
   
   <div class="search-box">
@@ -29,7 +11,6 @@
       (ngModelChange)="onSearch()"
       (keyup.enter)="searchResults.length > 0 && goToLocation(searchResults[0])"
     />
-    <button (click)="onSearch()">🔍</button>
   </div>
   
   <!-- Search results autocomplete -->
@@ -81,26 +62,18 @@
     </div>
   </div>
   
-  <button class="export-btn" (click)="openExport()">Exporter</button>
+  <div class="bottom-buttons">
+    <button class="equipment-btn" (click)="openEquipmentManager()">Équipements</button>
+  </div>
+  <div class="bottom-buttons">
+    <button class="export-btn" (click)="openExport()">Exporter</button>
+    <button class="import-btn" (click)="openImport()">Importer</button>
+  </div>
 </aside>
 
-<!-- Modal QR Code -->
-<div class="modal-overlay" *ngIf="showQRModal" (click)="closeExportModal()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>Exporter les données</h2>
-      <button class="close-button" (click)="closeExportModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <p class="instructions">Scannez ce QR code avec votre téléphone pour envoyer les données</p>
-      <div class="qr-container">
-        <img [src]="qrCodeDataUrl" alt="QR Code" *ngIf="qrCodeDataUrl" />
-      </div>
-      <p class="url-info">{{ wsUrl }}</p>
-      <p class="status-info">✅ Serveur WebSocket en attente de connexion...</p>
-    </div>
-  </div>
-</div>
+@if (showImportPopup) {
+  <app-import-popup (close)="closeImport()"></app-import-popup>
+}
 @if (showExportPopup) {
   <app-export-popup (close)="closeExport()"></app-export-popup>
 }
