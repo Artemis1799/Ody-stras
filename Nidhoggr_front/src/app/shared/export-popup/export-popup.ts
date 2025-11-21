@@ -1,8 +1,6 @@
 import { Component, EventEmitter, Output, inject } from '@angular/core';
-import { PointService } from '../../../service/PointService';
-import { PhotoService } from '../../../service/PhotoService';
-import { Point } from '../../../classe/pointModel';
-import { Photo } from '../../../classe/photoModel';
+import { PointService } from '../../services/PointService';
+import { PhotoService } from '../../services/PhotoService';
 import { forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';

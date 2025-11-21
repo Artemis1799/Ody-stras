@@ -7,15 +7,15 @@ import { InputNumber } from 'primeng/inputnumber';
 import { Select } from 'primeng/select';
 import { Checkbox } from 'primeng/checkbox';
 import { Dialog } from 'primeng/dialog';
-import { MapService } from '../../../service/MapService';
-import { PointService } from '../../../service/PointService';
-import { EquipmentService } from '../../../service/EquipmentService';
-import { ImagePointService } from '../../../service/ImagePointsService';
-import { PhotoService } from '../../../service/PhotoService';
-import { Point } from '../../../classe/pointModel';
-import { Equipment } from '../../../classe/equipmentModel';
-import { Photo } from '../../../classe/photoModel';
-import { Subscription, forkJoin } from 'rxjs';
+import { MapService } from '../../services/MapService';
+import { PointService } from '../../services/PointService';
+import { EquipmentService } from '../../services/EquipmentService';
+import { ImagePointService } from '../../services/ImagePointsService';
+import { PhotoService } from '../../services/PhotoService';
+import { Point } from '../../models/pointModel';
+import { Subscription } from 'rxjs';
+import { Equipment } from '../../models/equipmentModel';
+import { Photo } from '../../models/photoModel';
 
 @Component({
   selector: 'app-point-drawer',

@@ -22,43 +22,6 @@
       font-weight: 600;
       color: #333;
     }
-
-    .header-buttons {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .export-button,
-    .equipment-button {
-      background-color: #3b82f6;
-      color: white;
-      border: none;
-      border-radius: 0.5rem;
-      padding: 0.5rem 0.75rem;
-      cursor: pointer;
-      font-size: 1.125rem;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      &:hover {
-        background-color: #2563eb;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      &:active {
-        transform: translateY(1px);
-      }
-    }
-
-    .export-button {
-      background-color: #10b981;
-
-      &:hover {
-        background-color: #059669;
-      }
-    }
   }
 
   h3 {
@@ -72,6 +35,7 @@
   display: flex;
   gap: 0.5rem;
   padding: 0 1rem;
+  margin-top: 0.75rem;
   margin-bottom: 0.75rem;
   
   input {
@@ -131,29 +95,63 @@
   }
 }
 
-.export-btn {
+.bottom-buttons {
   margin-top: auto;
-  margin-left: 1rem;
-  margin-right: 1rem;
-  margin-bottom: 1rem;
+  display: flex;
+  gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: #4caf50;
-  color: white;
+  flex-shrink: 0;
+
+  &:first-of-type {
+    padding-top: 1rem;
+    padding-bottom: 0.5rem;
+  }
+
+  &:last-of-type {
+    padding-top: 0.5rem;
+    padding-bottom: 1rem;
+  }
+}
+
+.export-btn,
+.import-btn,
+.equipment-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
   transition: all 0.2s;
-  flex-shrink: 0;
-  
-  &:hover {
-    background: #45a049;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
+  color: white;
   
   &:active {
     transform: translateY(1px);
+  }
+}
+
+.equipment-btn {
+  background: #2ad783;
+  
+  &:hover {
+    background: #1d925a;
+  }
+}
+
+.export-btn {
+  background: #2ad783;
+  
+  &:hover {
+    background: #1d925a;
+  }
+}
+
+.import-btn {
+  background: #2ad783;
+  
+  &:hover {
+    background: #1d925a;
   }
 }
 

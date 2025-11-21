@@ -5,11 +5,11 @@ import { PhotoService } from './PhotoService';
 import { EquipmentService } from './EquipmentService';
 import { EventService } from './EventService';
 import { ImagePointService } from './ImagePointsService';
-import { Point } from '../classe/pointModel';
-import { Photo } from '../classe/photoModel';
-import { Equipment } from '../classe/equipmentModel';
-import { ImagePoint } from '../classe/imagePointsModel';
-import { EventStatus } from '../classe/eventModel';
+import { Point } from '../models/pointModel';
+import { Photo } from '../models/photoModel';
+import { Equipment } from '../models/equipmentModel';
+import { EventStatus } from '../models/eventModel';
+import { ImagePoint } from '../models/imagePointsModel';
 
 export interface WebSocketMessage {
   type: string;
