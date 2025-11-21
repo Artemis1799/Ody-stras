@@ -271,18 +271,28 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         duration: 0.5
       });
       
-      // Ajouter un marqueur temporaire
+      // Ajouter un marqueur temporaire avec le style des points
       const L = (window as any).L;
       if (L) {
-        const marker = L.marker([lat, lon])
+        const marker = L.marker([lat, lon], {
+          icon: L.divIcon({
+            className: 'custom-marker',
+            html: `<div class="marker-pin search-marker">
+                     <span class="marker-number">📍</span>
+                   </div>`,
+            iconSize: [30, 42],
+            iconAnchor: [15, 42],
+            popupAnchor: [0, -42]
+          })
+        })
           .addTo(map)
           .bindPopup(result.display_name)
           .openPopup();
         
-        // Retirer le marqueur après 5 secondes
+        // Retirer le marqueur après 25 secondes
         setTimeout(() => {
           map.removeLayer(marker);
-        }, 5000);
+        }, 25000);
       }
     }
     
