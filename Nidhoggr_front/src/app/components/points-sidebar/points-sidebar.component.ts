@@ -30,6 +30,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   private reloadSubscription?: Subscription;
   private refreshInterval?: any;
   
+  // Modal QR Code
+  showQRModal = false;
+  qrCodeDataUrl = '';
+  wsUrl = 'ws://172.20.10.3:8765';
+  
   // Search properties
   searchQuery = '';
   searchResults: NominatimResult[] = [];
