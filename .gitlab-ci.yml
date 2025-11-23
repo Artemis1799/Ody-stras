@@ -33,9 +33,10 @@ lint_job:
   
 build_job:
   stage: build
-  dependencies:
+  needs:
     - install_job
   script:
+    - npm install -g eas-cli
     - eas build --platform all --profile production --non-interactive
   artifacts:
     paths:
