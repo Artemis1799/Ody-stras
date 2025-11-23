@@ -22,12 +22,8 @@ lint_job:
   needs:
     - install_job
   script:
-    - npm run lint -- --format gitlab > gl-code-quality-report.json || true
-  artifacts:
-    when: always
-    reports:
-      codequality: gl-code-quality-report.json
-    expire_in: 1 week
+    - npm run lint
+  allow_failure: true
   
 build_job:
   stage: build
