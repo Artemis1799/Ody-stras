@@ -1,0 +1,33 @@
+image: node:18
+
+stages:
+  - install
+  - lint
+  - build
+
+install_job:
+  stage: install
+  script:
+    - npm ci
+
+lint_job:
+  stage: lint
+  script:
+    - npm run lint -- --format gitlab > gl-code-quality-report.json || true
+  artifacts:
+    when: always
+    reports:
+      codequality: gl-code-quality-report.json
+    expire_in: 1 week
+  
+build_job:
+  stage: build
+  dependencies:
+    - install_job
+  script:
+    - eas build --platform all --profile production --non-interactive
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+
