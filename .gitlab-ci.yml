@@ -26,7 +26,7 @@ lint_job:
   artifacts:
     when: always
     reports:
-      codequality: gl-code-quality-report.json
+      codequality: nidhoggr/gl-code-quality-report.json
     expire_in: 1 week
   allow_failure: true
 
