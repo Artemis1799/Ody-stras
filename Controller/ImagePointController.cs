@@ -57,4 +57,11 @@ public class ImagePointController : ControllerBase
         if (!ok) return NotFound();
         return NoContent();
     }
+
+    [HttpDelete]
+    public async Task<ActionResult<int>> DeleteAll()
+    {
+        var count = await _imagePointService.DeleteAllAsync();
+        return Ok(new { deletedCount = count });
+    }
 }

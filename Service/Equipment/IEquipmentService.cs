@@ -8,5 +8,6 @@ public interface IEquipmentService
 	Task<Equipment> CreateAsync(Equipment equipment);
 	Task<Equipment?> UpdateAsync(Guid id, Equipment equipment);
 	Task<bool> DeleteAsync(Guid id);
+	Task<int> DeleteAllAsync();
 }
 

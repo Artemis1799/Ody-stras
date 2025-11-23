@@ -73,4 +73,13 @@ public class EquipmentService : IEquipmentService
 
 		return true;
 	}
+
+	public async Task<int> DeleteAllAsync()
+	{
+		var equipments = await _context.Equipments.ToListAsync();
+		var count = equipments.Count;
+		_context.Equipments.RemoveRange(equipments);
+		await _context.SaveChangesAsync();
+		return count;
+	}
 }

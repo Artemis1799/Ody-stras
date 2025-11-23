@@ -9,4 +9,5 @@ public interface IImagePointService
     Task<ImagePoint> CreateAsync(ImagePoint imagePoint);
     Task<ImagePoint?> UpdateAsync(Guid imageId, Guid pointId, ImagePoint imagePoint);
     Task<bool> DeleteAsync(Guid imageId, Guid pointId);
+    Task<int> DeleteAllAsync();
 }

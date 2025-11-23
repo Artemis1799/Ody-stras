@@ -75,4 +75,13 @@ public class EventService : IEventService
 
         return true;
     }
+
+    public async Task<int> DeleteAllAsync()
+    {
+        var events = await _context.Events.ToListAsync();
+        var count = events.Count;
+        _context.Events.RemoveRange(events);
+        await _context.SaveChangesAsync();
+        return count;
+    }
 }

@@ -67,4 +67,13 @@ public class ImagePointService : IImagePointService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<int> DeleteAllAsync()
+    {
+        var imagePoints = await _context.ImagePoints.ToListAsync();
+        var count = imagePoints.Count;
+        _context.ImagePoints.RemoveRange(imagePoints);
+        await _context.SaveChangesAsync();
+        return count;
+    }
 }
