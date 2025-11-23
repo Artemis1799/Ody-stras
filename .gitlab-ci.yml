@@ -11,10 +11,16 @@ stages:
 install_job:
   stage: install
   script:
-    - npm ci
+    - npm install
+  artifacts:
+    paths:
+      - nidhoggr/node_modules/
+    expire_in: 1 hour
 
 lint_job:
   stage: lint
+  needs:
+    - install_job
   script:
     - npm run lint -- --format gitlab > gl-code-quality-report.json || true
   artifacts:
