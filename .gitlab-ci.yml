@@ -37,6 +37,7 @@ build_job:
     - install_job
   script:
     - npm install -g eas-cli
+    - echo "EXPO_TOKEN is set: ${#EXPO_TOKEN}"
     - eas build --platform all --profile production --non-interactive
   artifacts:
     paths:
