@@ -30,14 +30,12 @@ lint_job:
     expire_in: 1 week
   allow_failure: true
 
-  
 build_job:
   stage: build
   needs:
     - install_job
   script:
     - npm install -g eas-cli
-    - echo "EXPO_TOKEN is set: ${#EXPO_TOKEN}"
     - eas build --platform all --profile production --non-interactive
   artifacts:
     paths:
