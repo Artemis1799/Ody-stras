@@ -31,7 +31,8 @@ public class AppDbContext : DbContext
             .HasOne(p => p.Equipment)
             .WithMany(e => e.Points)
             .HasForeignKey(p => p.EquipmentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
 
         modelBuilder.Entity<ImagePoint>()
             .HasOne(ip => ip.Photo)
