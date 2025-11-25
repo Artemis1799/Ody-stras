@@ -68,4 +68,11 @@ public class EventController : ControllerBase
         
         return NoContent();
     }
+
+    [HttpDelete]
+    public async Task<ActionResult<int>> DeleteAll()
+    {
+        var count = await _eventService.DeleteAllAsync();
+        return Ok(new { deletedCount = count });
+    }
 }

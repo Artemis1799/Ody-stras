@@ -8,4 +8,5 @@ public interface IEventService
     Task<Event> CreateAsync(Event eventModel);
     Task<Event?> UpdateAsync(Guid id, Event eventModel);
     Task<bool> DeleteAsync(Guid id);
+    Task<int> DeleteAllAsync();
 }

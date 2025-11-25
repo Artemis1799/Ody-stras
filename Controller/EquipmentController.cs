@@ -61,4 +61,11 @@ public class EquipmentController : ControllerBase
 
 		return NoContent();
 	}
+
+	[HttpDelete]
+	public async Task<ActionResult<int>> DeleteAll()
+	{
+		var count = await _equipmentService.DeleteAllAsync();
+		return Ok(new { deletedCount = count });
+	}
 }

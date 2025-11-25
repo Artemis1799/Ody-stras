@@ -8,4 +8,5 @@ public interface IPhotoService
     Task<Photo> CreateAsync(Photo photo);
     Task<Photo?> UpdateAsync(Guid id, Photo photo);
     Task<bool> DeleteAsync(Guid id);
+    Task<int> DeleteAllAsync();
 }

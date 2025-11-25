@@ -60,4 +60,13 @@ public class PhotoService : IPhotoService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<int> DeleteAllAsync()
+    {
+        var photos = await _context.Photos.ToListAsync();
+        var count = photos.Count;
+        _context.Photos.RemoveRange(photos);
+        await _context.SaveChangesAsync();
+        return count;
+    }
 }

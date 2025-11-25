@@ -8,4 +8,5 @@ public interface IPointService
     Task<Point> CreateAsync(Point point);
     Task<Point?> UpdateAsync(Guid id, Point point);
     Task<bool> DeleteAsync(Guid id);
+    Task<int> DeleteAllAsync();
 }

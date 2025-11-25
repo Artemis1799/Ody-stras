@@ -81,4 +81,13 @@ public class PointService : IPointService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<int> DeleteAllAsync()
+    {
+        var points = await _context.Points.ToListAsync();
+        var count = points.Count;
+        _context.Points.RemoveRange(points);
+        await _context.SaveChangesAsync();
+        return count;
+    }
 }
