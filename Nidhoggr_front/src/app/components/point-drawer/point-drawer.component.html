@@ -1,106 +1,151 @@
-<p-drawer [(visible)]="visible" position="right" [modal]="false" [closeOnEscape]="false" [dismissible]="false">
+<p-drawer 
+  [(visible)]="visible"
+  position="right" 
+  [modal]="false" 
+  [closeOnEscape]="false" 
+  [dismissible]="false"
+  [closable]="false"
+>
   <ng-template #header>
     <div class="drawer-header">
-      <h3>Éditer le point</h3>
+      <div class="header-content">
+        <h3>Point #{{ selectedPoint?.order || '?' }}</h3>
+        <span class="point-status" [class.valid]="editedIsValid" [class.invalid]="!editedIsValid">
+          {{ editedIsValid ? 'Validé' : 'Non validé' }}
+        </span>
+      </div>
       <button 
         type="button" 
-        class="p-button-text p-button-rounded close-button"
+        class="close-button"
         (click)="closeDrawer()"
+        title="Fermer"
       >✕</button>
     </div>
   </ng-template>
 
-  <div *ngIf="selectedPoint" class="drawer-content">
-    <div class="form-field">
-      <label for="comment">Commentaire</label>
-      <input 
-        id="comment" 
-        type="text" 
-        pInputText 
-        [(ngModel)]="editedComment"
-        placeholder="Entrez un commentaire"
-        class="w-full"
-      />
-    </div>
-
-    <div class="form-field">
+  <ng-container *ngIf="selectedPoint" class="drawer-content">
+    <!-- Section Validation -->
+    <div class="section">
+      <div class="section-header">
+        <span class="pi pi-check-circle"></span>
+        <h4>Validation</h4>
+      </div>
       <div class="checkbox-field">
         <p-checkbox 
           inputId="isValid" 
           [(ngModel)]="editedIsValid"
           [binary]="true"
         ></p-checkbox>
-        <label for="isValid">Point validé</label>
+        <label for="isValid">Marquer ce point comme validé</label>
       </div>
     </div>
 
-    <div class="form-field">
-      <label for="equipment">Équipement</label>
-      <p-select
-        inputId="equipment"
-        [options]="equipments"
-        [(ngModel)]="selectedEquipment"
-        optionLabel="description"
-        placeholder="Sélectionner un équipement"
-        [showClear]="true"
-        (onChange)="onEquipmentChange($event)"
+    <!-- Section Commentaire -->
+    <div class="section">
+      <div class="section-header">
+        <span class="pi pi-comment"></span>
+        <h4>Commentaire</h4>
+      </div>
+      <input 
+        id="comment" 
+        type="text" 
+        pInputText 
+        [(ngModel)]="editedComment"
+        placeholder="Ajouter un commentaire..."
         class="w-full"
-      >
-        <ng-template #value let-value>
-          <div *ngIf="value">{{ getEquipmentDisplayName(value) }}</div>
-        </ng-template>
-        <ng-template #item let-equipment>
-          <div>
-            {{ getEquipmentDisplayName(equipment) }}
-            <span class="stock-info" *ngIf="equipment.remainingStock !== undefined">
-              (Stock: {{ equipment.remainingStock }})
-            </span>
-          </div>
-        </ng-template>
-      </p-select>
+      />
     </div>
 
-    <div class="form-field" *ngIf="selectedEquipment">
-      <label for="quantity">Quantité</label>
-      <p-inputnumber
-        inputId="quantity"
-        [(ngModel)]="editedEquipmentQuantity"
-        [min]="0"
-        [max]="getAvailableStock()"
-        (ngModelChange)="onQuantityChange($event)"
-        [showButtons]="true"
-        class="w-full"
-      ></p-inputnumber>
-      <small class="stock-indicator">
-        Stock disponible: {{ getAvailableStock() }}
-      </small>
+    <!-- Section Équipement -->
+    <div class="section">
+      <div class="section-header">
+        <span class="pi pi-box"></span>
+        <h4>Équipement</h4>
+      </div>
+      
+      <div class="form-field">
+        <label for="equipment">Type d'équipement</label>
+        <p-select
+          inputId="equipment"
+          [options]="equipments"
+          [(ngModel)]="selectedEquipment"
+          optionLabel="description"
+          placeholder="Sélectionner..."
+          [showClear]="true"
+          (onChange)="onEquipmentChange($event)"
+          class="w-full"
+        >
+          <ng-template #value let-value>
+            <div *ngIf="value">{{ getEquipmentDisplayName(value) }}</div>
+          </ng-template>
+          <ng-template #item let-equipment>
+            <div class="equipment-option">
+              <span class="equipment-name">{{ getEquipmentDisplayName(equipment) }}</span>
+              <span class="equipment-stock" *ngIf="equipment.remainingStock !== undefined">
+                Stock: {{ equipment.remainingStock }}
+              </span>
+            </div>
+          </ng-template>
+        </p-select>
+      </div>
+
+      <div class="form-field" *ngIf="selectedEquipment">
+        <label for="quantity">Quantité</label>
+        <p-inputnumber
+          inputId="quantity"
+          [(ngModel)]="editedEquipmentQuantity"
+          [min]="0"
+          [max]="getAvailableStock()"
+          (ngModelChange)="onQuantityChange($event)"
+          [showButtons]="true"
+          class="w-full"
+        ></p-inputnumber>
+        <small class="help-text">
+          <span class="pi pi-info-circle"></span>
+          Stock disponible: {{ getAvailableStock() }}
+        </small>
+      </div>
     </div>
 
-    <div class="form-field point-info">
-      <h4>Informations</h4>
-      <p><strong>UUID:</strong> {{ selectedPoint.uuid }}</p>
-      <p *ngIf="selectedPoint.latitude && selectedPoint.longitude">
-        <strong>Position:</strong> {{ selectedPoint.latitude }}, {{ selectedPoint.longitude }}
-      </p>
-      <p><strong>Ordre:</strong> {{ selectedPoint.order }}</p>
+    <!-- Section Informations -->
+    <div class="section info-section">
+      <div class="section-header">
+        <span class="pi pi-info-circle"></span>
+        <h4>Informations</h4>
+      </div>
+      <div class="info-grid">
+        <div class="info-item full-width">
+          <span class="info-label">Position</span>
+          <span class="info-value" *ngIf="selectedPoint.latitude && selectedPoint.longitude">
+            {{ selectedPoint.latitude.toFixed(6) }}, {{ selectedPoint.longitude.toFixed(6) }}
+          </span>
+          <span class="info-value empty" *ngIf="!selectedPoint.latitude || !selectedPoint.longitude">
+            Non définie
+          </span>
+        </div>
+        <div class="info-item full-width">
+          <span class="info-label">Ordre</span>
+          <span class="info-value">{{ selectedPoint.order }}</span>
+        </div>
+      </div>
     </div>
-  </div>
+  </ng-container>
 
   <ng-template #footer>
     <div class="drawer-footer">
       <button 
         type="button" 
-        class="photo-button"
+        class="btn btn-secondary"
         (click)="loadPhotosForPoint()"
         [disabled]="loadingPhotos"
       >
         <span class="pi pi-image"></span>
-        {{ loadingPhotos ? 'Chargement...' : 'Voir photos' }}
+        {{ loadingPhotos ? 'Chargement...' : 'Photos' }}
       </button>
-      <div class="action-buttons">
+      <div class="main-actions">
         <button 
           type="button" 
-          class="delete-button"
+          class="btn btn-danger"
           (click)="deletePoint()"
         >
           <span class="pi pi-trash"></span>
@@ -108,10 +153,10 @@
         </button>
         <button 
           type="button" 
-          class="save-button"
+          class="btn btn-primary"
           (click)="saveChanges()"
         >
-          <span class="pi pi-check"></span>
+          <span class="pi pi-save"></span>
           Enregistrer
         </button>
       </div>

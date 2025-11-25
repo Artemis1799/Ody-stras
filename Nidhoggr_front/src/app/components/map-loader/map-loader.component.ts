@@ -23,13 +23,26 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       const L: any = (window as any).L;
       const center: [number, number] = [48.5846, 7.7507];
       
+      // Limites géographiques basées sur les tuiles téléchargées
+      const bounds = L.latLngBounds(
+        L.latLng(48.5130, 7.6380), // Sud-Ouest (MINLAT, MINLON)
+        L.latLng(48.6500, 7.8780)  // Nord-Est (MAXLAT, MAXLON)
+      );
+      
       // Nettoyer l'ancienne instance si elle existe
       if (this.map && typeof this.map.remove === 'function') {
         this.map.remove();
         this.map = null;
       }
       
-      this.map = L.map('map', { center, zoom: 12 });
+      this.map = L.map('map', { 
+        center, 
+        zoom: 13,
+        minZoom: 13,  
+        maxZoom: 17,    
+        maxBounds: bounds,           
+        maxBoundsViscosity: 1.0      
+      });
       
       // Partager l'instance de map avec le service
       this.mapService.setMapInstance(this.map);
@@ -55,7 +68,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         } else {
           chosen = defaultTemplate;
         }
-        let tileLayer = L.tileLayer(chosen, { maxZoom: 20, attribution: '&copy; Local tiles' }).addTo(this.map);
+        let tileLayer = L.tileLayer(chosen, { 
+          minZoom: 13,
+          maxZoom: 17,  
+          attribution: '&copy; Local tiles' 
+        }).addTo(this.map);
         const input = document.getElementById('tileUrlInput') as HTMLInputElement | null;
         const btn = document.getElementById('tileTestBtn') as HTMLButtonElement | null;
         const status = document.getElementById('tileStatus') as HTMLElement | null;
@@ -135,7 +152,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           })
         }).addTo(this.map);
 
-        // Popup avec informations
+        // Popup avec informations (ne s'ouvre que manuellement)
         const popupContent = `
           <div class="point-popup">
             <strong>${this.getPointDisplayName(point)}</strong><br>
@@ -144,10 +161,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
             <small>Statut: ${point.isValid ? 'Valide ✓' : 'Invalide ✗'}</small>
           </div>
         `;
-        marker.bindPopup(popupContent);
+        marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
 
-        // Clic sur le marker
-        marker.on('click', () => {
+        // Clic sur le marker - ouvre le drawer au lieu du popup
+        marker.on('click', (e: any) => {
+          L.DomEvent.stopPropagation(e);
           this.onMarkerClick(point);
         });
 
@@ -173,10 +191,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   private onMarkerClick(point: Point): void {
-    // Fermer le drawer s'il est ouvert
-    this.mapService.selectPoint(null);
+    // Sélectionner le point (ouvrira automatiquement le drawer)
+    this.mapService.selectPoint(point);
     
-    // Zoomer et centrer sur le point (sans ouvrir le drawer)
+    // Zoomer et centrer sur le point
     if (this.map && point.latitude && point.longitude) {
       this.map.setView([point.latitude, point.longitude], 17, {
         animate: true,

@@ -33,7 +33,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Modal QR Code
   showQRModal = false;
   qrCodeDataUrl = '';
-  wsUrl = 'ws://172.20.10.3:8765';
+  wsUrl = 'ws://192.168.1.87:8765';
   
   // Search properties
   searchQuery = '';
@@ -219,7 +219,13 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   openEquipmentManager(): void {
     // Fermer le drawer s'il est ouvert
     this.mapService.selectPoint(null);
-    this.router.navigate(['/equipments']);
+    
+    // Si on est déjà sur la page equipments, retourner à la map
+    if (this.router.url === '/equipments') {
+      this.router.navigate(['/map']);
+    } else {
+      this.router.navigate(['/equipments']);
+    }
   }
 
   onPointClick(point: Point): void {

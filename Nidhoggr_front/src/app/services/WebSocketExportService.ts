@@ -20,7 +20,7 @@ export interface WebSocketMessage {
   providedIn: 'root'
 })
 export class WebSocketExportService {
-  private wsUrl = 'ws://localhost:8765';
+  private wsUrl = 'ws://192.168.1.87:8765';
   private ws: WebSocket | null = null;
   private progressSubject = new Subject<WebSocketMessage>();
   public progress$ = this.progressSubject.asObservable();
@@ -29,7 +29,7 @@ export class WebSocketExportService {
   private existingEquipments: Map<string, Equipment> = new Map();
   
   // Event ID fixe pour tous les points
-  private readonly DEFAULT_EVENT_ID = 'c2fdce2f-e3aa-4a00-95d9-424f61354e31';
+  private readonly DEFAULT_EVENT_ID = '3ba8f189-5bcb-4ca6-a329-25786f34bc03';
 
   constructor(
     private pointService: PointService,

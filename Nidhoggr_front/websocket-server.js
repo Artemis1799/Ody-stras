@@ -195,6 +195,62 @@ function handlePhoto(data, ws) {
   console.log(`✅ Photo diffusée à ${wsServer.clients.size} client(s)`);
 }
 
+function handleBulkData(data, ws) {
+  console.log('📦 Traitement des données groupées');
+  console.log(`   Points reçus: ${data.points.length}`);
+  
+  // Traiter chaque point
+  data.points.forEach((pointData, index) => {
+    const pointUuid = pointData.UUID;
+    console.log(`📍 Point ${index + 1}/${data.points.length}, UUID: ${pointUuid}`);
+    
+    // Broadcaster le point
+    const pointMessage = JSON.stringify({
+      type: 'point',
+      point: pointData
+    });
+    
+    wsServer.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(pointMessage);
+      }
+    });
+    
+    // Traiter les photos du point
+    if (pointData.photos && Array.isArray(pointData.photos)) {
+      pointData.photos.forEach((photoData, photoIndex) => {
+        console.log(`📸 Photo ${photoIndex + 1}/${pointData.photos.length} pour point ${pointUuid}`);
+        
+        const photoMessage = JSON.stringify({
+          type: 'photo',
+          photo: photoData,
+          pointUUID: pointUuid
+        });
+        
+        wsServer.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(photoMessage);
+          }
+        });
+      });
+    }
+  });
+  
+  // Envoyer le message de fin
+  const endMessage = JSON.stringify({
+    type: 'end',
+    message: `Transfer complete: ${data.points.length} points reçus !`
+  });
+  
+  wsServer.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(endMessage);
+    }
+  });
+  
+  console.log(`✅ Traitement terminé, ${data.points.length} points diffusés`);
+}
+
 function handleEnd(data, ws) {
   // Calculer le total de photos
   let totalPhotos = 0;

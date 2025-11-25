@@ -7,6 +7,7 @@ import { InputNumber } from 'primeng/inputnumber';
 import { EquipmentService } from '../../services/EquipmentService';
 import { PointService } from '../../services/PointService';
 import { Equipment } from '../../models/equipmentModel';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-equipment-manager',
@@ -21,7 +22,7 @@ import { Equipment } from '../../models/equipmentModel';
   styleUrls: ['./equipment-manager.component.scss']
 })
 export class EquipmentManagerComponent implements OnInit {
-  equipments: Equipment[] = [];
+  equipments$: Observable<Equipment[]>;
   editingEquipment: Equipment | null = null;
   isLoading = false;
   errorMessage = '';
@@ -40,7 +41,9 @@ export class EquipmentManagerComponent implements OnInit {
     private equipmentService: EquipmentService,
     private pointService: PointService,
     private router: Router
-  ) {}
+  ) {
+    this.equipments$ = this.equipmentService.equipments$;
+  }
 
   ngOnInit(): void {
     this.loadEquipments();
@@ -51,8 +54,7 @@ export class EquipmentManagerComponent implements OnInit {
     this.errorMessage = '';
     
     this.equipmentService.getAll().subscribe({
-      next: (data) => {
-        this.equipments = data;
+      next: () => {
         this.isLoading = false;
       },
       error: (error) => {
@@ -90,11 +92,6 @@ export class EquipmentManagerComponent implements OnInit {
 
     this.equipmentService.update(equipment.uuid, this.editingEquipment).subscribe({
       next: () => {
-        // Mettre à jour l'équipement dans la liste
-        const index = this.equipments.findIndex(e => e.uuid === equipment.uuid);
-        if (index !== -1) {
-          this.equipments[index] = { ...this.editingEquipment! };
-        }
         this.editingEquipment = null;
       },
       error: (error) => {
@@ -128,7 +125,6 @@ export class EquipmentManagerComponent implements OnInit {
           // Supprimer l'équipement
           this.equipmentService.delete(equipment.uuid).subscribe({
             next: () => {
-              this.equipments = this.equipments.filter(e => e.uuid !== equipment.uuid);
               alert(`Équipement supprimé. ${pointsWithEquipment.length} point(s) mis à jour.`);
             },
             error: (error) => {
@@ -170,8 +166,7 @@ export class EquipmentManagerComponent implements OnInit {
     this.newEquipment.remainingStock = this.newEquipment.totalStock;
 
     this.equipmentService.create(this.newEquipment as Equipment).subscribe({
-      next: (created) => {
-        this.equipments.push(created);
+      next: () => {
         this.showAddForm = false;
         this.newEquipment = {
           type: '',

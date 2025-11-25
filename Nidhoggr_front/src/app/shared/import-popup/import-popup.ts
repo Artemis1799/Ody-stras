@@ -14,7 +14,7 @@ export class ImportPopup implements OnInit {
   @Output() close = new EventEmitter<void>();
   
   qrCodeDataUrl = '';
-  wsUrl = 'ws://172.20.10.3:8765';
+  wsUrl = 'ws://192.168.1.87:8765';
   
   private wsExportService = inject(WebSocketExportService);
 

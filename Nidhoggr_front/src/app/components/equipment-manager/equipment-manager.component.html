@@ -82,7 +82,7 @@
 
   <div class="equipment-list">
     <div 
-      *ngFor="let equipment of equipments" 
+      *ngFor="let equipment of equipments$ | async" 
       class="equipment-card"
       [class.editing]="isEditing(equipment)"
     >
@@ -187,7 +187,7 @@
       </div>
     </div>
 
-    <div *ngIf="equipments.length === 0 && !isLoading" class="empty-state">
+    <div *ngIf="(equipments$ | async)?.length === 0 && !isLoading" class="empty-state">
       <p>Aucun équipement disponible</p>
       <p class="hint">Cliquez sur "Ajouter un équipement" pour commencer</p>
     </div>
