@@ -1,0 +1,75 @@
+{
+  "expo": {
+    "name": "nidhoggr",
+    "slug": "nidhoggr",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Cette app utilise la caméra pour prendre des photos."
+      },
+      "config": {
+        "googleMapsApiKey": "process.env.GOOGLE_MAPS_API_KEY"
+      }
+    },
+    "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "process.env.GOOGLE_MAPS_API_KEY"
+        }
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.adelaye.nidhoggr"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "L'application a besoin d'accéder à votre caméra pour prendre une photo.",
+          "photosPermission": "L'application doit accéder à vos photos pour les afficher."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "recordAudioAndroid": true
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "469667ae-a578-49f9-a775-3a4e80e283e5",
+        "googleMapsApiKey": "process.env.GOOGLE_MAPS_API_KEY"
+      }
+    }
+  }
+}
