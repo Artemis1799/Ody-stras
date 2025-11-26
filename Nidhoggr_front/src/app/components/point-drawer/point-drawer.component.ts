@@ -34,7 +34,8 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   visible = false;
   selectedPoint: Point | null = null;
   equipments: Equipment[] = [];
-  selectedEquipment: Equipment | null = null;
+  equipmentOptions: any[] = []; // Inclut l'option "Aucun" + les équipements
+  selectedEquipment: any | null = null;
   
   // Copie locale pour l'édition
   editedComment = '';
@@ -62,9 +63,10 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     // S'abonner aux changements d'équipements depuis le EquipmentService
     this.equipmentsSubscription = this.equipmentService.equipments$.subscribe(equipments => {
       this.equipments = equipments;
+      this.updateEquipmentOptions();
       
       // Mettre à jour l'équipement sélectionné si nécessaire
-      if (this.selectedEquipment) {
+      if (this.selectedEquipment && this.selectedEquipment.uuid) {
         const updatedEquipment = equipments.find(e => e.uuid === this.selectedEquipment!.uuid);
         if (updatedEquipment) {
           this.selectedEquipment = updatedEquipment;
@@ -100,11 +102,18 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     this.equipmentService.getAll().subscribe({
       next: (data) => {
         this.equipments = data;
+        this.updateEquipmentOptions();
       },
       error: (error) => {
         console.error('Erreur lors du chargement des équipements:', error);
       }
     });
+  }
+
+  updateEquipmentOptions(): void {
+    // Créer l'option "Aucun" en premier
+    const noneOption = { uuid: null, description: 'Aucun', type: 'none' };
+    this.equipmentOptions = [noneOption, ...this.equipments];
   }
 
   openDrawer(point: Point): void {
@@ -119,7 +128,8 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     if (point.equipmentId) {
       this.selectedEquipment = this.equipments.find(e => e.uuid === point.equipmentId) || null;
     } else {
-      this.selectedEquipment = null;
+      // Si pas d'équipement, sélectionner l'option "Aucun"
+      this.selectedEquipment = this.equipmentOptions.find(e => e.uuid === null) || null;
     }
 
     this.visible = true;
@@ -146,7 +156,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   }
 
   onEquipmentChange(event: any): void {
-    const newEquipment = event.value as Equipment | null;
+    const newEquipment = event.value;
     
     // Si on avait un équipement précédent, on remet sa quantité dans le stock
     if (this.previousEquipmentId && this.previousEquipmentQuantity > 0) {
@@ -189,13 +199,13 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
       ...this.selectedPoint,
       comment: this.editedComment,
       isValid: this.editedIsValid,
-      equipmentId: this.selectedEquipment?.uuid || '',
+      equipmentId: this.selectedEquipment?.uuid || null,
       equipmentQuantity: this.editedEquipmentQuantity
     };
 
     // Calculer les changements de stock
     let stockDifference = 0;
-    if (this.selectedEquipment) {
+    if (this.selectedEquipment && this.selectedEquipment.uuid) {
       stockDifference = this.editedEquipmentQuantity - this.previousEquipmentQuantity;
       
       // Mettre à jour le stock de l'équipement
@@ -217,7 +227,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
         if (this.selectedPoint) {
           this.selectedPoint.comment = this.editedComment;
           this.selectedPoint.isValid = this.editedIsValid;
-          this.selectedPoint.equipmentId = this.selectedEquipment?.uuid || '';
+          this.selectedPoint.equipmentId = this.selectedEquipment?.uuid || null;
           this.selectedPoint.equipmentQuantity = this.editedEquipmentQuantity;
         }
         
@@ -261,7 +271,8 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     return (this.selectedEquipment.remainingStock || 0) + this.previousEquipmentQuantity;
   }
 
-  getEquipmentDisplayName(equipment: Equipment): string {
+  getEquipmentDisplayName(equipment: any): string {
+    if (!equipment || !equipment.uuid) return 'Aucun';
     return equipment.description || equipment.type || 'Équipement sans nom';
   }
 

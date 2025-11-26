@@ -67,29 +67,37 @@
         <label for="equipment">Type d'équipement</label>
         <p-select
           inputId="equipment"
-          [options]="equipments"
+          [options]="equipmentOptions"
           [(ngModel)]="selectedEquipment"
           optionLabel="description"
           placeholder="Sélectionner..."
-          [showClear]="true"
+          [showClear]="false"
           (onChange)="onEquipmentChange($event)"
           class="w-full"
         >
           <ng-template #value let-value>
-            <div *ngIf="value">{{ getEquipmentDisplayName(value) }}</div>
+            <div *ngIf="value; else noEquipment">
+              {{ value.uuid ? getEquipmentDisplayName(value) : 'Aucun' }}
+            </div>
+            <ng-template #noEquipment>Aucun</ng-template>
           </ng-template>
           <ng-template #item let-equipment>
-            <div class="equipment-option">
+            <div class="equipment-option" *ngIf="equipment.uuid; else noEquipmentOption">
               <span class="equipment-name">{{ getEquipmentDisplayName(equipment) }}</span>
               <span class="equipment-stock" *ngIf="equipment.remainingStock !== undefined">
                 Stock: {{ equipment.remainingStock }}
               </span>
             </div>
+            <ng-template #noEquipmentOption>
+              <div class="equipment-option">
+                <span class="equipment-name">Aucun</span>
+              </div>
+            </ng-template>
           </ng-template>
         </p-select>
       </div>
 
-      <div class="form-field" *ngIf="selectedEquipment">
+      <div class="form-field" *ngIf="selectedEquipment && selectedEquipment.uuid">
         <label for="quantity">Quantité</label>
         <p-inputnumber
           inputId="quantity"
