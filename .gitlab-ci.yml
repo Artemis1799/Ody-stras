@@ -41,7 +41,7 @@ test_job:
   artifacts:
     when: always
     reports:
-      junit: nidhoggr/junit.xml
+      junit: junit.xml
     expire_in: 1 week
   allow_failure: true
 
