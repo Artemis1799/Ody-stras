@@ -37,7 +37,7 @@ test_job:
     - install_job
   script:
     - npm install --no-save jest-junit
-    - npm test --junitxml=./nidhoggr/junit.xml
+    - npm test --junitxml=./junit.xml
   artifacts:
     when: always
     reports:
