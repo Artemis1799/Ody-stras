@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -20,7 +21,8 @@ public class Event
     [Required]
     public EventStatus Status { get; set; }
     
-    public Guid? ResponsibleId { get; set; }
+    [JsonIgnore]
+    public ICollection<EventTeam>? EventTeams { get; set; }
     
     [JsonIgnore]
     public ICollection<Point>? Points { get; set; }
