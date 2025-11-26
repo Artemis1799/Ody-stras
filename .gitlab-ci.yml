@@ -1,0 +1,46 @@
+image: node:18
+
+before_script:
+  - cd nidhoggr
+
+stages:
+  - install
+  - lint
+  - build
+
+install_job:
+  stage: install
+  script:
+    - npm install
+  artifacts:
+    paths:
+      - nidhoggr/node_modules/
+    expire_in: 1 hour
+
+lint_job:
+  stage: lint
+  needs:
+    - install_job
+  script:
+    - npm run lint > gl-code-quality-report.json || true
+  artifacts:
+    when: always
+    reports:
+      codequality: nidhoggr/gl-code-quality-report.json
+    expire_in: 1 week
+  allow_failure: true
+
+build_job:
+  stage: build
+  needs:
+    - install_job
+  script:
+    - npm install -g eas-cli
+    - eas build -p android --profile preview --non-interactive
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" 
+
