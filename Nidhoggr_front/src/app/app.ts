@@ -5,11 +5,12 @@ import { PointService } from './services/PointService';
 import { PhotoService } from './services/PhotoService';
 import { ImagePointService } from './services/ImagePointsService';
 import { EquipmentService } from './services/EquipmentService';
+import { Navbar } from './shared/navbar/navbar';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, Navbar],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

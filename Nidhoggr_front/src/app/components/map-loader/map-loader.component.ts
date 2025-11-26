@@ -49,7 +49,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
       const probe = async (template: string) => {
         try {
-          const test = template.replace('{z}', '12').replace('{x}', '2048').replace('{y}', '1365');
+          const test = template.replace('{z}', '13').replace('{x}', '4272').replace('{y}', '2827');
           const r = await fetch(test, { method: 'HEAD' });
           return r.ok;
         } catch (err) {
@@ -58,16 +58,20 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       };
 
       const defaultTemplate = '/assets/tiles/tiles/{z}/{x}/{y}.png';
+      
+      // Nettoyer le localStorage si l'URL contient localhost:8080 ou une URL externe
       const saved = localStorage.getItem('tileUrlTemplate');
-      let chosen: string | null = null;
+      if (saved && (saved.includes('localhost:8080') || saved.startsWith('http://') || saved.startsWith('https://'))) {
+        localStorage.removeItem('tileUrlTemplate');
+      }
+      
+      let chosen: string = defaultTemplate;
       (async () => {
-        if (saved && await probe(saved)) {
-          chosen = saved;
-        } else if (await probe(defaultTemplate)) {
-          chosen = defaultTemplate;
-        } else {
-          chosen = defaultTemplate;
-        }
+        if (!this.map) return;
+        
+        // Utiliser uniquement les tuiles locales
+        chosen = defaultTemplate;
+        if (!this.map) return;
         let tileLayer = L.tileLayer(chosen, { 
           minZoom: 13,
           maxZoom: 17,  
@@ -121,6 +125,13 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           this.map && this.map.invalidateSize && this.map.invalidateSize(); 
         } catch (e) {} 
       }, 200);
+      
+      // Recalcul supplémentaire pour s'assurer que la navbar est prise en compte
+      setTimeout(() => { 
+        try { 
+          this.map && this.map.invalidateSize && this.map.invalidateSize(); 
+        } catch (e) {} 
+      }, 500);
     } catch (e) {
       console.error('Failed to initialize Leaflet map', e);
     }
