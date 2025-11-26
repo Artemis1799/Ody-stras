@@ -24,6 +24,7 @@ export class PhotoViewer implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
+    this.showPhotoDialog = true;
     if (this.pointId) {
       this.loadPhotosForPoint();
     }
@@ -35,7 +36,6 @@ export class PhotoViewer implements OnInit {
     this.loadingPhotos = true;
     this.photos = [];
     this.currentPhotoIndex = 0;
-    this.showPhotoDialog = true;
     this.cdr.detectChanges();
 
     console.log('🔍 Chargement des photos pour le point:', this.pointId);
