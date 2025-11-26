@@ -14,16 +14,12 @@ public class UserService : IUserService
 
 	public async Task<IEnumerable<User>> GetAllAsync()
 	{
-		return await _context.Users
-			.Include(u => u.TeamUsers)
-			.ToListAsync();
+		return await _context.Users.ToListAsync();
 	}
 
 	public async Task<User?> GetByIdAsync(Guid id)
 	{
-		return await _context.Users
-			.Include(u => u.TeamUsers)
-			.FirstOrDefaultAsync(u => u.UUID == id);
+		return await _context.Users.FirstOrDefaultAsync(u => u.UUID == id);
 	}
 
 	public async Task<User> CreateAsync(User user)

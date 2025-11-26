@@ -28,8 +28,9 @@ builder.Services.AddScoped<IImagePointService, ImagePointService>();
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
-builder.Services.AddScoped<ITeamUserService, TeamUserService>();
+builder.Services.AddScoped<ITeamMemberService, TeamMemberService>();
 builder.Services.AddScoped<IMemberService, MemberService>();
+builder.Services.AddScoped<IEventTeamService, EventTeamService>();
 
 var app = builder.Build();
 // enable CORS

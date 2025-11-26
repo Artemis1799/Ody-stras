@@ -15,17 +15,17 @@ public class EventService : IEventService
     public async Task<IEnumerable<Event>> GetAllAsync()
     {
         return await _context.Events
-            .Include(e => e.Points)
-            .Include(e => e.Team)
+            .Include(eventItem => eventItem.Points)
+            .Include(eventItem => eventItem.EventTeams)
             .ToListAsync();
     }
 
     public async Task<Event?> GetByIdAsync(Guid id)
     {
         return await _context.Events
-            .Include(e => e.Points)
-            .Include(e => e.Team)
-            .FirstOrDefaultAsync(e => e.UUID == id);
+            .Include(eventItem => eventItem.Points)
+            .Include(eventItem => eventItem.EventTeams)
+            .FirstOrDefaultAsync(eventItem => eventItem.UUID == id);
     }
 
     public async Task<Event> CreateAsync(Event evenement)
@@ -56,7 +56,6 @@ public class EventService : IEventService
         existingEvent.Description = eventModel.Description;
         existingEvent.StartDate = eventModel.StartDate;
         existingEvent.Status = eventModel.Status;
-        existingEvent.ResponsibleId = eventModel.ResponsibleId;
 
         await _context.SaveChangesAsync();
 

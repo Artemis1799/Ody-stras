@@ -21,12 +21,8 @@ public class Event
     [Required]
     public EventStatus Status { get; set; }
     
-    public Guid? ResponsibleId { get; set; }
-    
-    public Guid? TeamId { get; set; }
-    
-    [ForeignKey("TeamId")]
-    public Team? Team { get; set; }
+    [JsonIgnore]
+    public ICollection<EventTeam>? EventTeams { get; set; }
     
     [JsonIgnore]
     public ICollection<Point>? Points { get; set; }

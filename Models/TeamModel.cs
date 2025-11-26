@@ -15,8 +15,8 @@ public class Team
     public string TeamName { get; set; } = string.Empty;
     
     [JsonIgnore]
-    public ICollection<TeamUser>? TeamUsers { get; set; }
+    public ICollection<TeamMember>? TeamMembers { get; set; }
     
     [JsonIgnore]
-    public ICollection<Event>? Events { get; set; }
+    public ICollection<EventTeam>? EventTeams { get; set; }
 }

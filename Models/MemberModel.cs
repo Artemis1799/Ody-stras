@@ -19,5 +19,5 @@ public class Member
     public string FirstName { get; set; } = string.Empty;
     
     [JsonIgnore]
-    public ICollection<TeamUser>? TeamUsers { get; set; }
+    public ICollection<TeamMember>? TeamMembers { get; set; }
 }

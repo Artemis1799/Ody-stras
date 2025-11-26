@@ -18,7 +18,4 @@ public class User
     public string Name { get; set; } = string.Empty;
     
     public string? Password { get; set; }
-    
-    [JsonIgnore]
-    public ICollection<TeamUser>? TeamUsers { get; set; }
 }

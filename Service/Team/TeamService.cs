@@ -15,17 +15,17 @@ public class TeamService : ITeamService
 	public async Task<IEnumerable<Team>> GetAllAsync()
 	{
 		return await _context.Teams
-			.Include(e => e.TeamUsers)
-			.Include(e => e.Events)
+			.Include(team => team.TeamMembers)
+			.Include(team => team.EventTeams)
 			.ToListAsync();
 	}
 
 	public async Task<Team?> GetByIdAsync(Guid id)
 	{
 		return await _context.Teams
-			.Include(e => e.TeamUsers)
-			.Include(e => e.Events)
-			.FirstOrDefaultAsync(e => e.UUID == id);
+			.Include(team => team.TeamMembers)
+			.Include(team => team.EventTeams)
+			.FirstOrDefaultAsync(team => team.UUID == id);
 	}
 
 	public async Task<Team> CreateAsync(Team team)

@@ -11,7 +11,8 @@ public class DatabaseService : IDatabaseService
     private readonly IUserService _userService;
     private readonly ITeamService _teamService;
     private readonly IMemberService _memberService;
-    private readonly ITeamUserService _teamUserService;
+    private readonly ITeamMemberService _teamMemberService;
+    private readonly IEventTeamService _eventTeamService;
 
     public DatabaseService(
         IEquipmentService equipmentService,
@@ -22,7 +23,8 @@ public class DatabaseService : IDatabaseService
         IUserService userService,
         ITeamService teamService,
         IMemberService memberService,
-        ITeamUserService teamUserService)
+        ITeamMemberService teamMemberService,
+        IEventTeamService eventTeamService)
     {
         _equipmentService = equipmentService;
         _eventService = eventService;
@@ -32,7 +34,8 @@ public class DatabaseService : IDatabaseService
         _userService = userService;
         _teamService = teamService;
         _memberService = memberService;
-        _teamUserService = teamUserService;
+        _teamMemberService = teamMemberService;
+        _eventTeamService = eventTeamService;
     }
 
     public async Task<Dictionary<string, int>> ResetDatabaseAsync()
@@ -43,8 +46,9 @@ public class DatabaseService : IDatabaseService
         result["Points"] = await _pointService.DeleteAllAsync();
         result["Photos"] = await _photoService.DeleteAllAsync();
         result["Equipments"] = await _equipmentService.DeleteAllAsync();
+        result["EventTeams"] = await _eventTeamService.DeleteAllAsync();
         result["Events"] = await _eventService.DeleteAllAsync();
-        result["TeamUsers"] = await _teamUserService.DeleteAllAsync();
+        result["TeamMembers"] = await _teamMemberService.DeleteAllAsync();
         result["Teams"] = await _teamService.DeleteAllAsync();
         result["Members"] = await _memberService.DeleteAllAsync();
         result["Users"] = await _userService.DeleteAllAsync();
@@ -80,18 +84,16 @@ public class DatabaseService : IDatabaseService
             FirstName = "Marie"
         });
 
-        // Créer les relations TeamUser
-        await _teamUserService.CreateAsync(new TeamUser
+        // Créer les relations TeamMember
+        await _teamMemberService.CreateAsync(new TeamMember
         {
             TeamId = team.UUID,
-            UserId = admin.UUID,
             MemberId = member1.UUID
         });
 
-        await _teamUserService.CreateAsync(new TeamUser
+        await _teamMemberService.CreateAsync(new TeamMember
         {
             TeamId = team.UUID,
-            UserId = admin.UUID,
             MemberId = member2.UUID
         });
 
@@ -120,7 +122,13 @@ public class DatabaseService : IDatabaseService
             Name = "Test Event",
             Description = "This is a test event",
             StartDate = DateTime.UtcNow,
-            Status = EventStatus.ToOrganize,
+            Status = EventStatus.ToOrganize
+        });
+
+        // Créer la relation EventTeam
+        await _eventTeamService.CreateAsync(new EventTeam
+        {
+            EventId = eventObj.UUID,
             TeamId = team.UUID
         });
 
