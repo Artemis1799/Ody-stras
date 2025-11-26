@@ -14,7 +14,7 @@ public class Point
     [Required]
     public Guid EventId { get; set; }
 
-	public Guid EquipmentId { get; set; }
+	public Guid? EquipmentId { get; set; }
     
     public float? Latitude { get; set; }
     
