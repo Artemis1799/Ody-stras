@@ -37,11 +37,11 @@ test_job:
     - install_job
   script:
     - npm install --no-save jest-junit
-    - npm test --junitxml=./junit.xml
+    - npm test -- --ci --reporters=default --reporters=jest-junit || true
   artifacts:
     when: always
     reports:
-      junit: junit.xml
+      junit: nidhoggr/junit.xml
     expire_in: 1 week
   allow_failure: true
 
