@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy } from '@angular/core';
-import { MapService } from '../../services/MapService';
-import { Point } from '../../models/pointModel';
+import { MapService } from '../../../services/MapService';
+import { Point } from '../../../models/pointModel';
 
 @Component({
   selector: 'app-map-loader',

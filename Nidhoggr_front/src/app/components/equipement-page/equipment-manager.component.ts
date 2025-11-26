@@ -1,13 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { InputText } from 'primeng/inputtext';
 import { InputNumber } from 'primeng/inputnumber';
 import { EquipmentService } from '../../services/EquipmentService';
 import { PointService } from '../../services/PointService';
 import { Equipment } from '../../models/equipmentModel';
 import { Observable } from 'rxjs';
+import { EquipmentCard } from './equipment-card/equipment-card';
 
 @Component({
   selector: 'app-equipment-manager',
@@ -16,7 +16,8 @@ import { Observable } from 'rxjs';
     CommonModule,
     FormsModule,
     InputText,
-    InputNumber
+    InputNumber,
+    EquipmentCard
   ],
   templateUrl: './equipment-manager.component.html',
   styleUrls: ['./equipment-manager.component.scss']
@@ -39,8 +40,7 @@ export class EquipmentManagerComponent implements OnInit {
 
   constructor(
     private equipmentService: EquipmentService,
-    private pointService: PointService,
-    private router: Router
+    private pointService: PointService
   ) {
     this.equipments$ = this.equipmentService.equipments$;
   }
@@ -181,10 +181,6 @@ export class EquipmentManagerComponent implements OnInit {
         alert('Erreur lors de la création de l\'équipement');
       }
     });
-  }
-
-  onClose(): void {
-    this.router.navigate(['/map']);
   }
 
   isEditing(equipment: Equipment): boolean {

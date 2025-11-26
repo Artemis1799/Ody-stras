@@ -1,0 +1,251 @@
+.equipment-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s;
+  border: 1px solid #e5e7eb;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    border-color: #cbd5e0;
+  }
+
+  &.editing {
+    border-color: #718096;
+    box-shadow: 0 0 0 3px rgba(113, 128, 150, 0.1);
+  }
+}
+
+.equipment-view {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.equipment-header {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.equipment-info {
+  flex: 1;
+
+  h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #6b7280;
+  }
+
+  .type {
+    font-weight: 500;
+    color: #374151;
+  }
+}
+
+.stock-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #f7fafc;
+  border-radius: 0.375rem;
+  border: 1px solid #e2e8f0;
+
+  .stock-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+  }
+
+  .stock-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.equipment-actions {
+  display: flex;
+  gap: 0.5rem;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .edit-button {
+    background-color: #718096;
+    color: white;
+
+    &:hover {
+      background-color: #4a5568;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  .delete-button {
+    background-color: #e53e3e;
+    color: white;
+
+    &:hover {
+      background-color: #c53030;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+}
+
+.equipment-edit {
+  padding: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-field {
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #374151;
+  }
+
+  .help-text {
+    display: block;
+    margin-top: 0.375rem;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  .char-count {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    text-align: right;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  .cancel-button {
+    background-color: #f3f4f6;
+    color: #374151;
+
+    &:hover {
+      background-color: #e5e7eb;
+    }
+  }
+
+  .save-button {
+    background-color: #4a5568;
+    color: white;
+
+    &:hover {
+      background-color: #2d3748;
+      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+::ng-deep {
+  .p-inputtext,
+  .p-inputnumber-input {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #cbd5e0;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+    background-color: #ffffff;
+    
+    &:hover {
+      border-color: #a0aec0;
+    }
+    
+    &:focus {
+      border-color: #4a5568;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(74, 85, 104, 0.1);
+    }
+  }
+
+  .p-inputnumber {
+    width: 100%;
+    
+    .p-inputnumber-button {
+      width: 2.5rem;
+      background-color: #f7fafc;
+      border-color: #cbd5e0;
+      color: #4a5568;
+      
+      &:hover {
+        background-color: #edf2f7;
+        border-color: #a0aec0;
+      }
+
+      &:active {
+        background-color: #e2e8f0;
+      }
+    }
+  }
+}

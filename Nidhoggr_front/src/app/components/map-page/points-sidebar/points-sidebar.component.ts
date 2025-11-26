@@ -3,16 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
-import { PointService } from '../../services/PointService';
-import { EquipmentService } from '../../services/EquipmentService';
-import { EventService } from '../../services/EventService';
-import { MapService } from '../../services/MapService';
-import { NominatimService, NominatimResult } from '../../services/NominatimService';
-import { Point } from '../../models/pointModel';
+import { PointService } from '../../../services/PointService';
+import { EquipmentService } from '../../../services/EquipmentService';
+import { EventService } from '../../../services/EventService';
+import { MapService } from '../../../services/MapService';
+import { NominatimService, NominatimResult } from '../../../services/NominatimService';
+import { Point } from '../../../models/pointModel';
 import { Subscription, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
-import { ExportPopup } from '../../shared/export-popup/export-popup';
-import { ImportPopup } from '../../shared/import-popup/import-popup';
+import { ExportPopup } from '../../../shared/export-popup/export-popup';
+import { ImportPopup } from '../../../shared/import-popup/import-popup';
 
 @Component({
   selector: 'app-points-sidebar',

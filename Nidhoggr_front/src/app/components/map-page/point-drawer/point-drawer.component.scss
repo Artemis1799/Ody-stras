@@ -15,7 +15,7 @@
       margin: 0 !important;
       font-size: 1.375rem;
       font-weight: 600;
-      color: #1f2937;
+      color: #ffffff;
     }
     
     .point-status {
@@ -46,7 +46,7 @@
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0.5rem;
-    color: #9ca3af;
+    color: #ffffff;
     transition: all 0.2s;
     border-radius: 0.375rem;
     display: flex;
@@ -56,8 +56,8 @@
     height: 2.5rem;
 
     &:hover {
-      color: #4b5563;
-      background-color: #f3f4f6;
+      color: #2ad783;
+      background-color: #444c56;
     }
 
     &:active {
@@ -75,7 +75,7 @@
 
 .section {
   padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #444c56;
   
   &:last-child {
     border-bottom: none;
@@ -88,7 +88,7 @@
     margin-bottom: 1rem;
     
     .pi {
-      color: #6b7280;
+      color: #2ad783;
       font-size: 1.125rem;
     }
     
@@ -96,7 +96,7 @@
       margin: 0;
       font-size: 1rem;
       font-weight: 600;
-      color: #374151;
+      color: #2ad783;
       text-transform: uppercase;
       letter-spacing: 0.025em;
       font-size: 0.875rem;
@@ -116,7 +116,7 @@
     margin-bottom: 0.5rem;
     font-weight: 500;
     font-size: 0.875rem;
-    color: #374151;
+    color: #ffffff;
   }
 
   .help-text {
@@ -124,7 +124,8 @@
     align-items: center;
     gap: 0.375rem;
     margin-top: 0.5rem;
-    color: #6b7280;
+    color: #ffffff;
+    opacity: 0.7;
     font-size: 0.8125rem;
     
     .pi {
@@ -138,22 +139,22 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background-color: #f9fafb;
+  background-color: #171c22;
   border-radius: 0.5rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #444c56;
   transition: all 0.2s;
   cursor: pointer;
   
   &:hover {
-    border-color: #d1d5db;
-    background-color: #f3f4f6;
+    border-color: #2ad783;
+    background-color: #20272f;
   }
 
   label {
     margin: 0 !important;
     cursor: pointer;
     font-weight: 500;
-    color: #374151;
+    color: #ffffff;
     font-size: 0.9375rem;
   }
 }
@@ -166,7 +167,7 @@
   
   .equipment-name {
     font-weight: 500;
-    color: #1f2937;
+    color: #ffffff;
     flex: 1;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -180,7 +181,7 @@
 }
 
 .info-section {
-  background-color: #f9fafb;
+  background-color: #20272f;
 }
 
 .info-grid {
@@ -198,28 +199,22 @@
     }
     
     .info-label {
-      font-size: 0.75rem;
+      font-size: 0.9375rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #6b7280;
+      color: #ffffff;
     }
     
     .info-value {
-      font-size: 0.9375rem;
-      color: #1f2937;
+      font-size: 0.8125rem;
+      color: #ffffff;
       font-weight: 500;
       
       &.empty {
-        color: #9ca3af;
+        color: #ffffff;
+        opacity: 0.5;
         font-style: italic;
-      }
-      
-      &.uuid {
-        font-family: monospace;
-        font-size: 0.8125rem;
-        color: #6b7280;
-        word-break: break-all;
       }
     }
   }
@@ -270,15 +265,15 @@
   }
   
   .btn-secondary {
-    background-color: white;
-    color: #4b5563;
-    border: 2px solid #e5e7eb;
+    background-color: #444c56;
+    color: #ffffff;
+    border: 2px solid #444c56;
     box-shadow: none;
     
     &:hover:not(:disabled) {
-      background-color: #f9fafb;
-      border-color: #d1d5db;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      background-color: #20272f;
+      border-color: #444c56;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
   }
   
@@ -298,11 +293,12 @@
   }
   
   .btn-primary {
-    background-color: #3b82f6;
-    color: white;
+    background-color: #2ad783;
+    color: #171c22;
+    font-weight: 600;
     
     &:hover:not(:disabled) {
-      background-color: #2563eb;
+      background-color: #1d925a;
     }
   }
 }
@@ -311,9 +307,11 @@
   .p-drawer {
     width: 420px !important;
     max-width: 90vw;
-    background-color: white !important;
-    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+    background-color: #20272f !important;
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.5);
     z-index: 1000 !important;
+    top: 4rem !important;
+    height: calc(100vh - 4rem) !important;
   }
 
   .p-drawer-mask {
@@ -321,21 +319,22 @@
   }
 
   .p-drawer-header {
+    height: 5rem !important;
     padding: 1.5rem !important;
-    background-color: white !important;
-    border-bottom: 1px solid #e5e7eb !important;
+    background-color: #2a2f38 !important;
+    border-bottom: 2px solid #444c56 !important;
   }
 
   .p-drawer-content {
     padding: 0;
-    background-color: white !important;
+    background-color: #20272f !important;
     overflow-y: auto;
   }
   
   .p-drawer-footer {
     padding: 1.25rem 1.5rem !important;
-    background-color: white !important;
-    border-top: 1px solid #e5e7eb !important;
+    background-color: #20272f !important;
+    border-top: 1px solid #444c56 !important;
   }
   
   // Styles pour les inputs
@@ -343,65 +342,75 @@
   .p-inputnumber-input {
     width: 100%;
     padding: 0.625rem 0.75rem;
-    border: 1px solid #cbd5e0;
+    border: 1px solid #444c56;
     border-radius: 0.375rem;
     font-size: 0.9375rem;
     transition: all 0.2s;
-    background-color: #ffffff;
+    background-color: #171c22;
+    color: #ffffff;
     
     &:hover {
-      border-color: #a0aec0;
+      border-color: #2ad783;
     }
     
     &:focus {
-      border-color: #4a5568;
+      border-color: #2ad783;
       outline: none;
-      box-shadow: 0 0 0 3px rgba(74, 85, 104, 0.1);
+      box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.2);
     }
   }
   
   // Styles pour le select
   .p-select {
     width: 100%;
-    border: 1px solid #cbd5e0;
+    border: 1px solid #444c56;
     border-radius: 0.375rem;
     transition: all 0.2s;
+    background-color: #171c22;
     
     &:hover {
-      border-color: #a0aec0;
+      border-color: #2ad783;
     }
     
     &:focus,
     &:focus-within {
-      border-color: #4a5568;
-      box-shadow: 0 0 0 3px rgba(74, 85, 104, 0.1);
+      border-color: #2ad783;
+      box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.2);
     }
     
     .p-select-label {
       padding: 0.625rem 0.75rem;
       font-size: 0.9375rem;
+      color: #ffffff;
+    }
+
+    .p-select-dropdown {
+      color: #ffffff;
+      right: 1rem;
     }
   }
   
   // Dropdown panel (liste déroulante)
   .p-select-overlay {
-    background-color: white !important;
-    border: 1px solid #cbd5e0 !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    background-color: #20272f !important;
+    border: 1px solid #444c56 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
     border-radius: 0.375rem !important;
     
     .p-select-list {
-      background-color: white !important;
+      background-color: #20272f !important;
       
       .p-select-option {
-        background-color: white !important;
+        background-color: #20272f !important;
+        color: #ffffff !important;
         
         &:hover {
-          background-color: #f3f4f6 !important;
+          background-color: #444c56 !important;
         }
         
         &.p-select-option-selected {
-          background-color: #e5e7eb !important;
+          background-color: #2ad783 !important;
+          color: #171c22 !important;
         }
       }
     }
@@ -413,17 +422,18 @@
     
     .p-inputnumber-button {
       width: 2.5rem;
-      background-color: #f7fafc;
-      border-color: #cbd5e0;
-      color: #4a5568;
+      background-color: #444c56;
+      border-color: #444c56;
+      color: #ffffff;
       
       &:hover {
-        background-color: #edf2f7;
-        border-color: #a0aec0;
+        background-color: #2ad783;
+        border-color: #2ad783;
+        color: #171c22;
       }
 
       &:active {
-        background-color: #e2e8f0;
+        background-color: #1d925a;
       }
     }
   }
@@ -433,17 +443,18 @@
     .p-checkbox-box {
       width: 1.25rem;
       height: 1.25rem;
-      border: 2px solid #cbd5e0;
+      border: 2px solid #444c56;
       border-radius: 0.25rem;
       transition: all 0.2s;
+      background-color: #171c22;
       
       &:hover {
-        border-color: #4a5568;
+        border-color: #2ad783;
       }
       
       &.p-highlight {
-        background-color: #4a5568;
-        border-color: #4a5568;
+        background-color: #2ad783;
+        border-color: #2ad783;
       }
     }
   }

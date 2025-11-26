@@ -6,13 +6,13 @@ import { InputText } from 'primeng/inputtext';
 import { InputNumber } from 'primeng/inputnumber';
 import { Select } from 'primeng/select';
 import { Checkbox } from 'primeng/checkbox';
-import { MapService } from '../../services/MapService';
-import { PointService } from '../../services/PointService';
-import { EquipmentService } from '../../services/EquipmentService';
-import { Point } from '../../models/pointModel';
+import { MapService } from '../../../services/MapService';
+import { PointService } from '../../../services/PointService';
+import { EquipmentService } from '../../../services/EquipmentService';
+import { Point } from '../../../models/pointModel';
 import { Subscription } from 'rxjs';
-import { Equipment } from '../../models/equipmentModel';
-import { PhotoViewer } from '../../shared/photo-viewer/photo-viewer';
+import { Equipment } from '../../../models/equipmentModel';
+import { PhotoViewer } from '../../../shared/photo-viewer/photo-viewer';
 
 @Component({
   selector: 'app-point-drawer',
