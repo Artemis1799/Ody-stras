@@ -39,7 +39,6 @@ export default function PointsScreen() {
             [eventUUID],
             "Ordre ASC"
           );
-          console.log(data);
           setPoints(data);
         } catch (err) {
           console.error(err);
@@ -64,8 +63,7 @@ export default function PointsScreen() {
     console.log("=== AVANT DÉPLACEMENT ===");
     points.forEach((p, i) =>
       console.log(
-        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
-          p.Ordre
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${p.Ordre
         }, Commentaire=${p.Commentaire}`
       )
     );
@@ -88,8 +86,7 @@ export default function PointsScreen() {
     console.log("=== APRÈS DÉPLACEMENT ===");
     updatedPoints.forEach((p, i) =>
       console.log(
-        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
-          p.Ordre
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${p.Ordre
         }, Commentaire=${p.Commentaire}`
       )
     );

@@ -205,8 +205,6 @@ export default function ExportEventScreen() {
                 };
 
                 ws.onmessage = (event) => {
-                    console.log("Réponse du serveur:", event.data);
-
                     // Vérifier si c'est l'ACK final
                     if (event.data.includes("complete") || event.data.includes("reçu")) {
                         setSendStatus("Transfert terminé");

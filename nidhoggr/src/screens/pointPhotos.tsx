@@ -27,7 +27,6 @@ export function PointPhotosScreen() {
   const loadPhotos = async () => {
     try {
       const result: Photos[] = await getPhotosForPoint(db, pointId);
-      console.log(result);
       setPhotos(result);
     } catch (e) {
       console.log(e);
