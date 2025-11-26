@@ -36,7 +36,7 @@ build_job:
     - install_job
   script:
     - npm install -g eas-cli
-    - eas build --platform all --profile production --non-interactive
+    - eas build -p android --profile preview --non-interactive
   artifacts:
     paths:
       - dist/
