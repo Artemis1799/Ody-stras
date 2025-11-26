@@ -16,9 +16,17 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Cette app utilise la caméra pour prendre des photos."
+      },
+      "config": {
+        "googleMapsApiKey": "process.env.GOOGLE_MAPS_API_KEY"
       }
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "process.env.GOOGLE_MAPS_API_KEY"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -59,7 +67,8 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "469667ae-a578-49f9-a775-3a4e80e283e5"
+        "projectId": "469667ae-a578-49f9-a775-3a4e80e283e5",
+        "googleMapsApiKey": "process.env.GOOGLE_MAPS_API_KEY"
       }
     }
   }

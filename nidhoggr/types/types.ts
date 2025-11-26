@@ -16,7 +16,6 @@ export type RootStackParamList = {
     Status: string;
   };
   AddEvent: undefined;
-  ExportEvent: { eventUUID: string };
 };
 
 export type EventScreenNavigationProp = NativeStackNavigationProp<
@@ -71,7 +70,7 @@ export interface PointOnMap {
   UUID: string;
   Latitude: Float;
   Longitude: Float;
-  EquipType: any;
+  EquipType: string;
   Equipement_quantite: number;
 }
 export interface UserLocation {
