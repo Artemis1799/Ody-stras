@@ -15,6 +15,7 @@ module.exports = [
       'android/**',
       'ios/**',
       'web-build/**',
+      'src/__tests__/**'
     ],
   },
   {

@@ -6,6 +6,7 @@ before_script:
 stages:
   - install
   - lint
+  - test
   - build
 
 install_job:
@@ -27,6 +28,19 @@ lint_job:
     when: always
     reports:
       codequality: nidhoggr/gl-code-quality-report.json
+    expire_in: 1 week
+  allow_failure: true
+
+test_job:
+  stage: test
+  needs:
+    - install_job
+  script:
+    - npm test > test-results.xml || true
+  artifacts:
+    when: always
+    reports:
+      junit: nidhoggr/test-results.xml
     expire_in: 1 week
   allow_failure: true
 
