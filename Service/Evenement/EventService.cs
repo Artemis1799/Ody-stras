@@ -16,6 +16,7 @@ public class EventService : IEventService
     {
         return await _context.Events
             .Include(e => e.Points)
+            .Include(e => e.Team)
             .ToListAsync();
     }
 
@@ -23,6 +24,7 @@ public class EventService : IEventService
     {
         return await _context.Events
             .Include(e => e.Points)
+            .Include(e => e.Team)
             .FirstOrDefaultAsync(e => e.UUID == id);
     }
 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using t5_back.Data;
 
@@ -10,9 +11,11 @@ using t5_back.Data;
 namespace t5_back.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251126124722_AddUserTeamMemberModels")]
+    partial class AddUserTeamMemberModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -234,9 +237,6 @@ namespace t5_back.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("UUID");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("Users");
                 });
