@@ -32,14 +32,16 @@
       </div>
 
       <div class="form-field">
-        <label for="new-description">Description *</label>
+        <label for="new-description">Description * (max 40 caractères)</label>
         <input 
           id="new-description"
           type="text"
           pInputText
           [(ngModel)]="newEquipment.description"
           placeholder="Description"
+          maxlength="40"
         />
+        <small class="char-count">{{ newEquipment.description?.length || 0 }}/40</small>
       </div>
 
       <div class="form-field">
@@ -82,7 +84,7 @@
 
   <div class="equipment-list">
     <div 
-      *ngFor="let equipment of equipments" 
+      *ngFor="let equipment of equipments$ | async" 
       class="equipment-card"
       [class.editing]="isEditing(equipment)"
     >
@@ -133,13 +135,15 @@
           </div>
 
           <div class="form-field">
-            <label>Description</label>
+            <label>Description (max 40 caractères)</label>
             <input 
               type="text"
               pInputText
               [(ngModel)]="editingEquipment!.description"
               placeholder="Description"
+              maxlength="40"
             />
+            <small class="char-count">{{ editingEquipment!.description?.length || 0 }}/40</small>
           </div>
 
           <div class="form-field">
@@ -187,7 +191,7 @@
       </div>
     </div>
 
-    <div *ngIf="equipments.length === 0 && !isLoading" class="empty-state">
+    <div *ngIf="(equipments$ | async)?.length === 0 && !isLoading" class="empty-state">
       <p>Aucun équipement disponible</p>
       <p class="hint">Cliquez sur "Ajouter un équipement" pour commencer</p>
     </div>

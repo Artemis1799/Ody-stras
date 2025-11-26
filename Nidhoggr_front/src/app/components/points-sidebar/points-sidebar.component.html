@@ -28,10 +28,6 @@
     Aucun point disponible
   </div>
   
-  <div *ngIf="isLoading" class="loading">
-    Chargement...
-  </div>
-  
   <div *ngIf="errorMessage" class="error">
     {{ errorMessage }}
   </div>
@@ -64,8 +60,6 @@
   
   <div class="bottom-buttons">
     <button class="equipment-btn" (click)="openEquipmentManager()">Équipements</button>
-  </div>
-  <div class="bottom-buttons">
     <button class="export-btn" (click)="openExport()">Exporter</button>
     <button class="import-btn" (click)="openImport()">Importer</button>
   </div>

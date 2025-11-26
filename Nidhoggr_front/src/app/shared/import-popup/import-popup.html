@@ -5,11 +5,16 @@
       <button class="close-button" (click)="closeModal()">&times;</button>
     </div>
     <div class="modal-body">
-      <p class="instructions">Scannez ce QR code avec votre téléphone pour recevoir les données sur votre ordinateur</p>
-      <div class="qr-container">
-        <img [src]="qrCodeDataUrl" alt="QR Code" *ngIf="qrCodeDataUrl" />
+      <div *ngIf="!isReady" class="loading-container">
+        <p>Génération du QR code en cours...</p>
       </div>
-      <p class="url-info">{{ wsUrl }}</p>
+      <div *ngIf="isReady">
+        <p class="instructions">Scannez ce QR code avec votre téléphone pour recevoir les données sur votre ordinateur</p>
+        <div class="qr-container">
+          <img [src]="qrCodeDataUrl" alt="QR Code" *ngIf="qrCodeDataUrl" />
+        </div>
+        <p class="url-info">{{ WS_URL }}</p>
+      </div>
     </div>
   </div>
 </div>

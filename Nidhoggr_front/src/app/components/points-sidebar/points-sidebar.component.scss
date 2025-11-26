@@ -98,19 +98,10 @@
 .bottom-buttons {
   margin-top: auto;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 1rem;
   flex-shrink: 0;
-
-  &:first-of-type {
-    padding-top: 1rem;
-    padding-bottom: 0.5rem;
-  }
-
-  &:last-of-type {
-    padding-top: 0.5rem;
-    padding-bottom: 1rem;
-  }
 }
 
 .export-btn,
@@ -132,6 +123,7 @@
 }
 
 .equipment-btn {
+  flex: 1 1 100%;
   background: #2ad783;
   
   &:hover {
@@ -140,6 +132,7 @@
 }
 
 .export-btn {
+  flex: 1;
   background: #2ad783;
   
   &:hover {
@@ -148,6 +141,7 @@
 }
 
 .import-btn {
+  flex: 1;
   background: #2ad783;
   
   &:hover {
