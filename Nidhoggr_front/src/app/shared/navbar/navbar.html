@@ -4,7 +4,35 @@
       <h1>Nidhoggr</h1>
     </div>
     <div class="navbar-menu">
-      <!-- Ajoutez vos liens de navigation ici -->
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-link" (click)="onDropdownItemClick()">
+        <span class="pi pi-home"></span>
+        Accueil
+      </a>
+      <a routerLink="/evenements" routerLinkActive="active" class="nav-link" (click)="onDropdownItemClick()">
+        <span class="pi pi-calendar"></span>
+        Évènements
+      </a>
+      <a routerLink="/equipments" routerLinkActive="active" class="nav-link" (click)="onDropdownItemClick()">
+        <span class="pi pi-wrench"></span>
+        Équipements
+      </a>
+      <div class="nav-dropdown">
+        <button class="nav-link dropdown-toggle" [class.active]="isPersonnelsActive" (click)="onToggleDropdown()">
+          <span class="pi pi-users"></span>
+          Personnels
+          <span class="pi pi-angle-down"></span>
+        </button>
+        <div class="dropdown-menu" [class.show]="showDropdown" (mouseenter)="onMouseEnter()" (mouseleave)="onMouseLeave()">
+          <a routerLink="/personnels/personnes" routerLinkActive="active" class="dropdown-item" (click)="onDropdownItemClick()">
+            <span class="pi pi-user"></span>
+            Personnes
+          </a>
+          <a routerLink="/personnels/groupes" routerLinkActive="active" class="dropdown-item" (click)="onDropdownItemClick()">
+            <span class="pi pi-users"></span>
+            Groupes
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 </nav>
