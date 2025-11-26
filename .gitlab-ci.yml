@@ -37,13 +37,19 @@ test_job:
     - install_job
   script:
     - npm install --no-save jest-junit
-    - npm test -- --ci --reporters=default --reporters=jest-junit || true
+    - npm test -- --ci --coverage --reporters=default --reporters=jest-junit || true
   artifacts:
     when: always
     reports:
       junit: nidhoggr/test-reports/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: nidhoggr/coverage/cobertura-coverage.xml
+    paths:
+      - nidhoggr/coverage/
     expire_in: 1 week
   allow_failure: true
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
 
 build_job:
   stage: build
