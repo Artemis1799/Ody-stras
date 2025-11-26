@@ -1,0 +1,73 @@
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h3>Points</h3>
+  </div>
+  
+  <div class="search-box">
+    <input 
+      type="text" 
+      placeholder="Rechercher un lieu..." 
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearch()"
+      (keyup.enter)="searchResults.length > 0 && goToLocation(searchResults[0])"
+    />
+  </div>
+  
+  <!-- Search results autocomplete -->
+  <div class="search-results" *ngIf="searchResults.length > 0">
+    <div 
+      *ngFor="let result of searchResults" 
+      class="result-item"
+      (click)="goToLocation(result)"
+    >
+      {{ result.display_name }}
+    </div>
+  </div>
+
+  <div *ngIf="points.length === 0 && !isLoading && !errorMessage" class="empty-state">
+    Aucun point disponible
+  </div>
+  
+  <div *ngIf="errorMessage" class="error">
+    {{ errorMessage }}
+  </div>
+  
+  <div 
+    cdkDropList 
+    class="points-list"
+    (cdkDropListDropped)="onDrop($event)"
+    *ngIf="!isLoading && !errorMessage"
+  >
+    <div 
+      *ngFor="let point of points; let i = index" 
+      class="point-item"
+      [class.selected]="selectedPoint?.uuid === point.uuid"
+      cdkDrag
+      (click)="onPointClick(point)"
+    >
+      <div class="point-drag-handle" cdkDragHandle>
+        <span class="drag-icon">☰</span>
+      </div>
+      <div class="point-content">
+        <span class="point-order">{{ point.order }}</span>
+        <span class="point-name">{{ getPointDisplayName(point) }}</span>
+      </div>
+      <div class="point-status" [class.valid]="point.isValid" [class.invalid]="!point.isValid">
+        {{ point.isValid ? '✓' : '✗' }}
+      </div>
+    </div>
+  </div>
+  
+  <div class="bottom-buttons">
+    <button class="equipment-btn" (click)="openEquipmentManager()">Créer un évènement</button>
+    <button class="export-btn" (click)="openExport()">Exporter</button>
+    <button class="import-btn" (click)="openImport()">Importer</button>
+  </div>
+</aside>
+
+@if (showImportPopup) {
+  <app-import-popup (close)="closeImport()"></app-import-popup>
+}
+@if (showExportPopup) {
+  <app-export-popup (close)="closeExport()"></app-export-popup>
+}

@@ -1,0 +1,127 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+// Styles pour les markers personnalisés
+:host ::ng-deep .custom-marker {
+  background: transparent;
+  border: none;
+
+  .marker-pin {
+    position: relative;
+    width: 30px;
+    height: 42px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.valid {
+      background: #4caf50;
+    }
+
+    &.invalid {
+      background: #f44336;
+    }
+
+    &.search-marker {
+      background: #2196f3;
+    }
+
+    &:hover {
+      transform: rotate(-45deg) scale(1.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .marker-number {
+      transform: rotate(45deg);
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+      margin-top: -3px;
+    }
+  }
+}
+
+:host ::ng-deep .point-popup {
+  font-size: 13px;
+  line-height: 1.5;
+
+  strong {
+    font-size: 14px;
+    color: #333;
+  }
+
+  em {
+    color: #666;
+  }
+
+  small {
+    color: #999;
+  }
+}
+
+.export-btn {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.search-box {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  
+  input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  button {
+    padding: 0.5rem;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+}
+
+.search-results {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.result-item {
+  padding: 0.5rem;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  
+  &:hover {
+    background: #f0f0f0;
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}

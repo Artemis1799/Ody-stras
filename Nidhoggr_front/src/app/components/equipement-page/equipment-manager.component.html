@@ -1,0 +1,99 @@
+<div class="equipment-manager">
+  <div class="header">
+    <h2>Gestion des équipements</h2>
+  </div>
+
+  <div class="toolbar">
+    <button 
+      type="button" 
+      class="add-button"
+      (click)="toggleAddForm()"
+    >
+      <span class="pi" [ngClass]="showAddForm ? 'pi-times' : 'pi-plus'"></span>
+      {{ showAddForm ? 'Annuler' : 'Ajouter un équipement' }}
+    </button>
+  </div>
+
+  <div *ngIf="showAddForm" class="add-form">
+    <h3>Nouvel équipement</h3>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="new-type">Type *</label>
+        <input 
+          id="new-type"
+          type="text"
+          pInputText
+          [(ngModel)]="newEquipment.type"
+          placeholder="Type d'équipement"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="new-description">Description * (max 40 caractères)</label>
+        <input 
+          id="new-description"
+          type="text"
+          pInputText
+          [(ngModel)]="newEquipment.description"
+          placeholder="Description"
+          maxlength="40"
+        />
+        <small class="char-count">{{ newEquipment.description?.length || 0 }}/40</small>
+      </div>
+
+      <div class="form-field">
+        <label for="new-unit">Unité</label>
+        <input 
+          id="new-unit"
+          type="text"
+          pInputText
+          [(ngModel)]="newEquipment.unit"
+          placeholder="ex: pièces, mètres, kg"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="new-stock">Stock total</label>
+        <p-inputnumber
+          inputId="new-stock"
+          [(ngModel)]="newEquipment.totalStock"
+          [min]="0"
+          [showButtons]="true"
+        ></p-inputnumber>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="save-button" (click)="addEquipment()">
+        <span class="pi pi-check"></span>
+        Créer
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading">
+    Chargement des équipements...
+  </div>
+
+  <div *ngIf="errorMessage" class="error">
+    {{ errorMessage }}
+  </div>
+
+  <div class="equipment-list">
+    <app-equipment-card
+      *ngFor="let equipment of equipments$ | async" 
+      [equipment]="equipment"
+      [isEditing]="isEditing(equipment)"
+      [editingEquipment]="editingEquipment"
+      (edit)="startEdit($event)"
+      (delete)="deleteEquipment($event)"
+      (save)="saveEquipment($event)"
+      (cancelEdit)="cancelEdit()"
+    ></app-equipment-card>
+
+    <div *ngIf="(equipments$ | async)?.length === 0 && !isLoading" class="empty-state">
+      <p>Aucun équipement disponible</p>
+      <p class="hint">Cliquez sur "Ajouter un équipement" pour commencer</p>
+    </div>
+  </div>
+</div>
