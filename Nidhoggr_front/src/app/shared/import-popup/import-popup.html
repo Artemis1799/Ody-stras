@@ -1,0 +1,20 @@
+<div class="modal-overlay" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Importer les données</h2>
+      <button class="close-button" (click)="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div *ngIf="!isReady" class="loading-container">
+        <p>Génération du QR code en cours...</p>
+      </div>
+      <div *ngIf="isReady">
+        <p class="instructions">Scannez ce QR code avec votre téléphone pour recevoir les données sur votre ordinateur</p>
+        <div class="qr-container">
+          <img [src]="qrCodeDataUrl" alt="QR Code" *ngIf="qrCodeDataUrl" />
+        </div>
+        <p class="url-info">{{ WS_URL }}</p>
+      </div>
+    </div>
+  </div>
+</div>

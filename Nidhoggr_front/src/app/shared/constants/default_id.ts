@@ -1,0 +1,1 @@
+export const DEFAULT_EVENT_UUID = '3ba8f189-5bcb-4ca6-a329-25786f34bc03';

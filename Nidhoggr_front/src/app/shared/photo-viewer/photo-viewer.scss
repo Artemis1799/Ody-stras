@@ -1,0 +1,221 @@
+// Styles globaux pour la dialog de photos
+::ng-deep {
+  .photo-dialog {
+    .p-dialog-header {
+      background-color: white;
+      color: #1f2937;
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      border-radius: 0.5rem 0.5rem 0 0;
+      
+      .p-dialog-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      
+      .p-dialog-header-icon {
+        color: #718096;
+        
+        &:hover {
+          background-color: #edf2f7;
+          color: #2d3748;
+        }
+      }
+    }
+    
+    .p-dialog-content {
+      padding: 0;
+      background-color: #f9fafb;
+      border-radius: 0 0 0.5rem 0.5rem;
+    }
+  }
+}
+
+// État de chargement
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 3rem;
+  gap: 1.5rem;
+  
+  .loading-spinner {
+    .pi-spinner {
+      font-size: 3rem;
+      color: #4a5568;
+    }
+  }
+  
+  .loading-text {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+}
+
+// Styles pour la dialog de photos
+.photo-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background-color: white;
+  
+  .photo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f7fafc;
+    overflow: hidden;
+    min-height: 500px;
+    max-height: 70vh;
+    position: relative;
+    
+    .photo-image {
+      max-width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+      display: block;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+  }
+  
+  .photo-navigation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(to top, #ffffff, #f9fafb);
+    border-top: 1px solid #e5e7eb;
+    
+    .nav-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border: 2px solid #3b82f6;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 1.75rem;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      position: relative;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        padding: 2px;
+        background: linear-gradient(135deg, #60a5fa, #3b82f6);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        
+        &::before {
+          opacity: 1;
+        }
+      }
+      
+      &:active:not(:disabled) {
+        transform: scale(1.05);
+        box-shadow: 0 3px 10px rgba(59, 130, 246, 0.35);
+      }
+      
+      &:disabled {
+        background: #e5e7eb;
+        border-color: #d1d5db;
+        color: #9ca3af;
+        cursor: not-allowed;
+        box-shadow: none;
+        
+        &::before {
+          display: none;
+        }
+      }
+    }
+    
+    .photo-counter {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 1.125rem;
+      min-width: 120px;
+      text-align: center;
+      background-color: #f3f4f6;
+      padding: 0.625rem 1.25rem;
+      border-radius: 2rem;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    }
+  }
+  
+  .photo-info {
+    text-align: center;
+    padding: 1rem 1.5rem 1.5rem;
+    background-color: white;
+    
+    p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.9375rem;
+      font-style: italic;
+    }
+  }
+}
+
+.no-photos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 3rem;
+  gap: 1.5rem;
+  text-align: center;
+  background-color: white;
+  
+  .no-photos-icon {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f7fafc;
+    border-radius: 50%;
+    margin-bottom: 0.5rem;
+    border: 2px solid #e2e8f0;
+    
+    .pi-image {
+      font-size: 3.5rem;
+      color: #a0aec0;
+    }
+  }
+  
+  .no-photos-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2d3748;
+  }
+  
+  .no-photos-text {
+    margin: 0;
+    color: #6b7280;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    max-width: 350px;
+  }
+}

@@ -1,0 +1,199 @@
+<div class="equipment-manager">
+  <div class="header">
+    <h2>Gestion des équipements</h2>
+    <button type="button" class="close-button" (click)="onClose()">
+      ✕
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <button 
+      type="button" 
+      class="add-button"
+      (click)="toggleAddForm()"
+    >
+      <span class="pi" [ngClass]="showAddForm ? 'pi-times' : 'pi-plus'"></span>
+      {{ showAddForm ? 'Annuler' : 'Ajouter un équipement' }}
+    </button>
+  </div>
+
+  <div *ngIf="showAddForm" class="add-form">
+    <h3>Nouvel équipement</h3>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="new-type">Type *</label>
+        <input 
+          id="new-type"
+          type="text"
+          pInputText
+          [(ngModel)]="newEquipment.type"
+          placeholder="Type d'équipement"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="new-description">Description * (max 40 caractères)</label>
+        <input 
+          id="new-description"
+          type="text"
+          pInputText
+          [(ngModel)]="newEquipment.description"
+          placeholder="Description"
+          maxlength="40"
+        />
+        <small class="char-count">{{ newEquipment.description?.length || 0 }}/40</small>
+      </div>
+
+      <div class="form-field">
+        <label for="new-unit">Unité</label>
+        <input 
+          id="new-unit"
+          type="text"
+          pInputText
+          [(ngModel)]="newEquipment.unit"
+          placeholder="ex: pièces, mètres, kg"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="new-stock">Stock total</label>
+        <p-inputnumber
+          inputId="new-stock"
+          [(ngModel)]="newEquipment.totalStock"
+          [min]="0"
+          [showButtons]="true"
+        ></p-inputnumber>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="save-button" (click)="addEquipment()">
+        <span class="pi pi-check"></span>
+        Créer
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading">
+    Chargement des équipements...
+  </div>
+
+  <div *ngIf="errorMessage" class="error">
+    {{ errorMessage }}
+  </div>
+
+  <div class="equipment-list">
+    <div 
+      *ngFor="let equipment of equipments$ | async" 
+      class="equipment-card"
+      [class.editing]="isEditing(equipment)"
+    >
+      <div *ngIf="!isEditing(equipment)" class="equipment-view">
+        <div class="equipment-info">
+          <h3>{{ equipment.description }}</h3>
+          <p class="type">Type: {{ equipment.type }}</p>
+          <p class="unit" *ngIf="equipment.unit">Unité: {{ equipment.unit }}</p>
+          <div class="stock-info">
+            <span class="stock-label">Stock:</span>
+            <span class="stock-value">
+              {{ equipment.remainingStock || 0 }} / {{ equipment.totalStock || 0 }}
+              <span *ngIf="equipment.unit">&nbsp;{{ equipment.unit }}</span>
+            </span>
+          </div>
+        </div>
+        
+        <div class="equipment-actions">
+          <button 
+            type="button" 
+            class="edit-button"
+            (click)="startEdit(equipment)"
+          >
+            <span class="pi pi-pencil"></span>
+            Modifier
+          </button>
+          <button 
+            type="button" 
+            class="delete-button"
+            (click)="deleteEquipment(equipment)"
+          >
+            <span class="pi pi-trash"></span>
+            Supprimer
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="isEditing(equipment)" class="equipment-edit">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Type</label>
+            <input 
+              type="text"
+              pInputText
+              [(ngModel)]="editingEquipment!.type"
+              placeholder="Type d'équipement"
+            />
+          </div>
+
+          <div class="form-field">
+            <label>Description (max 40 caractères)</label>
+            <input 
+              type="text"
+              pInputText
+              [(ngModel)]="editingEquipment!.description"
+              placeholder="Description"
+              maxlength="40"
+            />
+            <small class="char-count">{{ editingEquipment!.description?.length || 0 }}/40</small>
+          </div>
+
+          <div class="form-field">
+            <label>Unité</label>
+            <input 
+              type="text"
+              pInputText
+              [(ngModel)]="editingEquipment!.unit"
+              placeholder="ex: pièces, mètres, kg"
+            />
+          </div>
+
+          <div class="form-field">
+            <label>Stock total</label>
+            <p-inputnumber
+              [(ngModel)]="editingEquipment!.totalStock"
+              [min]="0"
+              [showButtons]="true"
+            ></p-inputnumber>
+            <small class="help-text">
+              Le stock restant sera ajusté automatiquement
+            </small>
+          </div>
+
+          <div class="form-field">
+            <label>Stock restant</label>
+            <p-inputnumber
+              [(ngModel)]="editingEquipment!.remainingStock"
+              [min]="0"
+              [max]="editingEquipment!.totalStock || 0"
+              [showButtons]="true"
+            ></p-inputnumber>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="cancel-button" (click)="cancelEdit()">
+            Annuler
+          </button>
+          <button type="button" class="save-button" (click)="saveEquipment(equipment)">
+            <span class="pi pi-check"></span>
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="(equipments$ | async)?.length === 0 && !isLoading" class="empty-state">
+      <p>Aucun équipement disponible</p>
+      <p class="hint">Cliquez sur "Ajouter un équipement" pour commencer</p>
+    </div>
+  </div>
+</div>
