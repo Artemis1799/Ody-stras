@@ -3,7 +3,7 @@ import { Equipment } from "./equipmentModel";
 export interface Point {
   uuid: string;
   eventId: string;
-  equipmentId: string;
+  equipmentId: string | null;
   latitude?: number;
   longitude?: number;
   comment?: string;
