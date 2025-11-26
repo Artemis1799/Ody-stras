@@ -115,6 +115,8 @@ export default function PointsScreen() {
 
   const renderItem = ({ item, index }: { item: Point; index: number }) => (
     <View style={styles.pointItemContainer}>
+      {/*Pour l'instant on désactive les boutons de réordonnancement
+
       <View style={styles.reorderButtons}>
         <TouchableOpacity
           onPress={() => movePoint(index, "up")}
@@ -138,7 +140,7 @@ export default function PointsScreen() {
             color={index === points.length - 1 ? "#ccc" : "#666"}
           />
         </TouchableOpacity>
-      </View>
+      </View>*/}
       <TouchableOpacity
         style={styles.pointItem}
         onPress={() =>
@@ -179,6 +181,8 @@ export default function PointsScreen() {
         contentContainerStyle={styles.listContainer}
       />
 
+      {/* On commente le bouton de simulation pour l'instant
+      
       <View style={styles.bottomButtonContainer}>
         <TouchableOpacity
           style={styles.simulateButton}
@@ -192,7 +196,7 @@ export default function PointsScreen() {
           />
           <Text style={styles.simulateButtonText}>Simuler l'itinéraire</Text>
         </TouchableOpacity>
-      </View>
+      </View>*/}
     </SafeAreaView>
   );
 }
