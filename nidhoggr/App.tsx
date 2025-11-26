@@ -38,7 +38,7 @@ export default function App() {
           <Stack.Screen name="AddPhoto" component={PointPhotosScreen} />
           <Stack.Screen name="Map" component={MapScreen} />
           <Stack.Screen name="Points" component={PointsScreen} />
-          <Stack.Screen name="SimulateScreen" component={SimulateScreen} />
+          {/*<Stack.Screen name="SimulateScreen" component={SimulateScreen} />*/}
           <Stack.Screen name="ExportEvent" component={exportEventScreen} />
         </Stack.Navigator>
       </NavigationContainer>
