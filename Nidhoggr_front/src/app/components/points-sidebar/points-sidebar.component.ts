@@ -33,7 +33,6 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Modal QR Code
   showQRModal = false;
   qrCodeDataUrl = '';
-  wsUrl = 'ws://192.168.1.87:8765';
   
   // Search properties
   searchQuery = '';
@@ -58,11 +57,21 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadPoints();
     
-    // S'abonner aux changements de points depuis le MapService
-    this.pointsSubscription = this.mapService.points$.subscribe(points => {
-      if (points.length > 0) {
-        this.points = points;
-      }
+    // S'abonner aux changements de points depuis le PointService
+    this.pointsSubscription = this.pointService.points$.subscribe(points => {
+      // Trier les points: ceux avec order d'abord, puis les autres
+      const withOrder = points.filter(p => p.order !== undefined && p.order !== null)
+                            .sort((a, b) => (a.order || 0) - (b.order || 0));
+      const withoutOrder = points.filter(p => p.order === undefined || p.order === null);
+      
+      this.points = [...withOrder, ...withoutOrder];
+      
+      // Partager les points avec le MapService pour affichage sur la map
+      this.mapService.setPoints(this.points);
+      
+      // Forcer la détection de changement immédiatement
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
     });
 
     // Recharger les points automatiquement toutes les 5 secondes
@@ -135,30 +144,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     
     this.pointService.getAll().subscribe({
-      next: (data) => {
-        // Trier les points: ceux avec order d'abord, puis les autres
-        const withOrder = data.filter(p => p.order !== undefined && p.order !== null)
-                              .sort((a, b) => (a.order || 0) - (b.order || 0));
-        const withoutOrder = data.filter(p => p.order === undefined || p.order === null);
-        
-        // Assigner un ordre aux points sans ordre
-        withoutOrder.forEach((point, index) => {
-          point.order = withOrder.length + index + 1;
-        });
-        
-        this.points = [...withOrder, ...withoutOrder];
+      next: () => {
         this.isLoading = false;
-        
-        // Partager les points avec le service pour affichage sur la map
-        this.mapService.setPoints(this.points);
-        
-        // Si des points ont été réordonnés, mettre à jour la base de données
-        if (withoutOrder.length > 0) {
-          this.updateOrdersInDatabase();
-        }
-        
-        // Forcer la détection de changement
-        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Erreur lors du chargement des points:', error);

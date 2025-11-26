@@ -10,6 +10,8 @@ import { Photo } from '../models/photoModel';
 import { Equipment } from '../models/equipmentModel';
 import { EventStatus } from '../models/eventModel';
 import { ImagePoint } from '../models/imagePointsModel';
+import { DEFAULT_EVENT_UUID } from '../shared/constants/default_id';
+import { WS_URL } from '../shared/constants/wsUrl';
 
 export interface WebSocketMessage {
   type: string;
@@ -20,16 +22,12 @@ export interface WebSocketMessage {
   providedIn: 'root'
 })
 export class WebSocketExportService {
-  private wsUrl = 'ws://192.168.1.87:8765';
   private ws: WebSocket | null = null;
   private progressSubject = new Subject<WebSocketMessage>();
   public progress$ = this.progressSubject.asObservable();
   private existingPoints: Map<string, Point> = new Map();
   private existingPhotos: Map<string, Photo> = new Map();
   private existingEquipments: Map<string, Equipment> = new Map();
-  
-  // Event ID fixe pour tous les points
-  private readonly DEFAULT_EVENT_ID = '3ba8f189-5bcb-4ca6-a329-25786f34bc03';
 
   constructor(
     private pointService: PointService,
@@ -92,7 +90,7 @@ export class WebSocketExportService {
     console.log('🚀 Démarrage du processus de connexion WebSocket');
     
     // Créer l'Event par défaut si nécessaire
-    await this.ensureEventExists(this.DEFAULT_EVENT_ID);
+    await this.ensureEventExists(DEFAULT_EVENT_UUID);
     
     // Vérifier si le serveur tourne déjà
     const isRunning = await this.checkServerStatus();
@@ -133,10 +131,10 @@ export class WebSocketExportService {
       return;
     }
 
-    console.log('🔌 Connexion au WebSocket:', this.wsUrl);
+    console.log('🔌 Connexion au WebSocket:', WS_URL);
     
     try {
-      this.ws = new WebSocket(this.wsUrl);
+      this.ws = new WebSocket(WS_URL);
 
       this.ws.onopen = () => {
         console.log('✅ WebSocket connecté avec succès');
@@ -291,7 +289,7 @@ export class WebSocketExportService {
     // Convertir du format API (PascalCase) vers TypeScript (camelCase)
     const point: any = {
       uuid: pointData.UUID,
-      eventId: this.DEFAULT_EVENT_ID, // Utiliser l'Event ID fixe
+      eventId: DEFAULT_EVENT_UUID,
       equipmentId: '', // Sera défini après vérification de l'équipement
       latitude: pointData.Latitude,
       longitude: pointData.Longitude,
@@ -305,7 +303,7 @@ export class WebSocketExportService {
     };
     
     console.log('   📦 Point converti:', point);
-    console.log('   ℹ️ Event_ID utilisé:', this.DEFAULT_EVENT_ID);
+    console.log('   ℹ️ Event_ID utilisé:', DEFAULT_EVENT_UUID);
     console.log('   ℹ️ Equipement_ID du mobile:', pointData.Equipement_ID);
     
     // Si un équipement est spécifié, vérifier s'il existe ou le créer

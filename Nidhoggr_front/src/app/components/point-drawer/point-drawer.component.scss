@@ -8,10 +8,11 @@
   .header-content {
     display: flex;
     align-items: center;
+    gap: 0.50rem !important;
     margin-left: 0.25rem;
     
     h3 {
-      margin: 0;
+      margin: 0 !important;
       font-size: 1.375rem;
       font-weight: 600;
       color: #1f2937;
@@ -166,14 +167,15 @@
   .equipment-name {
     font-weight: 500;
     color: #1f2937;
+    flex: 1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.4;
+    padding-right: 0.5rem;
   }
   
   .equipment-stock {
-    font-size: 0.8125rem;
-    color: #6b7280;
-    background-color: #f3f4f6;
-    padding: 0.25rem 0.625rem;
-    border-radius: 0.25rem;
+    display: none;
   }
 }
 
@@ -226,11 +228,11 @@
 .drawer-footer {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 0;
+  gap: 0.75rem !important;
+  padding: 0 !important;
   
   > * {
-    margin: 0 0.25rem;
+    margin: 0 0.5rem !important;
   }
   
   .btn {
@@ -319,9 +321,9 @@
   }
 
   .p-drawer-header {
-    padding: 1.5rem;
+    padding: 1.5rem !important;
     background-color: white !important;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb !important;
   }
 
   .p-drawer-content {
@@ -331,9 +333,9 @@
   }
   
   .p-drawer-footer {
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem 1.5rem !important;
     background-color: white !important;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #e5e7eb !important;
   }
   
   // Styles pour les inputs
@@ -444,195 +446,5 @@
         border-color: #4a5568;
       }
     }
-  }
-}
-
-// Styles globaux pour la dialog de photos
-::ng-deep {
-  .photo-dialog {
-    .p-dialog-header {
-      background-color: white;
-      color: #1f2937;
-      padding: 1.5rem;
-      border-bottom: 1px solid #e5e7eb;
-      border-radius: 0.5rem 0.5rem 0 0;
-      
-      .p-dialog-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-      }
-      
-      .p-dialog-header-icon {
-        color: #718096;
-        
-        &:hover {
-          background-color: #edf2f7;
-          color: #2d3748;
-        }
-      }
-    }
-    
-    .p-dialog-content {
-      padding: 0;
-      background-color: #f9fafb;
-      border-radius: 0 0 0.5rem 0.5rem;
-    }
-  }
-}
-
-// État de chargement
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 3rem;
-  gap: 1.5rem;
-  
-  .loading-spinner {
-    .pi-spinner {
-      font-size: 3rem;
-      color: #4a5568;
-    }
-  }
-  
-  .loading-text {
-    margin: 0;
-    font-size: 1.125rem;
-    color: #6b7280;
-    font-weight: 500;
-  }
-}
-
-// Styles pour la dialog de photos
-.photo-viewer {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  background-color: white;
-  
-  .photo-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #f7fafc;
-    overflow: hidden;
-    min-height: 500px;
-    max-height: 70vh;
-    position: relative;
-    
-    .photo-image {
-      max-width: 100%;
-      max-height: 70vh;
-      object-fit: contain;
-      display: block;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-    }
-  }
-  
-  .photo-navigation {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 3rem;
-    padding: 2rem;
-    background-color: white;
-    border-top: 1px solid #e5e7eb;
-    
-    .nav-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      border: none;
-      background-color: #4a5568;
-      color: white;
-      border-radius: 0.375rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: 1.25rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      
-      &:hover:not(:disabled) {
-        background-color: #2d3748;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-      }
-      
-      &:active:not(:disabled) {
-        transform: translateY(1px);
-      }
-      
-      &:disabled {
-        background-color: #e5e7eb;
-        color: #9ca3af;
-        cursor: not-allowed;
-        box-shadow: none;
-      }
-    }
-    
-    .photo-counter {
-      font-weight: 600;
-      color: #2d3748;
-      font-size: 1rem;
-      min-width: 100px;
-      text-align: center;
-    }
-  }
-  
-  .photo-info {
-    text-align: center;
-    padding: 1rem 1.5rem 1.5rem;
-    background-color: white;
-    
-    p {
-      margin: 0;
-      color: #6b7280;
-      font-size: 0.9375rem;
-      font-style: italic;
-    }
-  }
-}
-
-.no-photos {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 5rem 3rem;
-  gap: 1.5rem;
-  text-align: center;
-  background-color: white;
-  
-  .no-photos-icon {
-    width: 120px;
-    height: 120px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f7fafc;
-    border-radius: 50%;
-    margin-bottom: 0.5rem;
-    border: 2px solid #e2e8f0;
-    
-    .pi-image {
-      font-size: 3.5rem;
-      color: #a0aec0;
-    }
-  }
-  
-  .no-photos-title {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #2d3748;
-  }
-  
-  .no-photos-text {
-    margin: 0;
-    color: #6b7280;
-    font-size: 1.0625rem;
-    line-height: 1.6;
-    max-width: 350px;
   }
 }

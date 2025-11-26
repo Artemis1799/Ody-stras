@@ -32,14 +32,16 @@
       </div>
 
       <div class="form-field">
-        <label for="new-description">Description *</label>
+        <label for="new-description">Description * (max 40 caractères)</label>
         <input 
           id="new-description"
           type="text"
           pInputText
           [(ngModel)]="newEquipment.description"
           placeholder="Description"
+          maxlength="40"
         />
+        <small class="char-count">{{ newEquipment.description?.length || 0 }}/40</small>
       </div>
 
       <div class="form-field">
@@ -133,13 +135,15 @@
           </div>
 
           <div class="form-field">
-            <label>Description</label>
+            <label>Description (max 40 caractères)</label>
             <input 
               type="text"
               pInputText
               [(ngModel)]="editingEquipment!.description"
               placeholder="Description"
+              maxlength="40"
             />
+            <small class="char-count">{{ editingEquipment!.description?.length || 0 }}/40</small>
           </div>
 
           <div class="form-field">
