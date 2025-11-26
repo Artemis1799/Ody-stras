@@ -36,8 +36,8 @@ test_job:
   needs:
     - install_job
   script:
-    - npm install --no-save jest-junit
-    - npm test -- --ci --coverage --reporters=default --reporters=jest-junit || true
+    - npm install --no-save jest-junit jest-cobertura-reporter
+    - npm test -- --ci --coverage --coverageReporters=text --coverageReporters=lcov --coverageReporters=cobertura --reporters=default --reporters=jest-junit || true
   artifacts:
     when: always
     reports:
