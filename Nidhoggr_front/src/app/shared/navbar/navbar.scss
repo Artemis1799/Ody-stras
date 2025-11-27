@@ -29,6 +29,7 @@
   gap: 0.5rem;
   align-items: center;
   margin-left: 10rem;
+  flex: 1;
 }
 
 .nav-link {
@@ -59,6 +60,15 @@
     background-color: #2ad783;
     color: #171c22;
     font-weight: 600;
+  }
+}
+
+.logout-btn {
+  margin-left: auto;
+  
+  &:hover {
+    background-color: #dc3545;
+    color: #ffffff;
   }
 }
 

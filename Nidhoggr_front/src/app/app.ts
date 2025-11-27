@@ -1,5 +1,5 @@
-import { Component, signal, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, OnInit, ChangeDetectorRef, PLATFORM_ID, Inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { PointService } from './services/PointService';
@@ -20,6 +20,8 @@ import { LoginPageComponent } from './components/login-page/login.component';
 export class App implements OnInit {
   protected readonly title = signal('Nidhoggr_front');
   isAuthenticated = false;
+  isInitialized = false;
+  isBrowser = false;
 
   constructor(
     private pointService: PointService,
@@ -27,12 +29,29 @@ export class App implements OnInit {
     private imagePointService: ImagePointService,
     private equipmentService: EquipmentService,
     private authService: AuthService,
-    private cdr: ChangeDetectorRef
-  ) {}
+    private cdr: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(platformId);
+    
+    // Initialiser immédiatement pour éviter le flash (uniquement côté navigateur)
+    if (this.isBrowser) {
+      this.isAuthenticated = this.authService.isAuthenticated();
+      this.isInitialized = this.authService.isInitialized();
+    }
+  }
   async ngOnInit(): Promise<void> {
     // Écouter les changements d'authentification
     this.authService.isAuthenticated$.subscribe(isAuth => {
       this.isAuthenticated = isAuth;
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
+    });
+
+    // Écouter l'initialisation
+    this.authService.isInitialized$.subscribe(isInit => {
+      this.isInitialized = isInit;
+      this.cdr.markForCheck();
       this.cdr.detectChanges();
     });
 

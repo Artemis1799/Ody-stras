@@ -2,6 +2,7 @@ import { Component, OnDestroy } from '@angular/core';
 import { RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/AuthService';
 
 @Component({
   selector: 'app-navbar',
@@ -15,7 +16,10 @@ export class Navbar implements OnDestroy {
   private hideTimeout: any;
   isPersonnelsActive = false;
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
@@ -58,6 +62,10 @@ export class Navbar implements OnDestroy {
       this.hideTimeout = null;
     }
     this.showDropdown = false;
+  }
+
+  logout() {
+    this.authService.logout();
   }
 
   ngOnDestroy() {

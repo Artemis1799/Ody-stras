@@ -7,30 +7,65 @@ import { BehaviorSubject, Observable } from 'rxjs';
 export class AuthService {
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
   public isAuthenticated$: Observable<boolean> = this.isAuthenticatedSubject.asObservable();
+  
+  private isInitializedSubject = new BehaviorSubject<boolean>(false);
+  public isInitialized$: Observable<boolean> = this.isInitializedSubject.asObservable();
+  
+  private readonly TOKEN_KEY = 'auth_token';
 
   constructor() {
-    // Vérifier si l'utilisateur était déjà connecté (sessionStorage)
+    // Vérifier si un token JWT existe
     if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-      const isAuth = sessionStorage.getItem('isAuthenticated') === 'true';
-      this.isAuthenticatedSubject.next(isAuth);
+      const token = sessionStorage.getItem(this.TOKEN_KEY);
+      if (token && this.isTokenValid(token)) {
+        this.isAuthenticatedSubject.next(true);
+      }
+      this.isInitializedSubject.next(true);
+    } else {
+      this.isInitializedSubject.next(true);
     }
   }
 
-  login(): void {
+  login(token: string): void {
     if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem('isAuthenticated', 'true');
+      sessionStorage.setItem(this.TOKEN_KEY, token);
     }
     this.isAuthenticatedSubject.next(true);
   }
 
   logout(): void {
     if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-      sessionStorage.removeItem('isAuthenticated');
+      sessionStorage.removeItem(this.TOKEN_KEY);
     }
     this.isAuthenticatedSubject.next(false);
   }
 
+  getToken(): string | null {
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem(this.TOKEN_KEY);
+    }
+    return null;
+  }
+
   isAuthenticated(): boolean {
     return this.isAuthenticatedSubject.value;
+  }
+
+  isInitialized(): boolean {
+    return this.isInitializedSubject.value;
+  }
+
+  private isTokenValid(token: string): boolean {
+    try {
+      // Décoder le payload du JWT (partie entre les deux points)
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      
+      // Vérifier si le token n'est pas expiré
+      const exp = payload.exp * 1000; // Convertir en millisecondes
+      return Date.now() < exp;
+    } catch (error) {
+      console.error('Token invalide:', error);
+      return false;
+    }
   }
 }

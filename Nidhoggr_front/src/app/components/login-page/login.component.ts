@@ -81,7 +81,10 @@ export class LoginPageComponent implements OnInit {
     this.userService.update(this.user.uuid, updatedUser).subscribe({
       next: () => {
         console.log('Mot de passe créé avec succès');
-        this.authService.login();
+        // Pas de token lors de la création, on redirige vers le login
+        this.user!.password = '***'; // Simuler qu'un mot de passe existe maintenant
+        this.newPassword = '';
+        this.confirmPassword = '';
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -103,7 +106,8 @@ export class LoginPageComponent implements OnInit {
     }).subscribe({
       next: (response) => {
         console.log('Connexion réussie:', response.message);
-        this.authService.login();
+        // Stocker le token JWT
+        this.authService.login(response.token);
         this.cdr.detectChanges();
       },
       error: (error) => {
