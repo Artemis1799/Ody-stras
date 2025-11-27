@@ -9,5 +9,5 @@ public interface IUserService
 	Task<User?> UpdateAsync(Guid id, User user);
 	Task<bool> DeleteAsync(Guid id);
 	Task<int> DeleteAllAsync();
-	Task<(bool Success, string Message)> LoginAsync(string name, string? password);
+	Task<(bool Success, string Message, string? Token)> LoginAsync(string name, string? password);
 }

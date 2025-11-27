@@ -72,14 +72,14 @@ public class UserController : ControllerBase
 	[HttpPost("login")]
 	public async Task<ActionResult> Login([FromBody] LoginRequest request)
 	{
-		var (success, message) = await _userService.LoginAsync(request.Name, request.Password);
+		var (success, message, token) = await _userService.LoginAsync(request.Name, request.Password);
 
 		if (!success)
 		{
 			return BadRequest(new { message });
 		}
 
-		return Ok(new { message });
+		return Ok(new { message, token });
 	}
 }
 

@@ -31,6 +31,7 @@ builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ITeamMemberService, TeamMemberService>();
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEventTeamService, EventTeamService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
 
 var app = builder.Build();
 // enable CORS

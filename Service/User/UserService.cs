@@ -6,10 +6,12 @@ namespace t5_back.Services;
 public class UserService : IUserService
 {
 	private readonly AppDbContext _context;
+	private readonly IJwtService _jwtService;
 
-	public UserService(AppDbContext context)
+	public UserService(AppDbContext context, IJwtService jwtService)
 	{
 		_context = context;
+		_jwtService = jwtService;
 	}
 
 	public async Task<IEnumerable<User>> GetAllAsync()
@@ -92,25 +94,28 @@ public class UserService : IUserService
 		return count;
 	}
 
-	public async Task<(bool Success, string Message)> LoginAsync(string name, string? password)
+	public async Task<(bool Success, string Message, string? Token)> LoginAsync(string name, string? password)
 	{
 		var user = await _context.Users.FirstOrDefaultAsync(u => u.Name == name);
 
 		if (user == null)
 		{
-			return (false, "User does not exist");
+			return (false, "User does not exist", null);
 		}
 
 		if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(user.Password))
 		{
-			return (false, "Empty password");
+			return (false, "Empty password", null);
 		}
 
 		if (!BCrypt.Net.BCrypt.Verify(password, user.Password))
 		{
-			return (false, "Incorrect password");
+			return (false, "Incorrect password", null);
 		}
 
-		return (true, "Login successful");
+		// Générer le token JWT
+		var token = _jwtService.GenerateToken(user.UUID, user.Name);
+
+		return (true, "Login successful", token);
 	}
 }
