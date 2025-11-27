@@ -1,0 +1,121 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.login-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #20272f 0%, #2c3e50 100%);
+}
+
+.login-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 3rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-width: 450px;
+  width: 90%;
+  
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #20272f;
+    margin: 0 0 0.5rem 0;
+    text-align: center;
+  }
+  
+  .welcome-message {
+    font-size: 1rem;
+    color: #666;
+    text-align: center;
+    margin: 0 0 2rem 0;
+  }
+}
+
+.loading {
+  text-align: center;
+  
+  p {
+    font-size: 1.125rem;
+    color: #666;
+  }
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  
+  label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #20272f;
+  }
+  
+  input {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    
+    &:focus {
+      outline: none;
+      border-color: #4a90e2;
+      box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    }
+    
+    &::placeholder {
+      color: #aaa;
+    }
+  }
+}
+
+.error-message {
+  background-color: #fee;
+  color: #c33;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  text-align: center;
+  border: 1px solid #fcc;
+}
+
+.btn-primary {
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #4a90e2;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover:not(:disabled) {
+    background-color: #357abd;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
