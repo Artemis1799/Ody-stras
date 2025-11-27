@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/ro
 import { filter } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/AuthService';
+import { UserService } from '../../services/UserService';
 
 @Component({
   selector: 'app-navbar',
@@ -13,12 +14,15 @@ import { AuthService } from '../../services/AuthService';
 })
 export class Navbar implements OnDestroy {
   showDropdown = false;
+  showAccountDropdown = false;
   private hideTimeout: any;
+  private hideAccountTimeout: any;
   isPersonnelsActive = false;
 
   constructor(
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private userService: UserService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -64,7 +68,78 @@ export class Navbar implements OnDestroy {
     this.showDropdown = false;
   }
 
+  // Gestion du dropdown Compte
+  onMouseEnterAccount() {
+    if (this.hideAccountTimeout) {
+      clearTimeout(this.hideAccountTimeout);
+      this.hideAccountTimeout = null;
+    }
+  }
+
+  onMouseLeaveAccount() {
+    if (this.showAccountDropdown) {
+      this.hideAccountTimeout = setTimeout(() => {
+        this.showAccountDropdown = false;
+        this.hideAccountTimeout = null;
+      }, 1000);
+    }
+  }
+
+  onToggleAccountDropdown() {
+    if (this.hideAccountTimeout) {
+      clearTimeout(this.hideAccountTimeout);
+      this.hideAccountTimeout = null;
+    }
+    this.showAccountDropdown = !this.showAccountDropdown;
+    if (this.showAccountDropdown) {
+      this.hideAccountTimeout = setTimeout(() => {
+        this.showAccountDropdown = false;
+      }, 1000);
+    }
+  }
+
+  resetPassword() {
+    // Fermer le dropdown
+    this.showAccountDropdown = false;
+    if (this.hideAccountTimeout) {
+      clearTimeout(this.hideAccountTimeout);
+      this.hideAccountTimeout = null;
+    }
+
+    // Récupérer l'utilisateur et réinitialiser son mot de passe
+    this.userService.getAll().subscribe({
+      next: (users) => {
+        if (users && users.length > 0) {
+          const user = users[0];
+          // Mettre le mot de passe à undefined
+          this.userService.update(user.uuid, { ...user, password: undefined }).subscribe({
+            next: () => {
+              console.log('Mot de passe réinitialisé');
+              // Déconnecter et rediriger vers la page de login
+              this.authService.logout();
+            },
+            error: (error) => {
+              console.error('Erreur lors de la réinitialisation du mot de passe:', error);
+              alert('Erreur lors de la réinitialisation du mot de passe');
+            }
+          });
+        }
+      },
+      error: (error) => {
+        console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+        alert('Erreur lors de la récupération de l\'utilisateur');
+      }
+    });
+  }
+
   logout() {
+    // Fermer le dropdown
+    this.showAccountDropdown = false;
+    if (this.hideAccountTimeout) {
+      clearTimeout(this.hideAccountTimeout);
+      this.hideAccountTimeout = null;
+    }
+    
     this.authService.logout();
   }
 
@@ -72,6 +147,10 @@ export class Navbar implements OnDestroy {
     if (this.hideTimeout) {
       clearTimeout(this.hideTimeout);
       this.hideTimeout = null;
+    }
+    if (this.hideAccountTimeout) {
+      clearTimeout(this.hideAccountTimeout);
+      this.hideAccountTimeout = null;
     }
   }
 }
