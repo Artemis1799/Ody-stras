@@ -35,6 +35,23 @@
           </a>
         </div>
       </div>
+      <div class="nav-dropdown account-dropdown">
+        <button class="nav-link dropdown-toggle" (click)="onToggleAccountDropdown()">
+          <span class="pi pi-user"></span>
+          Compte
+          <span class="pi pi-angle-down"></span>
+        </button>
+        <div class="dropdown-menu" [class.show]="showAccountDropdown" (mouseenter)="onMouseEnterAccount()" (mouseleave)="onMouseLeaveAccount()">
+          <button class="dropdown-item" (click)="resetPassword()">
+            <span class="pi pi-refresh"></span>
+            Réinitialiser le mot de passe
+          </button>
+          <button class="dropdown-item logout-item" (click)="logout()">
+            <span class="pi pi-sign-out"></span>
+            Déconnexion
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </nav>
