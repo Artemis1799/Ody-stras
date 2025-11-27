@@ -16,7 +16,7 @@
 
 .header {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   height: 5rem;
   padding: 1.5rem 2rem;
@@ -162,20 +162,20 @@
   }
 
   .cancel-button {
-    background-color: #f3f4f6;
-    color: #374151;
+    background-color: #e53e3e;
+    color: white;
 
     &:hover {
-      background-color: #e5e7eb;
+      background-color: #c53030;
     }
   }
 
   .save-button {
-    background-color: #4a5568;
-    color: white;
+    background-color: #2ad783;
+    color: #20272f;
 
     &:hover {
-      background-color: #2d3748;
+      background-color: #1d925a;
       box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
     }
   }
