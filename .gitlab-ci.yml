@@ -1,10 +1,31 @@
+image: node:22
+
 stages:
   - build
+  - lint
   - test
   - deploy
 
 build_job:
   stage: build
   script:
-    - npm install
+    - cd Nidhoggr_front
+    - npm install --legacy-peer-deps
+    - npm install -g @angular/cli
+    - ng build
+  artifacts:
+    paths:
+      - Nidhoggr_front/dist/Nidhoggr_front
+
+lint_job:
+  stage: lint
+  script:
+    - cd Nidhoggr_front
+    - npm install --legacy-peer-deps
+    - npm install @typescript-eslint/parser @typescript-eslint/eslint-plugin
+    - npm run lint -- --format json --output-file lint-report.json
+  artifacts:
+    paths:
+      - Nidhoggr_front/lint-report.json
+  allow_failure: false
   
