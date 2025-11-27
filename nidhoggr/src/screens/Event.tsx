@@ -155,7 +155,7 @@ export default function EventScreen() {
           </TouchableOpacity>
         </View>
         <View>
-          <TouchableOpacity style={styles.exportButton} onPress={() => navigation.navigate("Points", { eventUUID })}>
+          <TouchableOpacity style={styles.exportButton} onPress={() => navigation.navigate("ExportEvent", { eventUUID })}>
             <Text style={styles.buttonText}>{Strings.event.exportEvent}</Text>
           </TouchableOpacity>
         </View>

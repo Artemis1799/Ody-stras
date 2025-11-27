@@ -6,6 +6,7 @@ export type RootStackParamList = {
   Map: { eventId: string };
   SimulateScreen: { eventUUID: string };
   Points: { eventUUID: string };
+  ExportEvent: { eventUUID: string };
   AddPhoto: { pointId: string };
   AddPoint: { eventId: string } | { eventId: string; pointIdParam: string };
   Event: {
