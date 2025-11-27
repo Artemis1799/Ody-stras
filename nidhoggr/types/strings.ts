@@ -55,4 +55,10 @@ export const Strings = {
     cameraPermissionDenied: "Permission caméra refusée",
     takePhoto: "📸 Prendre une photo",
   },
+  homeScreen: {
+    accessApplication: "Entrer dans l'application",
+    skipIntro: "Passer l'intro",
+    welcomeTitle: "Bienvenue",
+    welcomeSubtitle: "Capitale de l’Europe",
+  },
 };
