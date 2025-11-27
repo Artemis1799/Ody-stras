@@ -29,6 +29,12 @@ public class UserService : IUserService
 			user.UUID = Guid.NewGuid();
 		}
 
+		// Hasher le mot de passe si fourni
+		if (!string.IsNullOrEmpty(user.Password))
+		{
+			user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+		}
+
 		_context.Users.Add(user);
 		await _context.SaveChangesAsync();
 
@@ -45,7 +51,17 @@ public class UserService : IUserService
 		}
 
 		existing.Name = user.Name;
-		existing.Password = user.Password;
+		
+		// Si le mot de passe est fourni et non vide, on le hashe
+		if (!string.IsNullOrEmpty(user.Password))
+		{
+			existing.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+		}
+		else
+		{
+			// Si le mot de passe est null ou vide, on le met à null
+			existing.Password = null;
+		}
 
 		await _context.SaveChangesAsync();
 
@@ -85,7 +101,12 @@ public class UserService : IUserService
 			return (false, "User does not exist");
 		}
 
-		if (user.Password != password)
+		if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(user.Password))
+		{
+			return (false, "Empty password");
+		}
+
+		if (!BCrypt.Net.BCrypt.Verify(password, user.Password))
 		{
 			return (false, "Incorrect password");
 		}
