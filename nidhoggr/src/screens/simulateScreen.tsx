@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { EventScreenNavigationProp, Point, Evenement } from "../../types/types";
 import { getAllWhere, update } from "../../database/queries";
+import { Strings } from "../../types/strings";
 
 export default function SimulateScreen() {
   const navigation = useNavigation<EventScreenNavigationProp>();
@@ -69,7 +70,7 @@ export default function SimulateScreen() {
       }
     } catch (err) {
       console.error(err);
-      Alert.alert("Erreur", "Impossible de charger les points.");
+      Alert.alert("Erreur", Strings.errors.fetchPointsMessage);
     }
   };
 
@@ -156,7 +157,7 @@ export default function SimulateScreen() {
   // Démarrer/reprendre la simulation
   const startSimulation = () => {
     if (points.length === 0) {
-      Alert.alert("Info", "Aucun point à visiter.");
+      Alert.alert("Info", Strings.buttons.simulateRoute);
       return;
     }
     console.log('Démarrage/reprise simulation', {
@@ -299,7 +300,7 @@ export default function SimulateScreen() {
           <View style={{ width: 28 }} />
         </View>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Aucun point à simuler</Text>
+          <Text style={styles.emptyText}>{Strings.map.noEquipment}</Text>
         </View>
       </SafeAreaView>
     );

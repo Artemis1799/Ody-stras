@@ -6,6 +6,7 @@ import { getPointsForEvent, getPhotosForPoint } from "../../database/queries";
 import { useEffect, useState, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
+import { Strings } from "../../types/strings";
 
 export default function ExportEventScreen() {
     const route = useRoute();
@@ -253,7 +254,7 @@ export default function ExportEventScreen() {
             if (data.startsWith("ws://") || data.startsWith("wss://")) {
                 sendPointsViaWebSocket(data);
             } else {
-                setSendStatus("✗ URL WebSocket invalide");
+                setSendStatus(Strings.exportEvent.invalidWebSocketURL);
             }
         }
     };
@@ -266,7 +267,7 @@ export default function ExportEventScreen() {
     if (!permission) {
         return (
             <SafeAreaView style={styles.container}>
-                <Text>Demande d'autorisation de la caméra...</Text>
+                <Text>{Strings.exportEvent.cameraPermissionRequest}</Text>
             </SafeAreaView>
         );
     }
@@ -274,7 +275,7 @@ export default function ExportEventScreen() {
     if (!permission.granted) {
         return (
             <SafeAreaView style={styles.container}>
-                <Text>Permission de caméra refusée</Text>
+                <Text>{Strings.exportEvent.cameraPermissionDenied}</Text>
             </SafeAreaView>
         );
     }
@@ -308,10 +309,10 @@ export default function ExportEventScreen() {
                         </View>
                         <View style={styles.overlayBottom}>
                             <Text style={styles.instructionText}>
-                                Centrez le QR code dans le cadre
+                                {Strings.exportEvent.centerQRCode}
                             </Text>
                             <TouchableOpacity style={styles.boutonAnnuler} onPress={handleAnnulerBoutonPress}>
-                                <Text style={styles.instructionText}>Annuler</Text>
+                                <Text style={styles.instructionText}>{Strings.exportEvent.cancel}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -326,7 +327,11 @@ export default function ExportEventScreen() {
                             color={isSending ? "#0E47A1" : sendStatus === "Transfert terminé" ? "#43A047" : "#E53935"}
                         />
                         <Text style={styles.headerTitle}>
-                            {isSending ? "Exportation en cours" : sendStatus === "Transfert terminé" ? "Exportation réussie" : "Exportation"}
+                            {isSending
+                                ? Strings.exportEvent.exportInProgress
+                                : sendStatus === Strings.exportEvent.transferComplete
+                                    ? Strings.exportEvent.exportSuccess
+                                    : Strings.exportEvent.export}
                         </Text>
                     </View>
 
@@ -389,7 +394,7 @@ export default function ExportEventScreen() {
                                 <View style={styles.successContainer}>
                                     <View style={styles.successCard}>
                                         <Ionicons name="checkmark-circle" size={48} color="#43A047" />
-                                        <Text style={styles.successTitle}>Transfert réussi !</Text>
+                                        <Text style={styles.successTitle}>{Strings.exportEvent.transferSuccess}</Text>
                                         <Text style={styles.successMessage}>
                                             Toutes les données ont été envoyées avec succès
                                         </Text>
@@ -416,7 +421,7 @@ export default function ExportEventScreen() {
                             ) : (
                                 <View style={styles.errorContainer}>
                                     <Ionicons name="alert-circle" size={48} color="#E53935" />
-                                    <Text style={styles.errorTitle}>Erreur de transfert</Text>
+                                    <Text style={styles.errorTitle}>{Strings.exportEvent.transferError}</Text>
                                     <Text style={styles.errorMessage}>{sendStatus}</Text>
                                 </View>
                             )}
@@ -427,7 +432,7 @@ export default function ExportEventScreen() {
                                 onPress={() => navigation.goBack()}
                             >
                                 <Ionicons name="arrow-back" size={20} color="#fff" />
-                                <Text style={styles.retourButtonText}>Retour</Text>
+                                <Text style={styles.retourButtonText}>{Strings.exportEvent.back}</Text>
                             </TouchableOpacity>
                         </>
                     )}

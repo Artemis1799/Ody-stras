@@ -24,6 +24,7 @@ import {
   mapParams,
 } from "../../types/types";
 import { getPointsForEvent } from "../../database/queries";
+import { Strings } from "../../types/strings";
 
 export function MapScreen() {
   const navigation = useNavigation<EventScreenNavigationProp>();
@@ -84,7 +85,7 @@ export function MapScreen() {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          console.log("Permission de localisation refusée");
+          console.log(Strings.map.locationPermissionDenied);
           return;
         }
 
@@ -171,7 +172,7 @@ export function MapScreen() {
                 {point.Equipement_quantite ?? 0}
               </Text>
               <Text style={styles.markerType}>
-                {point.EquipType ?? "Aucun équipement"}
+                {point.EquipType ?? Strings.map.noEquipment}
               </Text>
             </View>
           </Marker>
@@ -204,7 +205,7 @@ export function MapScreen() {
         style={styles.addButton}
         onPress={() => navigation.navigate("AddPoint", { eventId })}
       >
-        <Text style={styles.addButtonText}>Placer un point</Text>
+        <Text style={styles.addButtonText}>{Strings.map.placePoint}</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

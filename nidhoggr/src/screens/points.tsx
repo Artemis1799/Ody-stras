@@ -19,6 +19,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { Ionicons } from "@expo/vector-icons";
 import { EventScreenNavigationProp, Point } from "../../types/types";
 import { getAllWhere, update } from "../../database/queries";
+import { Strings } from "../../types/strings";
 
 export default function PointsScreen() {
   const navigation = useNavigation<EventScreenNavigationProp>();
@@ -42,7 +43,7 @@ export default function PointsScreen() {
           setPoints(data);
         } catch (err) {
           console.error(err);
-          Alert.alert("Erreur DB", "Impossible de récupérer les points.");
+          Alert.alert(Strings.errors.dbError, Strings.errors.fetchPointsMessage);
         } finally {
           setLoading(false);
         }
@@ -109,7 +110,7 @@ export default function PointsScreen() {
       console.log("=== MISE À JOUR BDD TERMINÉE ===");
     } catch (err) {
       console.error("Erreur lors de la mise à jour de l'ordre:", err);
-      Alert.alert("Erreur", "Impossible de mettre à jour l'ordre des points.");
+      Alert.alert(Strings.errors.updateOrderError, Strings.errors.updateOrderMessage);
     }
   };
 
@@ -154,7 +155,7 @@ export default function PointsScreen() {
           <Text style={styles.avatarText}>{item.Ordre}</Text>
         </View>
         <Text style={styles.pointName}>
-          {item.Commentaire || `Point ${item.Ordre}`}
+          {item.Commentaire || Strings.points.pointLabel(item.Ordre ?? 0)}
         </Text>
         <Ionicons name="chevron-forward-outline" size={20} color="#000" />
       </TouchableOpacity>

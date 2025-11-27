@@ -16,6 +16,7 @@ import { deleteDatabase } from "../../database/database";
 import { Ionicons } from "@expo/vector-icons";
 import { Evenement, EventScreenNavigationProp } from "../../types/types";
 import { getAll } from "../../database/queries";
+import { Strings } from "../../types/strings";
 
 export function EventListScreen() {
   const navigation = useNavigation<EventScreenNavigationProp>();
@@ -41,7 +42,7 @@ export function EventListScreen() {
           setEvents(data);
         } catch (err) {
           console.error(err);
-          Alert.alert("Erreur DB", "Impossible de récupérer les events.");
+          Alert.alert(Strings.errors.dbError, Strings.errors.fetchEventsMessage);
         } finally {
           setLoading(false);
         }
@@ -82,7 +83,7 @@ export function EventListScreen() {
         />
         <Ionicons name="person-circle-outline" size={28} color="white" />
         <TouchableOpacity onPress={resetDatabase}>
-          <Text>Reset DB</Text>
+          <Text>{Strings.eventList.resetDB}</Text>
         </TouchableOpacity>
       </View>
 

@@ -27,6 +27,7 @@ import {
   createPointParams,
 } from "../../types/types";
 import { getAll, getAllWhere, insert, update, deleteWhere } from "../../database/queries";
+import { Strings } from "../../types/strings";
 
 export function CreatePointScreen() {
   const db = useSQLiteContext();
@@ -90,15 +91,15 @@ export function CreatePointScreen() {
   const validate = async () => {
     try {
       if (!comment) {
-        alert("Veuillez ajouter un commentaire");
+        alert(Strings.createPoint.addComment);
         return;
       }
       if (!equipment) {
-        alert("Veuillez sélectionner un type d'équipement");
+        alert(Strings.createPoint.selectEquipment);
         return;
       }
       if (!qty || Number(qty) < 1) {
-        alert("Veuillez entrer une quantité supérieure à 0");
+        alert(Strings.createPoint.enterQuantity);
         return;
       }
 
@@ -266,7 +267,9 @@ export function CreatePointScreen() {
               style={{ marginRight: 8 }}
             />
             <Text style={styles.editLocationButtonText}>
-              {isEditingLocation ? "Valider la position" : "Modifier le repère"}
+              {isEditingLocation
+                ? Strings.createPoint.validatePosition
+                : Strings.createPoint.editMarker}
             </Text>
           </TouchableOpacity>
 
@@ -294,7 +297,7 @@ export function CreatePointScreen() {
             setOpen={setOpen}
             setValue={setEquipment}
             setItems={setEquipmentList}
-            placeholder="Sélectionnez un équipement"
+            placeholder={Strings.createPoint.selectEquipmentPlaceholder}
             listMode="SCROLLVIEW"
             style={styles.dropdown}
           />
@@ -307,7 +310,7 @@ export function CreatePointScreen() {
           />
 
           <TouchableOpacity style={styles.validateButton} onPress={validate}>
-            <Text style={styles.validateButtonText}>Valider</Text>
+            <Text style={styles.validateButtonText}>{Strings.createPoint.validate}</Text>
           </TouchableOpacity>
         </View>
       </TouchableWithoutFeedback>
