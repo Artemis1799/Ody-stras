@@ -15,6 +15,7 @@ import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/nativ
 import { useSQLiteContext } from "expo-sqlite";
 import { Evenement, EventScreenNavigationProp } from "../../types/types";
 import { getAllWhere } from "../../database/queries";
+import { Strings } from "../../types/strings";
 
 export default function EventScreen() {
   const route = useRoute();
@@ -118,19 +119,19 @@ export default function EventScreen() {
         {/* Event Details */}
         <View style={styles.detailsContainer}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Description :</Text>
+            <Text style={styles.detailLabel}>{Strings.event.descriptionLabel}</Text>
             <Text style={styles.detailValue}>{eventData.Description}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date :</Text>
+            <Text style={styles.detailLabel}>{Strings.event.dateLabel}</Text>
             <Text style={styles.detailValue}>
               {new Date(eventData.Date_debut).toLocaleDateString("fr-FR")}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Statut :</Text>
+            <Text style={styles.detailLabel}>{Strings.event.statusLabel}</Text>
             <Text style={styles.detailValue}>{eventData.Status}</Text>
           </View>
         </View>
@@ -143,19 +144,19 @@ export default function EventScreen() {
               navigation.navigate("Map", { eventId: eventUUID });
             }}
           >
-            <Text style={styles.buttonText}>Ajouter des points</Text>
+            <Text style={styles.buttonText}>{Strings.event.addPoints}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.pointsButton}
             onPress={() => navigation.navigate("Points", { eventUUID })}
           >
-            <Text style={styles.buttonText}>Gestion des points</Text>
+            <Text style={styles.buttonText}>{Strings.event.managePoints}</Text>
           </TouchableOpacity>
         </View>
         <View>
           <TouchableOpacity style={styles.exportButton} onPress={() => navigation.navigate("ExportEvent", { eventUUID })}>
-            <Text style={styles.buttonText}>Exporter l'événement</Text>
+            <Text style={styles.buttonText}>{Strings.event.exportEvent}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

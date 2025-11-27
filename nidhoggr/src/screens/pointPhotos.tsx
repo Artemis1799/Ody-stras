@@ -15,6 +15,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import uuid from "react-native-uuid";
 import { Photos, pointPhotoParams } from "../../types/types";
 import { getPhotosForPoint, insert } from "../../database/queries";
+import { Strings } from "../../types/strings";
 
 export function PointPhotosScreen() {
   const navigation = useNavigation();
@@ -41,7 +42,7 @@ export function PointPhotosScreen() {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        alert("Permission caméra refusée");
+        alert(Strings.pointPhotos.cameraPermissionDenied);
         return;
       }
 
@@ -98,7 +99,7 @@ export function PointPhotosScreen() {
 
       {/* Camera */}
       <TouchableOpacity style={styles.addButton} onPress={takePhoto}>
-        <Text style={styles.addButtonText}>📸 Prendre une photo</Text>
+        <Text style={styles.addButtonText}>{Strings.pointPhotos.takePhoto}</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
