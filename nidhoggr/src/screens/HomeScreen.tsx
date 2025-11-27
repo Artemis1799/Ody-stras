@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native
 import { VideoView, useVideoPlayer } from "expo-video";
 import { useNavigation } from "@react-navigation/native";
 import { EventScreenNavigationProp } from "../../types/types";
+import { Strings } from "../../types/strings";
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<EventScreenNavigationProp>();
@@ -146,9 +147,9 @@ export default function WelcomeScreen() {
             alignItems: "center",
           }}
         >
-          <Text style={styles.title}>Bienvenue</Text>
+          <Text style={styles.title}>{Strings.homeScreen.welcomeTitle}</Text>
           <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-            Capitale de l’Europe
+            {Strings.homeScreen.welcomeSubtitle}
           </Animated.Text>
         </Animated.View>
 
@@ -157,7 +158,7 @@ export default function WelcomeScreen() {
             style={styles.button}
             onPress={handleEnter}
           >
-            <Text style={styles.buttonText}>Entrer dans l'application</Text>
+            <Text style={styles.buttonText}>{Strings.homeScreen.accessApplication}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
