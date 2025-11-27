@@ -7,6 +7,7 @@ import { PhotoService } from './services/PhotoService';
 import { ImagePointService } from './services/ImagePointsService';
 import { EquipmentService } from './services/EquipmentService';
 import { AuthService } from './services/AuthService';
+import { UserService } from './services/UserService';
 import { Navbar } from './shared/navbar/navbar';
 import { LoginPageComponent } from './components/login-page/login.component';
 
@@ -29,18 +30,27 @@ export class App implements OnInit {
     private imagePointService: ImagePointService,
     private equipmentService: EquipmentService,
     private authService: AuthService,
+    private userService: UserService,
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
-    
-    // Initialiser immédiatement pour éviter le flash (uniquement côté navigateur)
-    if (this.isBrowser) {
-      this.isAuthenticated = this.authService.isAuthenticated();
-      this.isInitialized = this.authService.isInitialized();
-    }
   }
   async ngOnInit(): Promise<void> {
+    // Vérifier l'authentification via l'API (cookie HttpOnly)
+    if (this.isBrowser) {
+      this.userService.verifyAuth().subscribe({
+        next: (result) => {
+          this.authService.setAuthenticated(result.authenticated);
+          this.authService.markAsInitialized();
+        },
+        error: () => {
+          this.authService.setAuthenticated(false);
+          this.authService.markAsInitialized();
+        }
+      });
+    }
+
     // Écouter les changements d'authentification
     this.authService.isAuthenticated$.subscribe(isAuth => {
       this.isAuthenticated = isAuth;

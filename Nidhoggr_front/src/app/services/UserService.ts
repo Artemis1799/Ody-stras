@@ -39,4 +39,12 @@ export class UserService {
   login(request: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, request);
   }
+
+  verifyAuth(): Observable<{ authenticated: boolean }> {
+    return this.http.get<{ authenticated: boolean }>(`${this.apiUrl}/verify`);
+  }
+
+  logout(): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/logout`, {});
+  }
 }

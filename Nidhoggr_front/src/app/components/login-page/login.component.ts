@@ -106,8 +106,8 @@ export class LoginPageComponent implements OnInit {
     }).subscribe({
       next: (response) => {
         console.log('Connexion réussie:', response.message);
-        // Stocker le token JWT
-        this.authService.login(response.token);
+        // Le backend a défini le cookie HttpOnly
+        this.authService.login();
         this.cdr.detectChanges();
       },
       error: (error) => {

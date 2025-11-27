@@ -115,8 +115,17 @@ export class Navbar implements OnDestroy {
           this.userService.update(user.uuid, { ...user, password: undefined }).subscribe({
             next: () => {
               console.log('Mot de passe réinitialisé');
-              // Déconnecter et rediriger vers la page de login
-              this.authService.logout();
+              // Déconnecter via l'API pour supprimer le cookie
+              this.userService.logout().subscribe({
+                next: () => {
+                  this.authService.logout();
+                },
+                error: (error) => {
+                  console.error('Erreur lors de la déconnexion:', error);
+                  // Déconnecter quand même côté frontend
+                  this.authService.logout();
+                }
+              });
             },
             error: (error) => {
               console.error('Erreur lors de la réinitialisation du mot de passe:', error);
@@ -140,7 +149,17 @@ export class Navbar implements OnDestroy {
       this.hideAccountTimeout = null;
     }
     
-    this.authService.logout();
+    // Appeler l'endpoint de logout pour supprimer le cookie
+    this.userService.logout().subscribe({
+      next: () => {
+        this.authService.logout();
+      },
+      error: (error) => {
+        console.error('Erreur lors de la déconnexion:', error);
+        // Déconnecter quand même côté frontend
+        this.authService.logout();
+      }
+    });
   }
 
   ngOnDestroy() {
