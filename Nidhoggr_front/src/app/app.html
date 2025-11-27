@@ -1,4 +1,8 @@
-<app-navbar></app-navbar>
-<div class="main-content">
-  <router-outlet></router-outlet>
-</div>
+@if (isAuthenticated) {
+  <app-navbar></app-navbar>
+  <div class="main-content">
+    <router-outlet></router-outlet>
+  </div>
+} @else {
+  <app-login-page></app-login-page>
+}

@@ -1,29 +1,41 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { PointService } from './services/PointService';
 import { PhotoService } from './services/PhotoService';
 import { ImagePointService } from './services/ImagePointsService';
 import { EquipmentService } from './services/EquipmentService';
+import { AuthService } from './services/AuthService';
 import { Navbar } from './shared/navbar/navbar';
+import { LoginPageComponent } from './components/login-page/login.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, Navbar],
+  imports: [CommonModule, RouterOutlet, Navbar, LoginPageComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
 export class App implements OnInit {
   protected readonly title = signal('Nidhoggr_front');
+  isAuthenticated = false;
 
   constructor(
     private pointService: PointService,
     private photoService: PhotoService,
     private imagePointService: ImagePointService,
     private equipmentService: EquipmentService,
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
   async ngOnInit(): Promise<void> {
+    // Écouter les changements d'authentification
+    this.authService.isAuthenticated$.subscribe(isAuth => {
+      this.isAuthenticated = isAuth;
+      this.cdr.detectChanges();
+    });
+
     try {
       if (typeof window === 'undefined') { return; }
 

@@ -1,0 +1,79 @@
+<div class="login-container">
+  <div class="login-card">
+    @if (loading) {
+      <div class="loading">
+        <p>Chargement...</p>
+      </div>
+    } @else if (user) {
+      <h1>Bonjour {{ user.name }}</h1>
+      
+      @if (!user.password) {
+        <!-- Cas 1: Aucun mot de passe défini - création -->
+        <p class="welcome-message">Veuillez créer votre mot de passe</p>
+        
+        <form (ngSubmit)="createPassword()" class="login-form">
+          <div class="form-group">
+            <label for="newPassword">Nouveau mot de passe</label>
+            <input 
+              type="password" 
+              id="newPassword" 
+              [(ngModel)]="newPassword"
+              name="newPassword"
+              placeholder="Entrez votre nouveau mot de passe"
+              required
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="confirmPassword">Confirmer le mot de passe</label>
+            <input 
+              type="password" 
+              id="confirmPassword" 
+              [(ngModel)]="confirmPassword"
+              name="confirmPassword"
+              placeholder="Confirmez votre mot de passe"
+              required
+            />
+          </div>
+          
+          @if (errorMessage) {
+            <div class="error-message">{{ errorMessage }}</div>
+          }
+          
+          <button type="submit" class="btn-primary" [disabled]="!newPassword || !confirmPassword">
+            Créer mon mot de passe
+          </button>
+        </form>
+      } @else {
+        <!-- Cas 2: Mot de passe existant - identification -->
+        <p class="welcome-message">Veuillez vous identifier</p>
+        
+        <form (ngSubmit)="login()" class="login-form">
+          <div class="form-group">
+            <label for="password">Mot de passe</label>
+            <input 
+              type="password" 
+              id="password" 
+              [(ngModel)]="password"
+              name="password"
+              placeholder="Entrez votre mot de passe"
+              required
+            />
+          </div>
+          
+          @if (errorMessage) {
+            <div class="error-message">{{ errorMessage }}</div>
+          }
+          
+          <button type="submit" class="btn-primary" [disabled]="!password">
+            Se connecter
+          </button>
+        </form>
+      }
+    } @else {
+      <div class="error-message">
+        <p>Aucun utilisateur trouvé dans la base de données</p>
+      </div>
+    }
+  </div>
+</div>
