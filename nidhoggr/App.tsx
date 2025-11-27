@@ -33,7 +33,11 @@ export default function App() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Home" component={WelcomeScreen} />
-          <Stack.Screen name="Events" component={EventListScreen} />
+          <Stack.Screen
+            name="Events"
+            component={EventListScreen}
+            options={{ animation: 'fade' }}
+          />
           <Stack.Screen name="AddEvent" component={CreateEventScreen} />
           <Stack.Screen name="Event" component={EventScreen} />
           <Stack.Screen name="AddPoint" component={CreatePointScreen} />
