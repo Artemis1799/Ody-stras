@@ -41,7 +41,33 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+    
+    // Seed des données initiales
+    SeedData(db);
 }
 
 app.MapControllers();
 app.Run();
+
+static void SeedData(AppDbContext db)
+{
+    // Vérifier si des données existent déjà
+    if (db.Users.Any())
+    {
+        return; // Les données existent déjà
+    }
+    
+    // Créer un utilisateur par défaut (sans mot de passe)
+    var user = new t5_back.Models.User
+    {
+        UUID = Guid.NewGuid(),
+        Name = "admin",
+        Password = null
+    };
+    db.Users.Add(user);
+    
+    // Vous pouvez ajouter d'autres données ici
+    // Exemple: des événements, équipements, etc.
+    
+    db.SaveChanges();
+}
