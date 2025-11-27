@@ -58,13 +58,6 @@ public class DatabaseService : IDatabaseService
 
     public async Task<string> SeedTestDataAsync()
     {
-        // Créer l'utilisateur admin
-        var admin = await _userService.CreateAsync(new User
-        {
-            Name = "admin",
-            Password = null
-        });
-
         // Créer l'équipe
         var team = await _teamService.CreateAsync(new Team
         {
@@ -157,6 +150,6 @@ public class DatabaseService : IDatabaseService
             EquipmentQuantity = 10
         });
 
-        return "Test data created successfully: 1 user (admin), 1 team, 2 members, 2 equipments, 1 event, 2 points";
+        return "Test data created successfully: 1 team, 2 members, 2 equipments, 1 event, 2 points";
     }
 }
