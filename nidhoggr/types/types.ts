@@ -16,6 +16,7 @@ export type RootStackParamList = {
     Date_debut: string;
     Status: string;
   };
+  Events: undefined;
   AddEvent: undefined;
 };
 

@@ -63,7 +63,8 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
           "recordAudioAndroid": true
         }
-      ]
+      ],
+      "expo-video"
     ],
     "extra": {
       "eas": {

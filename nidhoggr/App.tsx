@@ -7,6 +7,7 @@ import { EventListScreen } from "./src/screens/eventList";
 import { CreatePointScreen } from "./src/screens/createPoint";
 import { PointPhotosScreen } from "./src/screens/pointPhotos";
 import { MapScreen } from "./src/screens/map";
+import WelcomeScreen from "./src/screens/HomeScreen";
 import SimulateScreen from "./src/screens/simulateScreen";
 
 import PointsScreen from "./src/screens/points";
@@ -31,7 +32,12 @@ export default function App() {
     >
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Events" component={EventListScreen} />
+          <Stack.Screen name="Home" component={WelcomeScreen} />
+          <Stack.Screen
+            name="Events"
+            component={EventListScreen}
+            options={{ animation: 'fade' }}
+          />
           <Stack.Screen name="AddEvent" component={CreateEventScreen} />
           <Stack.Screen name="Event" component={EventScreen} />
           <Stack.Screen name="AddPoint" component={CreatePointScreen} />
