@@ -79,7 +79,38 @@ public class UserController : ControllerBase
 			return BadRequest(new { message });
 		}
 
-		return Ok(new { message, token });
+		// Créer un cookie HttpOnly avec le token
+		var cookieOptions = new CookieOptions
+		{
+			HttpOnly = true,
+			Secure = true, // HTTPS uniquement en production
+			SameSite = SameSiteMode.None, // Nécessaire pour les requêtes cross-origin
+			Expires = DateTimeOffset.UtcNow.AddHours(2)
+		};
+
+		Response.Cookies.Append("auth_token", token!, cookieOptions);
+
+		return Ok(new { message });
+	}
+
+	[HttpPost("logout")]
+	public ActionResult Logout()
+	{
+		Response.Cookies.Delete("auth_token");
+		return Ok(new { message = "Logged out successfully" });
+	}
+
+	[HttpGet("verify")]
+	public ActionResult VerifyAuth()
+	{
+		var token = Request.Cookies["auth_token"];
+		
+		if (string.IsNullOrEmpty(token))
+		{
+			return Unauthorized(new { authenticated = false });
+		}
+		
+		return Ok(new { authenticated = true });
 	}
 }
 
