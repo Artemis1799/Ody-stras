@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -25,8 +25,13 @@ import {
 } from "../../types/types";
 import { getPointsForEvent } from "../../database/queries";
 import { Strings } from "../../types/strings";
+import { Header } from "../components/header";
+import { useTheme } from "../utils/ThemeContext";
+import { getStyles } from "../utils/theme";
 
 export function MapScreen() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const navigation = useNavigation<EventScreenNavigationProp>();
   const route = useRoute();
   const db = useSQLiteContext();
@@ -130,16 +135,7 @@ export function MapScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="white" />
-        </TouchableOpacity>
-        <Image
-          source={require("../../ressources/header.png")}
-          style={styles.headerImage}
-        />
-        <Ionicons name="person-circle-outline" size={28} color="white" />
-      </View>
+      <Header />
 
       <MapView
         key={points.length}
@@ -210,42 +206,3 @@ export function MapScreen() {
     </SafeAreaView>
   );
 }
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#8FB34E",
-  },
-  headerImage: {
-    width: 120,
-    height: 30,
-    resizeMode: "contain",
-  },
-  map: { flex: 1 },
-  Marker: { width: 200, height: 200 },
-  markerContainer: {
-    width: 50,
-    height: 50,
-    paddingVertical: 6,
-    backgroundColor: "white",
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#9EC54D",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  markerQty: { fontSize: 10, fontWeight: "700", color: "#333" },
-  markerType: { fontSize: 8, color: "#555", textAlign: "center" },
-  addButton: {
-    backgroundColor: "#9EC54D",
-    padding: 15,
-    margin: 20,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  addButtonText: { color: "#fff", fontSize: 18, fontWeight: "500" },
-});
