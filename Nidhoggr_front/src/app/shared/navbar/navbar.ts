@@ -86,6 +86,7 @@ export class Navbar implements OnDestroy {
   }
 
   onToggleAccountDropdown() {
+    this.onDropdownItemClick();
     if (this.hideAccountTimeout) {
       clearTimeout(this.hideAccountTimeout);
       this.hideAccountTimeout = null;
