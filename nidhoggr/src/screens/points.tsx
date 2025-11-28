@@ -20,8 +20,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { EventScreenNavigationProp, Point } from "../../types/types";
 import { getAllWhere, update } from "../../database/queries";
 import { Strings } from "../../types/strings";
+import { Header } from "../components/header";
+import { useTheme } from "../utils/ThemeContext";
+import { getStyles } from "../utils/theme";
 
 export default function PointsScreen() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const navigation = useNavigation<EventScreenNavigationProp>();
   const route = useRoute();
   const { eventUUID } = route.params as { eventUUID: string };
@@ -43,7 +48,10 @@ export default function PointsScreen() {
           setPoints(data);
         } catch (err) {
           console.error(err);
-          Alert.alert(Strings.errors.dbError, Strings.errors.fetchPointsMessage);
+          Alert.alert(
+            Strings.errors.dbError,
+            Strings.errors.fetchPointsMessage
+          );
         } finally {
           setLoading(false);
         }
@@ -64,7 +72,8 @@ export default function PointsScreen() {
     console.log("=== AVANT DÉPLACEMENT ===");
     points.forEach((p, i) =>
       console.log(
-        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${p.Ordre
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
+          p.Ordre
         }, Commentaire=${p.Commentaire}`
       )
     );
@@ -87,7 +96,8 @@ export default function PointsScreen() {
     console.log("=== APRÈS DÉPLACEMENT ===");
     updatedPoints.forEach((p, i) =>
       console.log(
-        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${p.Ordre
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
+          p.Ordre
         }, Commentaire=${p.Commentaire}`
       )
     );
@@ -110,7 +120,10 @@ export default function PointsScreen() {
       console.log("=== MISE À JOUR BDD TERMINÉE ===");
     } catch (err) {
       console.error("Erreur lors de la mise à jour de l'ordre:", err);
-      Alert.alert(Strings.errors.updateOrderError, Strings.errors.updateOrderMessage);
+      Alert.alert(
+        Strings.errors.updateOrderError,
+        Strings.errors.updateOrderMessage
+      );
     }
   };
 
@@ -164,17 +177,7 @@ export default function PointsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back-outline" size={28} color="white" />
-        </TouchableOpacity>
-        <Image
-          source={require("../../ressources/header.png")}
-          style={styles.headerImage}
-        />
-        <Ionicons name="person-circle-outline" size={28} color="white" />
-      </View>
-
+      <Header />
       <FlatList
         data={points}
         renderItem={renderItem}
@@ -201,100 +204,3 @@ export default function PointsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  headerImage: {
-    width: "40%",
-    height: 30,
-    alignSelf: "center",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f8fc",
-  },
-  header: {
-    backgroundColor: "#9EC54D",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 30,
-    paddingBottom: 10,
-    paddingLeft: 14,
-    paddingRight: 14,
-  },
-  headerText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 18,
-  },
-  listContainer: {
-    padding: 20,
-  },
-  pointItemContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  reorderButtons: {
-    marginRight: 8,
-    justifyContent: "center",
-  },
-  reorderButton: {
-    padding: 4,
-  },
-  pointItem: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#E5E0FF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  avatarText: {
-    fontWeight: "bold",
-    color: "#6B5EFF",
-  },
-  pointName: {
-    flex: 1,
-    fontSize: 16,
-  },
-  bottomButtonContainer: {
-    padding: 20,
-    paddingBottom: 25,
-    backgroundColor: "#f8f8fc",
-  },
-  simulateButton: {
-    backgroundColor: "#A6CE39",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  simulateButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
