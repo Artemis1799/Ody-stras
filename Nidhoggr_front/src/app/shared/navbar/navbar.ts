@@ -15,8 +15,8 @@ import { UserService } from '../../services/UserService';
 export class Navbar implements OnDestroy {
   showDropdown = false;
   showAccountDropdown = false;
-  private hideTimeout: any;
-  private hideAccountTimeout: any;
+  private hideTimeout: ReturnType<typeof setTimeout> | null = null;
+  private hideAccountTimeout: ReturnType<typeof setTimeout> | null = null;
   isPersonnelsActive = false;
 
   constructor(

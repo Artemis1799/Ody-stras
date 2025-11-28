@@ -271,7 +271,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     return (this.selectedEquipment.remainingStock || 0) + this.previousEquipmentQuantity;
   }
 
-  getEquipmentDisplayName(equipment: any): string {
+  getEquipmentDisplayName(equipment: Equipment): string {
     if (!equipment || !equipment.uuid) return 'Aucun';
     return equipment.description || equipment.type || 'Équipement sans nom';
   }

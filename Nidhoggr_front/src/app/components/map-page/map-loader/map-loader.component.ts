@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, OnDestroy } from '@angular/core';
 import { MapService } from '../../../services/MapService';
 import { Point } from '../../../models/pointModel';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-map-loader',
@@ -12,8 +13,8 @@ import { Point } from '../../../models/pointModel';
 export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private map: any | null = null;
   private markers: Map<string, any> = new Map();
-  private pointsSubscription: any;
-  private selectedPointSubscription: any;
+  private pointsSubscription?: Subscription;
+  private selectedPointSubscription?: Subscription;
 
   constructor(private mapService: MapService) {}
 
@@ -52,7 +53,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           const test = template.replace('{z}', '13').replace('{x}', '4272').replace('{y}', '2827');
           const r = await fetch(test, { method: 'HEAD' });
           return r.ok;
-        } catch (err) {
+        } catch {
           return false;
         }
       };
@@ -85,21 +86,24 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
         if (btn && input && status) {
           btn.onclick = async () => {
+            if (!this.map) return;
             const tpl = input.value.trim();
             if (!tpl) { status.textContent = 'Entrez un template d\'URL.'; return; }
             status.textContent = 'Test en cours...';
             const ok = await probe(tpl);
             if (ok) {
               try {
-                if (typeof (tileLayer as any).setUrl === 'function') {
-                  (tileLayer as any).setUrl(tpl);
+                if (typeof tileLayer.setUrl === 'function') {
+                  tileLayer.setUrl(tpl);
                 } else {
-                  this.map.removeLayer(tileLayer);
-                  tileLayer = L.tileLayer(tpl, { maxZoom: 20, attribution: '&copy; Local tiles' }).addTo(this.map);
+                  if (this.map) {
+                    this.map.removeLayer(tileLayer);
+                    tileLayer = L.tileLayer(tpl, { maxZoom: 20, attribution: '&copy; Local tiles' }).addTo(this.map);
+                  }
                 }
                 localStorage.setItem('tileUrlTemplate', tpl);
                 status.textContent = 'Template appliqué et sauvegardé.';
-              } catch (err) {
+              } catch {
                 status.textContent = 'Erreur lors de l\'application du template.';
               }
             } else {
@@ -121,16 +125,16 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
       // Forcer Leaflet à recalculer la taille
       setTimeout(() => { 
-        try { 
-          this.map && this.map.invalidateSize && this.map.invalidateSize(); 
-        } catch (e) {} 
+        if (this.map && this.map.invalidateSize) {
+          this.map.invalidateSize();
+        }
       }, 200);
       
       // Recalcul supplémentaire pour s'assurer que la navbar est prise en compte
       setTimeout(() => { 
-        try { 
-          this.map && this.map.invalidateSize && this.map.invalidateSize(); 
-        } catch (e) {} 
+        if (this.map && this.map.invalidateSize) {
+          this.map.invalidateSize();
+        }
       }, 500);
     } catch (e) {
       console.error('Failed to initialize Leaflet map', e);
@@ -143,13 +147,15 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Supprimer les anciens markers
     this.markers.forEach(marker => {
-      this.map.removeLayer(marker);
+      if (this.map) {
+        this.map.removeLayer(marker);
+      }
     });
     this.markers.clear();
 
     // Ajouter les nouveaux markers
     points.forEach((point, index) => {
-      if (point.latitude && point.longitude) {
+      if (this.map && point.latitude && point.longitude) {
         const marker = L.marker([point.latitude, point.longitude], {
           title: this.getPointDisplayName(point),
           icon: L.divIcon({
@@ -175,8 +181,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
 
         // Clic sur le marker - ouvre le drawer au lieu du popup
-        marker.on('click', (e: any) => {
-          L.DomEvent.stopPropagation(e);
+        marker.on('click', () => {
           this.onMarkerClick(point);
         });
 

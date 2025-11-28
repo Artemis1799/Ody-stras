@@ -26,7 +26,7 @@ export class PointService {
     return this.http.get<Point>(`${this.apiUrl}/${id}`);
   }
 
-  create(point: any): Observable<Point> {
+  create(point: Point): Observable<Point> {
     return this.http.post<Point>(this.apiUrl, point).pipe(
       tap(created => {
         const current = this._points$.value;
@@ -35,7 +35,7 @@ export class PointService {
     );
   }
 
-  update(id: string, point: any): Observable<Point> {
+  update(id: string, point: Point): Observable<Point> {
     return this.http.put<Point>(`${this.apiUrl}/${id}`, point).pipe(
       tap(updated => {
         const current = this._points$.value;
