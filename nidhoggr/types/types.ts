@@ -7,6 +7,7 @@ export type RootStackParamList = {
   SimulateScreen: { eventUUID: string };
   Points: { eventUUID: string };
   ExportEvent: { eventUUID: string };
+  ImportEvent: undefined;
   AddPhoto: { pointId: string };
   AddPoint: { eventId: string } | { eventId: string; pointIdParam: string };
   Event: {

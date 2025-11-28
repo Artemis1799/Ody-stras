@@ -17,6 +17,7 @@ import { setupDatabase } from "./database/database";
 import { SQLiteDatabase, SQLiteProvider } from "expo-sqlite";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import exportEventScreen from "./src/screens/exportEvent";
+import ImportEventScreen from "./src/screens/importEvent";
 import { ThemeProvider } from "./src/utils/ThemeContext";
 const Stack = createNativeStackNavigator();
 
@@ -47,6 +48,7 @@ export default function App() {
             <Stack.Screen name="Points" component={PointsScreen} />
             {/*<Stack.Screen name="SimulateScreen" component={SimulateScreen} />*/}
             <Stack.Screen name="ExportEvent" component={exportEventScreen} />
+            <Stack.Screen name="ImportEvent" component={ImportEventScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </SQLiteProvider>
