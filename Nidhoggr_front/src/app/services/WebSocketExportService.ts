@@ -116,7 +116,7 @@ export class WebSocketExportService {
       if (response.ok) {
         return true;
       }
-    } catch (e) {
+    } catch {
       // Serveur pas démarré
     }
     return false;
@@ -174,7 +174,7 @@ export class WebSocketExportService {
             type: 'message',
             data: parsedData
           });
-        } catch (e) {
+        } catch {
           console.log('📬 Message texte reçu (non-JSON):', event.data);
           this.progressSubject.next({
             type: 'message',
@@ -271,7 +271,7 @@ export class WebSocketExportService {
           }
         });
       });
-    } catch (error) {
+    } catch {
       console.error('   ⚠️ Impossible de garantir l\'existence de l\'Event');
     }
   }
@@ -279,55 +279,53 @@ export class WebSocketExportService {
   /**
    * Traite un point reçu (création ou modification)
    */
-  private async processPoint(pointData: any): Promise<void> {
+  private async processPoint(pointData: Point): Promise<void> {
     console.log('🔧 processPoint appelé');
     console.log('   Données brutes:', pointData);
     
-    const uuid = pointData.UUID;
+    const uuid = pointData.uuid;
     console.log('   🆔 UUID du point:', uuid);
     
     // Convertir du format API (PascalCase) vers TypeScript (camelCase)
-    const point: any = {
-      uuid: pointData.UUID,
+    const point: Point = {
+      uuid: pointData.uuid,
       eventId: DEFAULT_EVENT_UUID,
       equipmentId: '', // Sera défini après vérification de l'équipement
-      latitude: pointData.Latitude,
-      longitude: pointData.Longitude,
-      comment: pointData.Commentaire,
-      imageId: pointData.Image_ID,
-      order: pointData.Ordre,
-      isValid: pointData.Valide === 1,
+      latitude: pointData.latitude,
+      longitude: pointData.longitude,
+      comment: pointData.comment,
+      imageId: pointData.imageId,
+      order: pointData.order,
+      isValid: pointData.isValid,
       equipmentQuantity: 0, // Sera défini après vérification de l'équipement
-      created: pointData.Created ? new Date(pointData.Created) : new Date(),
-      modified: pointData.Modified ? new Date(pointData.Modified) : new Date()
+      created: pointData.created ? new Date(pointData.created) : new Date(),
+      modified: pointData.modified ? new Date(pointData.modified) : new Date()
     };
     
     console.log('   📦 Point converti:', point);
     console.log('   ℹ️ Event_ID utilisé:', DEFAULT_EVENT_UUID);
-    console.log('   ℹ️ Equipement_ID du mobile:', pointData.Equipement_ID);
+    console.log('   ℹ️ Equipement_ID du mobile:', pointData.equipmentId);
     
     // Si un équipement est spécifié, vérifier s'il existe ou le créer
-    if (pointData.Equipement_ID && pointData.EquipType) {
+    if (pointData.equipmentId) {
       console.log('   ⚙️ Traitement de l\'équipement...');
       
       // Vérifier si l'équipement existe
-      const equipmentExists = this.existingEquipments.has(pointData.Equipement_ID);
+      const equipmentExists = this.existingEquipments.has(pointData.equipmentId);
       
       if (equipmentExists) {
-        console.log('   ✅ Équipement existe déjà:', pointData.Equipement_ID);
-        point.equipmentId = pointData.Equipement_ID;
-        point.equipmentQuantity = pointData.Equipement_quantite || 0;
+        console.log('   ✅ Équipement existe déjà:', pointData.equipmentId);
+        point.equipmentId = pointData.equipmentId;
+        point.equipmentQuantity = pointData.equipmentQuantity || 0;
       } else {
-        console.log('   ➕ Création de l\'équipement:', pointData.Equipement_ID);
+        console.log('   ➕ Création de l\'équipement:', pointData.equipmentId);
         
         // Créer l'équipement d'abord
-        const newEquipment: any = {
-          uuid: pointData.Equipement_ID,
-          type: pointData.EquipType,
-          description: pointData.EquipType,
+        const newEquipment: Equipment = {
+          uuid: pointData.equipmentId,
           unit: 'pièce', // Unité par défaut (obligatoire en base de données)
-          totalStock: pointData.Equipement_quantite || 0,
-          remainingStock: pointData.Equipement_quantite || 0
+          totalStock: pointData.equipmentQuantity || 0,
+          remainingStock: pointData.equipmentQuantity || 0
         };
         
         // Essayer de créer l'équipement de manière synchrone
@@ -337,7 +335,7 @@ export class WebSocketExportService {
               console.log('   ✅ Équipement créé:', created.uuid);
               this.existingEquipments.set(created.uuid, created);
               point.equipmentId = created.uuid;
-              point.equipmentQuantity = pointData.Equipement_quantite || 0;
+              point.equipmentQuantity = pointData.equipmentQuantity || 0;
               resolve();
             },
             error: (err) => {
@@ -355,7 +353,7 @@ export class WebSocketExportService {
     
     // Vérifier si le point existe déjà dans l'API
     this.pointService.getById(uuid).subscribe({
-      next: (existingPoint) => {
+      next: () => {
         // Le point existe -> UPDATE
         console.log('   🔄 Point trouvé dans l\'API -> MISE À JOUR');
         console.log('   📤 Données envoyées pour UPDATE:', point);
@@ -405,18 +403,18 @@ export class WebSocketExportService {
   /**
    * Traite une photo reçue (création ou modification)
    */
-  private processPhoto(photoData: any, pointUUID: string): void {
+  private processPhoto(photoData: Photo, pointUUID: string): void {
     console.log('🔧 processPhoto appelé');
-    console.log('   Photo UUID:', photoData.UUID);
+    console.log('   Photo UUID:', photoData.uuid);
     console.log('   Point UUID:', pointUUID);
     
-    const uuid = photoData.UUID;
+    const uuid = photoData.uuid;
     
     // Convertir du format API vers TypeScript
-    const photo: any = {
-      uuid: photoData.UUID,
-      pictureName: photoData.Picture_name,
-      picture: photoData.Picture
+    const photo: Photo = {
+      uuid: photoData.uuid,
+      pictureName: photoData.pictureName,
+      picture: photoData.picture
     };
     
     console.log('   📦 Photo convertie:', { ...photo, picture: '(base64 omis)' });
@@ -462,17 +460,17 @@ export class WebSocketExportService {
     
     // Vérifier si la relation existe déjà
     this.imagePointService.getByIds(imageId, pointId).subscribe({
-      next: (existing: ImagePoint) => {
+      next: () => {
         console.log('   ℹ️ Relation ImagePoint existe déjà');
       },
-      error: (err: any) => {
+      error: (err) => {
         console.log('   📝 Statut de la vérification:', err.status);
         if (err.status === 404) {
           // La relation n'existe pas, on la crée
           // IMPORTANT: L'API C# attend PascalCase (ImageId, PointId)
-          const imagePoint: any = {
-            ImageId: imageId,
-            PointId: pointId
+          const imagePoint: ImagePoint = {
+            imageId: imageId,
+            pointId: pointId
           };
           
           console.log('   📤 Envoi de ImagePoint à l\'API:', imagePoint);
@@ -482,7 +480,7 @@ export class WebSocketExportService {
               console.log('   ✅ Relation ImagePoint créée avec succès!');
               console.log('   📦 Données retournées:', created);
             },
-            error: (createErr: any) => {
+            error: (createErr) => {
               console.error('   ❌ ERREUR CRÉATION ImagePoint:');
               console.error('   Status:', createErr.status);
               console.error('   Message:', createErr.message);
@@ -502,19 +500,19 @@ export class WebSocketExportService {
   /**
    * Traite un équipement reçu (création ou modification)
    */
-  private processEquipment(equipmentData: any): void {
+  private processEquipment(equipmentData: Equipment): void {
     console.log('🔧 processEquipment appelé');
     console.log('   Équipement UUID:', equipmentData.uuid);
     
     const uuid = equipmentData.uuid;
     
     // Convertir du format API vers TypeScript
-    const equipment: any = {
+    const equipment: Equipment = {
       uuid: equipmentData.uuid,
       type: equipmentData.type,
       description: equipmentData.type,
-      totalStock: equipmentData.quantity || 0,
-      remainingStock: equipmentData.quantity || 0
+      totalStock: equipmentData.totalStock || 0,
+      remainingStock: equipmentData.remainingStock || 0
     };
     
     console.log('   📦 Équipement converti:', equipment);

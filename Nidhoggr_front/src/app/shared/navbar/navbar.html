@@ -1,7 +1,9 @@
 <nav class="navbar">
   <div class="navbar-content">
     <div class="navbar-logo">
-      <h1>Nidhoggr</h1>
+      <a routerLink="/" (click)="onDropdownItemClick()">
+        <img src="assets/icons/logo-eurometropole.png" alt="Eurométropole" />
+      </a>
     </div>
     <div class="navbar-menu">
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-link" (click)="onDropdownItemClick()">

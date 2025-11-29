@@ -32,7 +32,7 @@ export class App implements OnInit {
     private authService: AuthService,
     private userService: UserService,
     private cdr: ChangeDetectorRef,
-    @Inject(PLATFORM_ID) platformId: Object
+    @Inject(PLATFORM_ID) platformId: object
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
   }
