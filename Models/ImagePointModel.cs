@@ -12,8 +12,12 @@ public class ImagePoint
     public Guid PointId { get; set; }
     
     [ForeignKey("ImageId")]
+    [NotMapped]
+    [JsonIgnore]
     public Photo? Photo { get; set; }
     
     [ForeignKey("PointId")]
+    [NotMapped]
+    [JsonIgnore]
     public Point? Point { get; set; }
 }
