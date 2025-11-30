@@ -251,7 +251,7 @@ export class WebSocketExportService {
                 name: 'Event Mobile Import',
                 description: 'Event créé automatiquement lors de l\'import des données mobiles',
                 startDate: new Date(),
-                status: EventStatus.Active
+                status: EventStatus.ToOrganize
               };
               
               this.eventService.create(newEvent).subscribe({

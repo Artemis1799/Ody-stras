@@ -1,31 +1,31 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Event } from '../models/eventModel';
+import { Team } from '../models/teamModel';
 import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
-export class EventService {
-  private apiUrl = `${environment.apiUrl}/api/Event`;
+export class TeamService {
+  private apiUrl = `${environment.apiUrl}/api/Team`;
 
   constructor(private http: HttpClient) {}
 
-  getAll(): Observable<Event[]> {
-    return this.http.get<Event[]>(this.apiUrl);
+  getAll(): Observable<Team[]> {
+    return this.http.get<Team[]>(this.apiUrl);
   }
 
-  getById(id: string): Observable<Event> {
-    return this.http.get<Event>(`${this.apiUrl}/${id}`);
+  getById(id: string): Observable<Team> {
+    return this.http.get<Team>(`${this.apiUrl}/${id}`);
   }
 
-  create(event: Event): Observable<Event> {
-    return this.http.post<Event>(this.apiUrl, event);
+  create(team: Team): Observable<Team> {
+    return this.http.post<Team>(this.apiUrl, team);
   }
 
-  update(id: string, event: Event): Observable<Event> {
-    return this.http.put<Event>(`${this.apiUrl}/${id}`, event);
+  update(id: string, team: Team): Observable<Team> {
+    return this.http.put<Team>(`${this.apiUrl}/${id}`, team);
   }
 
   delete(id: string): Observable<void> {
