@@ -13,8 +13,12 @@ public class TeamMember
     public Guid MemberId { get; set; }
     
     [ForeignKey("TeamId")]
+    [NotMapped]
+    [JsonIgnore]
     public Team? Team { get; set; }
     
     [ForeignKey("MemberId")]
+    [NotMapped]
+    [JsonIgnore]
     public Member? Member { get; set; }
 }
