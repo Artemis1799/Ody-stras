@@ -35,4 +35,8 @@ export class ImagePointService {
   delete(imageId: string, pointId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${imageId}/${pointId}`);
   }
+
+  deleteAll(): Observable<{ deletedCount: number }> {
+    return this.http.delete<{ deletedCount: number }>(this.apiUrl);
+  }
 }

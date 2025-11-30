@@ -1,8 +1,8 @@
 export enum EventStatus {
-  Draft = 0,
-  Active = 1,
-  Completed = 2,
-  Cancelled = 3
+  Uninstalling = 0,
+  Finished = 1,
+  Installing = 2,
+  ToOrganize = 3
 }
 
 export interface Event {
@@ -11,5 +11,4 @@ export interface Event {
   description: string;
   startDate?: Date;
   status: EventStatus;
-  responsibleId?: string;
 }

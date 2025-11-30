@@ -56,4 +56,10 @@ export class PointService {
       })
     );
   }
+
+  deleteAll(): Observable<{ deletedCount: number }> {
+    return this.http.delete<{ deletedCount: number }>(this.apiUrl).pipe(
+      tap(() => this._points$.next([]))
+    );
+  }
 }
