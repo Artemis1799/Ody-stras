@@ -115,7 +115,6 @@ export class Navbar implements OnDestroy {
           // Mettre le mot de passe à undefined
           this.userService.update(user.uuid, { ...user, password: undefined }).subscribe({
             next: () => {
-              console.log('Mot de passe réinitialisé');
               // Déconnecter via l'API pour supprimer le cookie
               this.userService.logout().subscribe({
                 next: () => {
