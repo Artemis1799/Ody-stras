@@ -47,7 +47,7 @@
   />
   
   <div class="bottom-buttons">
-    <button class="equipment-btn" (click)="openEquipmentManager()">Créer un évènement</button>
+    <button class="equipment-btn" (click)="openEventCreate()">Créer un évènement</button>
     <button class="export-btn" (click)="openExport()">Exporter</button>
     <button class="import-btn" (click)="openImport()">Importer</button>
   </div>
@@ -58,4 +58,10 @@
 }
 @if (showExportPopup) {
   <app-export-popup (close)="closeExport()"></app-export-popup>
+}
+@if (showEventCreatePopup) {
+  <app-event-create-popup 
+    (close)="closeEventCreate()" 
+    (eventCreated)="onEventCreated($event)"
+  ></app-event-create-popup>
 }

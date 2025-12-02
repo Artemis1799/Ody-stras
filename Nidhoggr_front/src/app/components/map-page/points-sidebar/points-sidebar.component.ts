@@ -13,12 +13,13 @@ import { Subscription, Subject, Observable } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ExportPopup } from '../../../shared/export-popup/export-popup';
 import { ImportPopup } from '../../../shared/import-popup/import-popup';
+import { EventCreatePopup } from '../../../shared/event-create-popup/event-create-popup';
 import { PointsListComponent } from './points-list/points-list.component';
 
 @Component({
   selector: 'app-points-sidebar',
   standalone: true,
-  imports: [CommonModule, FormsModule, AutoComplete, ExportPopup, ImportPopup, PointsListComponent],
+  imports: [CommonModule, FormsModule, AutoComplete, ExportPopup, ImportPopup, EventCreatePopup, PointsListComponent],
   templateUrl: './points-sidebar.component.html',
   styleUrls: ['./points-sidebar.component.scss']
 })
@@ -41,6 +42,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Popups
   showExportPopup = false;
   showImportPopup = false;
+  showEventCreatePopup = false;
   
   // Events autocomplete
   events: Event[] = [];
@@ -276,5 +278,24 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   
   closeExport(): void {
     this.showExportPopup = false;
+  }
+
+  openEventCreate(): void {
+    this.showEventCreatePopup = true;
+  }
+
+  closeEventCreate(): void {
+    this.showEventCreatePopup = false;
+  }
+
+  onEventCreated(event: Event): void {
+    // Ajouter l'événement à la liste locale
+    this.events.push(event);
+    // Sélectionner automatiquement le nouvel événement
+    this.selectedEvent = event;
+    this.selectedEventName = event.name;
+    this.mapService.setSelectedEvent(event);
+    // Charger les points (vide pour un nouvel événement)
+    this.loadPointsForEvent(event.uuid);
   }
 }
