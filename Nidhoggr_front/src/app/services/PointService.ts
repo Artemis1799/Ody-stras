@@ -26,7 +26,13 @@ export class PointService {
     return this.http.get<Point>(`${this.apiUrl}/${id}`);
   }
 
-  create(point: Point): Observable<Point> {
+  getByEventId(eventId: string): Observable<Point[]> {
+    return this.http.get<Point[]>(`${this.apiUrl}/event/${eventId}`).pipe(
+      tap(points => this._points$.next(points))
+    );
+  }
+
+  create(point: Partial<Point>): Observable<Point> {
     return this.http.post<Point>(this.apiUrl, point).pipe(
       tap(created => {
         const current = this._points$.value;
@@ -61,5 +67,12 @@ export class PointService {
     return this.http.delete<{ deletedCount: number }>(this.apiUrl).pipe(
       tap(() => this._points$.next([]))
     );
+  }
+  
+  /**
+   * Met à jour manuellement la liste des points (utile pour charger les points d'un événement)
+   */
+  updatePoints(points: Point[]): void {
+    this._points$.next(points);
   }
 }

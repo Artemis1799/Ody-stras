@@ -20,6 +20,7 @@ export class MapService {
     this.pointsSubject.next(points);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setMapInstance(map: any): void {
     this.mapInstanceSubject.next(map);
   }
@@ -28,6 +29,7 @@ export class MapService {
     this.selectedPointSubject.next(point);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getMapInstance(): any {
     return this.mapInstanceSubject.value;
   }

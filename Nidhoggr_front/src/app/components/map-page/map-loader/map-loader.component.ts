@@ -143,6 +143,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
   private updateMarkers(points: Point[]): void {
     if (!this.map || typeof window === 'undefined') return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const L: any = (window as any).L;
 
     // Supprimer les anciens markers
@@ -173,7 +174,6 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         const popupContent = `
           <div class="point-popup">
             <strong>${this.getPointDisplayName(point)}</strong><br>
-            ${point.comment ? `<em>${point.comment}</em><br>` : ''}
             <small>Ordre: ${point.order || index + 1}</small><br>
             <small>Statut: ${point.isValid ? 'Valide ✓' : 'Invalide ✗'}</small>
           </div>

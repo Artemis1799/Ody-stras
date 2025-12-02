@@ -34,7 +34,9 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   visible = false;
   selectedPoint: Point | null = null;
   equipments: Equipment[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   equipmentOptions: any[] = []; // Inclut l'option "Aucun" + les équipements
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedEquipment: any | null = null;
   
   // Copie locale pour l'édition
@@ -155,7 +157,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     this.showPhotoViewer = false;
   }
 
-  onEquipmentChange(event: any): void {
+  onEquipmentChange(event: { value: Equipment | null }): void {
     const newEquipment = event.value;
     
     // Si on avait un équipement précédent, on remet sa quantité dans le stock

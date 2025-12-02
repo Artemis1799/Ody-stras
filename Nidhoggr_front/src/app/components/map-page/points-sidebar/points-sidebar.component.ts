@@ -22,17 +22,14 @@ import { ImportPopup } from '../../../shared/import-popup/import-popup';
   styleUrls: ['./points-sidebar.component.scss']
 })
 export class PointsSidebarComponent implements OnInit, OnDestroy {
-  points: Point[] = [];
+  // Observable pour la liste des points - utilise directement le MapService pour la réactivité
+  points$!: Observable<Point[]>;
+  
+  selectedPointUuid: string | null = null;
   isLoading = false;
   errorMessage = '';
-  selectedPoint: Point | null = null;
+  emptyMessage = 'Sélectionnez un événement pour voir ses points';
   private pointsSubscription?: Subscription;
-  private reloadSubscription?: Subscription;
-  private refreshInterval?: any;
-  
-  // Modal QR Code
-  showQRModal = false;
-  qrCodeDataUrl = '';
   
   // Search properties
   searchQuery = '';
@@ -43,10 +40,15 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Popups
   showExportPopup = false;
   showImportPopup = false;
+  
+  // Events autocomplete
+  events: Event[] = [];
+  filteredEvents: string[] = [];
+  selectedEvent: Event | null = null;
+  selectedEventName = '';
 
   constructor(
     private pointService: PointService,
-    private equipmentService: EquipmentService,
     private eventService: EventService,
     private mapService: MapService,
     private router: Router,
@@ -265,7 +267,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       });
       
       // Ajouter un marqueur temporaire avec le style des points
-      const L = (window as any).L;
+      const L = (window as unknown as { L: typeof import('leaflet') }).L;
       if (L) {
         const marker = L.marker([lat, lon], {
           icon: L.divIcon({
