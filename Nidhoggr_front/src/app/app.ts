@@ -75,6 +75,8 @@ export class App implements OnInit {
         imagePoints: this.imagePointService.getAll(),
         equipments: this.equipmentService.getAll(),
       }).subscribe();
-    } catch (e) {}
+    } catch {
+      // Ignore initialization errors
+    }
   }
 }

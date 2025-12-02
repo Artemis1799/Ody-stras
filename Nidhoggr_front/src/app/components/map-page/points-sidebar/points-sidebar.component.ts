@@ -10,7 +10,7 @@ import { NominatimService, NominatimResult } from '../../../services/NominatimSe
 import { Point } from '../../../models/pointModel';
 import { Event } from '../../../models/eventModel';
 import { Subscription, Subject, Observable } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ExportPopup } from '../../../shared/export-popup/export-popup';
 import { ImportPopup } from '../../../shared/import-popup/import-popup';
 import { PointsListComponent } from './points-list/points-list.component';

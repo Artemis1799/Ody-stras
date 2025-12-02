@@ -430,7 +430,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       const ZONE_COLOR = '#3388ff';  // Bleu pour les zones
 
       switch (geoJson.type) {
-        case 'Point':
+        case 'Point': {
           const coords = geoJson.coordinates as [number, number];
           layer = L.marker([coords[1], coords[0]], {
             icon: L.divIcon({
@@ -442,16 +442,18 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
             })
           });
           break;
+        }
 
-        case 'LineString':
+        case 'LineString': {
           const lineCoords = (geoJson.coordinates as [number, number][]).map(c => [c[1], c[0]]);
           layer = L.polyline(lineCoords, {
             color: LINE_COLOR,
             weight: 4
           });
           break;
+        }
 
-        case 'Polygon':
+        case 'Polygon': {
           const polygonCoords = (geoJson.coordinates as [number, number][][])[0].map(c => [c[1], c[0]]);
           layer = L.polygon(polygonCoords, {
             color: ZONE_COLOR,
@@ -459,6 +461,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
             weight: 3
           });
           break;
+        }
 
         default:
           // Pour les autres types, utiliser geoJSON de Leaflet avec couleur bleue par défaut
@@ -515,7 +518,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     }
 
     // Sinon, sauvegarder comme Geometry
-    this.saveLayerAsGeometry(layer, type, L);
+    this.saveLayerAsGeometry(layer, type);
   }
 
   /**
@@ -553,6 +556,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     this.pointService.create(pointData).subscribe({
       next: (point) => {
         // Associer l'UUID au layer
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (layer as any).pointUuid = point.uuid;
         
         // Ajouter le marker à notre Map de markers
@@ -575,7 +579,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
    * Sauvegarde une forme Leaflet comme Geometry dans la base de données
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private saveLayerAsGeometry(layer: any, type: string, L: any): void {
+  private saveLayerAsGeometry(layer: any, type: string): void {
     // Ajouter la forme au groupe
     this.drawnItems.addLayer(layer);
 
@@ -598,6 +602,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       saveObservable.subscribe({
         next: (geometry) => {
           // Associer l'UUID à la couche pour les modifications futures
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (layer as any).geometryUuid = geometry.uuid;
           
           // Ajouter la géométrie à la liste locale
