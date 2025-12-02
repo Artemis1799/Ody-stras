@@ -1,0 +1,34 @@
+@if (points$ | async; as points) {
+  @if (isLoading) {
+    <div class="loading">Chargement...</div>
+  } @else if (errorMessage) {
+    <div class="error">{{ errorMessage }}</div>
+  } @else if (points.length === 0) {
+    <div class="empty-state">{{ emptyMessage }}</div>
+  } @else {
+    <div 
+      cdkDropList 
+      class="points-list"
+      (cdkDropListDropped)="onDrop($event, points)"
+    >
+      @for (point of points; track point.uuid; let i = $index) {
+        <div 
+          class="point-item"
+          [class.selected]="selectedPointUuid === point.uuid"
+          cdkDrag
+          (click)="onPointClick(point)"
+        >
+          <div class="point-content">
+            <span class="point-order">{{ point.order || i + 1 }}</span>
+            <span class="point-name">{{ getPointDisplayName(point) }}</span>
+          </div>
+          <div class="point-status" [class.valid]="point.isValid" [class.invalid]="!point.isValid">
+            {{ point.isValid ? '✓' : '✗' }}
+          </div>
+        </div>
+      }
+    </div>
+  }
+} @else {
+  <div class="empty-state">{{ emptyMessage }}</div>
+}
