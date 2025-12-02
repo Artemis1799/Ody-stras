@@ -15,7 +15,6 @@ public class EventService : IEventService
     public async Task<IEnumerable<Event>> GetAllAsync()
     {
         return await _context.Events
-            .Include(eventItem => eventItem.Points)
             .Include(eventItem => eventItem.EventTeams)
             .ToListAsync();
     }
@@ -23,7 +22,6 @@ public class EventService : IEventService
     public async Task<Event?> GetByIdAsync(Guid id)
     {
         return await _context.Events
-            .Include(eventItem => eventItem.Points)
             .Include(eventItem => eventItem.EventTeams)
             .FirstOrDefaultAsync(eventItem => eventItem.UUID == id);
     }
@@ -56,6 +54,7 @@ public class EventService : IEventService
         existingEvent.Description = eventModel.Description;
         existingEvent.StartDate = eventModel.StartDate;
         existingEvent.Status = eventModel.Status;
+        existingEvent.EventTeams = eventModel.EventTeams;
 
         await _context.SaveChangesAsync();
 
