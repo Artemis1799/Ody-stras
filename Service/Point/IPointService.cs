@@ -5,6 +5,7 @@ public interface IPointService
 {
     Task<IEnumerable<Point>> GetAllAsync();
     Task<Point?> GetByIdAsync(Guid id);
+    Task<IEnumerable<Point>> GetByEventIdAsync(Guid eventId);
     Task<Point> CreateAsync(Point point);
     Task<Point?> UpdateAsync(Guid id, Point point);
     Task<bool> DeleteAsync(Guid id);

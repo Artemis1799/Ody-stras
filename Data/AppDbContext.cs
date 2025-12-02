@@ -35,7 +35,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Point>()
             .HasOne(p => p.Event)
-            .WithMany(e => e.Points)
+            .WithMany()
             .HasForeignKey(p => p.EventId)
             .OnDelete(DeleteBehavior.Cascade);
 
