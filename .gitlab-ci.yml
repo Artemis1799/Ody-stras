@@ -27,5 +27,6 @@ lint_job:
   artifacts:
     paths:
       - Nidhoggr_front/lint-report.json
+    when: always
   allow_failure: false
-  
+
