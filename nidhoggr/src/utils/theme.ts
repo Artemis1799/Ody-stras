@@ -690,8 +690,15 @@ export const getStyles = (theme: string) =>
       fontSize: 18,
       fontWeight: "bold",
       color: theme === "light" ? "#333" : "#EEE",
+      marginBottom: 8,
+      textAlign: "center",
+    },
+    summarySubtitle: {
+      fontSize: 14,
+      color: theme === "light" ? "#666" : "#AAA",
       marginBottom: 16,
       textAlign: "center",
+      fontStyle: "italic",
     },
     summaryRow: {
       flexDirection: "row",
