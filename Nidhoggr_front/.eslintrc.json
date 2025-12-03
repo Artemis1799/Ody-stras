@@ -11,12 +11,32 @@
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended"
       ],
+      "plugins": ["import"],
       "rules": {
         "@typescript-eslint/no-explicit-any": "error",
         "@typescript-eslint/no-unused-vars": "error",
         "prefer-const": "error",
         "no-empty": "error",
-        "@typescript-eslint/no-unused-expressions": "error"
+        "@typescript-eslint/no-unused-expressions": "error",
+        "complexity": ["warn", { "max": 10 }],
+        "import/newline-after-import": "warn",
+        "@typescript-eslint/naming-convention": [
+          "warn",
+          {
+            "selector": "variableLike",
+            "format": ["camelCase"],
+            "leadingUnderscore": "allow"
+          },
+          {
+            "selector": "function",
+            "format": ["camelCase"],
+            "leadingUnderscore": "allow"
+          },
+          {
+            "selector": "typeLike",
+            "format": ["PascalCase"]
+          }
+        ]
       }
     }
   ]
