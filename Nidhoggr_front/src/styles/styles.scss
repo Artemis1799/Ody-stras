@@ -1,7 +1,71 @@
+// ============================================
+// NIDHOGGR DESIGN SYSTEM - DARK THEME
+// ============================================
+
+:root {
+	// Background colors
+	--bg-darkest: #0d1117;
+	--bg-darker: #161b22;
+	--bg-dark: #171c22;
+	--bg-primary: #1a2028;
+	--bg-secondary: #20272f;
+	--bg-tertiary: #2a2f38;
+	--bg-elevated: #30363d;
+
+	// Text colors
+	--text-primary: #ffffff;
+	--text-secondary: #c9d1d9;
+	--text-tertiary: #8b949e;
+	--text-muted: #6e7681;
+	--text-placeholder: #484f58;
+
+	// Accent colors
+	--accent-primary: #2ad783;
+	--accent-primary-hover: #22c55e;
+	--accent-primary-dark: #1d925a;
+	--accent-gradient: linear-gradient(135deg, #2ad783 0%, #22c55e 100%);
+	--accent-glow: rgba(42, 215, 131, 0.3);
+	--accent-glow-strong: rgba(42, 215, 131, 0.4);
+
+	// Border colors
+	--border-primary: #30363d;
+	--border-secondary: #444c56;
+	--border-hover: #484f58;
+	--border-divider: #21262d;
+
+	// Status colors
+	--status-success: #2ad783;
+	--status-success-bg: rgba(42, 215, 131, 0.1);
+	--status-error: #f87171;
+	--status-error-bg: rgba(248, 113, 113, 0.1);
+	--status-warning: #f59e0b;
+	--status-warning-bg: rgba(245, 158, 11, 0.1);
+
+	// Shadow
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+	--shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
+	--shadow-xl: 0 25px 80px rgba(0, 0, 0, 0.6);
+
+	// Border radius
+	--radius-sm: 6px;
+	--radius-md: 10px;
+	--radius-lg: 14px;
+	--radius-xl: 20px;
+
+	// Transitions
+	--transition-fast: 0.15s ease;
+	--transition-normal: 0.2s ease;
+	--transition-slow: 0.3s ease;
+}
+
 html, body {
 	height: 100%;
 	margin: 0;
 	padding: 0;
+	background-color: var(--bg-secondary);
+	color: var(--text-secondary);
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
 }
 
 /* The component .layout handles the overall height; ensure root elements expand */
@@ -12,4 +76,29 @@ app-root, body, html {
 #map {
 	height: 100%;
 	width: 100%;
+}
+
+// Global scrollbar styling
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--border-secondary);
+	border-radius: 4px;
+
+	&:hover {
+		background: var(--border-hover);
+	}
+}
+
+// Selection styling
+::selection {
+	background: var(--accent-primary);
+	color: var(--bg-dark);
 }
