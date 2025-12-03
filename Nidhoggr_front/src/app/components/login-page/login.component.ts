@@ -80,7 +80,6 @@ export class LoginPageComponent implements OnInit {
     
     this.userService.update(this.user.uuid, updatedUser).subscribe({
       next: () => {
-        console.log('Mot de passe créé avec succès');
         // Pas de token lors de la création, on redirige vers le login
         this.user!.password = '***'; // Simuler qu'un mot de passe existe maintenant
         this.newPassword = '';
@@ -104,8 +103,7 @@ export class LoginPageComponent implements OnInit {
       name: this.user.name, 
       password: this.password 
     }).subscribe({
-      next: (response) => {
-        console.log('Connexion réussie:', response.message);
+      next: () => {
         // Le backend a défini le cookie HttpOnly
         this.authService.login();
         this.cdr.detectChanges();

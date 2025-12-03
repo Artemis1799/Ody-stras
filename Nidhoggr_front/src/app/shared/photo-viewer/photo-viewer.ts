@@ -38,18 +38,11 @@ export class PhotoViewer implements OnInit {
     this.currentPhotoIndex = 0;
     this.cdr.detectChanges();
 
-    console.log('🔍 Chargement des photos pour le point:', this.pointId);
-
     this.imagePointService.getAll().subscribe({
       next: (imagePoints) => {
-        console.log('📦 Total ImagePoints reçus:', imagePoints.length);
-        
         const pointImagePoints = imagePoints.filter(ip => ip.pointId === this.pointId);
         
-        console.log('📌 ImagePoints pour ce point:', pointImagePoints.length);
-        
         if (pointImagePoints.length === 0) {
-          console.log('⚠️ Aucune photo trouvée pour ce point');
           this.loadingPhotos = false;
           this.cdr.detectChanges();
           return;
@@ -59,12 +52,10 @@ export class PhotoViewer implements OnInit {
           .map(ip => ip.photo)
           .filter((photo): photo is Photo => photo !== undefined && photo !== null);
         
-        console.log('📸 Photos chargées:', this.photos.length);
         this.loadingPhotos = false;
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('❌ Erreur lors du chargement des ImagePoints:', error);
+      error: () => {
         this.loadingPhotos = false;
         this.cdr.detectChanges();
       }

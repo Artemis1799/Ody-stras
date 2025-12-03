@@ -68,18 +68,15 @@ export class App implements OnInit {
     try {
       if (typeof window === 'undefined') { return; }
 
-      // load data from services and log results (non-blocking)
+      // load data from services (non-blocking)
       forkJoin({
         points: this.pointService.getAll(),
         photos: this.photoService.getAll(),
         imagePoints: this.imagePointService.getAll(),
         equipments: this.equipmentService.getAll(),
-      }).subscribe({
-        next: result => console.log('App: data loaded', result),
-        error: err => console.error('App: error loading data', err),
-      });
-    } catch (e) {
-      console.error('Failed to initialize Leaflet map', e);
+      }).subscribe();
+    } catch {
+      // Ignore initialization errors
     }
   }
 }
