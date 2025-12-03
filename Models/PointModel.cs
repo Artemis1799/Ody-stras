@@ -34,10 +34,15 @@ public class Point
 
 	public int EquipmentQuantity { get; set; } = 0;
     
+    [JsonIgnore]
     [ForeignKey("EventId")]
+    [NotMapped]
+    [JsonIgnore]
     public Event? Event { get; set; }
 
     [ForeignKey("EquipmentId")]
+    [NotMapped]
+    [JsonIgnore]
     public Equipment? Equipment { get; set; }
     
     [JsonIgnore]

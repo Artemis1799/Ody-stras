@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<TeamMember> TeamMembers { get; set; }
     public DbSet<Member> Members { get; set; }
     public DbSet<EventTeam> EventTeams { get; set; }
+    public DbSet<Geometry> Geometries { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,7 +35,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Point>()
             .HasOne(p => p.Event)
-            .WithMany(e => e.Points)
+            .WithMany()
             .HasForeignKey(p => p.EventId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -79,6 +80,12 @@ public class AppDbContext : DbContext
             .HasOne(ip => ip.Point)
             .WithMany(p => p.ImagePoints)
             .HasForeignKey(ip => ip.PointId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Geometry>()
+            .HasOne(g => g.Event)
+            .WithMany()
+            .HasForeignKey(g => g.EventId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

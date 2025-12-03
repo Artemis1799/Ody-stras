@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using t5_back.Data;
 
@@ -10,9 +11,11 @@ using t5_back.Data;
 namespace t5_back.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251129210739_AddGeometryModel")]
+    partial class AddGeometryModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -90,34 +93,29 @@ namespace t5_back.Migrations
                 {
                     b.Property<Guid>("UUID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Created")
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("created");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("EventId")
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("eventId");
+                        .HasColumnType("TEXT");
 
-                    b.Property<string>("GeoJsonString")
+                    b.Property<string>("GeoJson")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("Modified")
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("modified");
+                        .HasColumnType("TEXT");
 
-                    b.Property<string>("PropertiesString")
+                    b.Property<string>("Properties")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("type");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("UUID");
 
