@@ -108,13 +108,22 @@
   background-color: #2ad783;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
   
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: #1d925a;
     box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.3);
   }
   
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(1px);
+  }
+
+  &.disabled,
+  &:disabled {
+    background-color: #444c56;
+    color: #8b949e;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.6;
   }
 }
 

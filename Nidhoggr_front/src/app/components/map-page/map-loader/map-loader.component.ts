@@ -338,11 +338,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
             }
           },
           rectangle: false,
-          circle: {
-            shapeOptions: {
-              color: ZONE_COLOR
-            }
-          },
+          circle: false,
           marker: {
             icon: L.divIcon({
               className: 'custom-marker',
@@ -568,6 +564,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         
         // Rendre le marker interactif
         this.makeMarkerInteractive(layer, point);
+        
+        // Ouvrir le drawer du point créé
+        this.mapService.selectPoint(point);
       },
       error: (error) => {
         console.error('Erreur lors de la sauvegarde du point:', error);

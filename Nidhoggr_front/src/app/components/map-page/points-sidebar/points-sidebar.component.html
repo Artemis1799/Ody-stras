@@ -48,7 +48,12 @@
   
   <div class="bottom-buttons">
     <button class="equipment-btn" (click)="openEventCreate()">Créer un évènement</button>
-    <button class="export-btn" (click)="openExport()">Exporter</button>
+    <button 
+      class="export-btn" 
+      [class.disabled]="!selectedEvent" 
+      [disabled]="!selectedEvent"
+      (click)="openExport()"
+    >Exporter</button>
     <button class="import-btn" (click)="openImport()">Importer</button>
   </div>
 </aside>
@@ -56,8 +61,11 @@
 @if (showImportPopup) {
   <app-import-popup (close)="closeImport()"></app-import-popup>
 }
-@if (showExportPopup) {
-  <app-export-popup (close)="closeExport()"></app-export-popup>
+@if (showExportPopup && selectedEvent) {
+  <app-export-popup 
+    [event]="selectedEvent" 
+    (close)="closeExport()"
+  ></app-export-popup>
 }
 @if (showEventCreatePopup) {
   <app-event-create-popup 
