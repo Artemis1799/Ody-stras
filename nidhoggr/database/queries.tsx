@@ -70,6 +70,26 @@ export async function insert<T>(
   }
 }
 
+export async function insertOrReplace<T>(
+  db: SQLiteDatabase,
+  table: string,
+  data: Partial<T>
+): Promise<void> {
+  try {
+    const keys = Object.keys(data);
+    const placeholders = keys.map(() => "?").join(",");
+
+    const query = `INSERT OR REPLACE INTO ${table} (${keys.join(
+      ","
+    )}) VALUES (${placeholders})`;
+    const values: any[] = Object.values(data);
+
+    await db.runAsync(query, values);
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 export async function update<T>(
   db: SQLiteDatabase,
   table: string,
