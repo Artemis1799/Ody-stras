@@ -12,11 +12,11 @@
         "plugin:@typescript-eslint/recommended"
       ],
       "rules": {
-        "@typescript-eslint/no-explicit-any": "warn",
-        "@typescript-eslint/no-unused-vars": "warn",
-        "prefer-const": "warn",
-        "no-empty": "warn",
-        "@typescript-eslint/no-unused-expressions": "warn"
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unused-vars": "error",
+        "prefer-const": "error",
+        "no-empty": "error",
+        "@typescript-eslint/no-unused-expressions": "error"
       }
     }
   ]
