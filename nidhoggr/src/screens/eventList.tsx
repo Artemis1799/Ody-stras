@@ -107,6 +107,12 @@ export function EventListScreen() {
           color={theme === "light" ? "white" : "black"}
         />
       </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.fab, { bottom: 100 }]}
+        onPress={() => navigation.navigate("ImportEvent")}
+      >
+        <Ionicons name="download-outline" size={30} color="white" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
