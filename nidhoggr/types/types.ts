@@ -109,7 +109,15 @@ export interface EventGeometry {
   eventId: string;
   geoJson: geoJSON;
 }
+
+export type GeoJSONType = "Point" | "LineString" | "Polygon";
+
+export type Coordinates =
+  | [number, number]
+  | [number, number][]
+  | [[number, number][]];
+
 export interface geoJSON {
-  type: string;
-  coordinates: [number, number][];
+  type: GeoJSONType;
+  coordinates: Coordinates;
 }

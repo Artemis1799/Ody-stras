@@ -1,6 +1,6 @@
 import React from "react";
 import { Marker, Polyline, Polygon, LatLng } from "react-native-maps";
-import { GeometriesList } from "../../types/types";
+import { GeometriesList, geoJSON } from "../../types/types";
 
 export default function RenderGeometries({ geometries }: GeometriesList) {
   if (!geometries || geometries.length === 0) return null;
@@ -8,7 +8,7 @@ export default function RenderGeometries({ geometries }: GeometriesList) {
   return (
     <>
       {geometries.map((geomString: string, i: number) => {
-        let geom = null;
+        let geom: geoJSON;
 
         try {
           geom = JSON.parse(geomString);
@@ -25,8 +25,8 @@ export default function RenderGeometries({ geometries }: GeometriesList) {
               <Marker
                 key={`point-${i}`}
                 coordinate={{
-                  latitude: geom.coordinates[1],
-                  longitude: geom.coordinates[0],
+                  latitude: geom.coordinates[1] as number,
+                  longitude: geom.coordinates[0] as number,
                 }}
               />
             );
@@ -35,10 +35,12 @@ export default function RenderGeometries({ geometries }: GeometriesList) {
             return (
               <Polyline
                 key={`line-${i}`}
-                coordinates={geom.coordinates.map((c: number[]) => ({
-                  latitude: c[1],
-                  longitude: c[0],
-                }))}
+                coordinates={(geom.coordinates as [number, number][]).map(
+                  (c) => ({
+                    latitude: c[1],
+                    longitude: c[0],
+                  })
+                )}
                 strokeWidth={3}
               />
             );
@@ -47,10 +49,12 @@ export default function RenderGeometries({ geometries }: GeometriesList) {
             return (
               <Polygon
                 key={`poly-${i}`}
-                coordinates={geom.coordinates[0].map((c: LatLng[]) => ({
-                  latitude: c[1],
-                  longitude: c[0],
-                }))}
+                coordinates={(geom.coordinates[0] as [number, number][]).map(
+                  (c) => ({
+                    latitude: c[1],
+                    longitude: c[0],
+                  })
+                )}
                 strokeWidth={2}
                 fillColor="rgba(0, 150, 255, 0.3)"
               />
