@@ -6,6 +6,16 @@
 	overflow: hidden;
 	margin: 0;
 	padding: 0;
+	background-color: #171c22;
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 0.6;
+	}
+	50% {
+		opacity: 1;
+	}
 }
 
 .loading-container {
@@ -15,21 +25,22 @@
 	justify-content: center;
 	height: 100vh;
 	width: 100%;
-	background: linear-gradient(135deg, #20272f 0%, #2c3e50 100%);
+	background: linear-gradient(145deg, #171c22 0%, #20272f 100%);
 	
 	p {
 		margin-top: 1.5rem;
 		font-size: 1.125rem;
-		color: #ffffff;
+		color: #8b949e;
 		font-weight: 500;
+		animation: pulse 1.5s ease-in-out infinite;
 	}
 }
 
 .spinner {
 	width: 50px;
 	height: 50px;
-	border: 4px solid rgba(255, 255, 255, 0.3);
-	border-top-color: #4a90e2;
+	border: 3px solid rgba(42, 215, 131, 0.2);
+	border-top-color: #2ad783;
 	border-radius: 50%;
 	animation: spin 1s linear infinite;
 }
@@ -45,7 +56,8 @@
 	display: flex;
 	overflow: hidden;
 	min-height: 0;
-	margin-top: 4rem ;
+	margin-top: 4rem;
+	background-color: #171c22;
 }
 
 .layout {
@@ -53,21 +65,23 @@
 	height: 100%;
 	width: 100%;
 	overflow: hidden;
+	background-color: #171c22;
 }
 
 .sidebar {
 	width: 15%;
 	min-width: 180px;
-	background: #fafafa;
+	background: #1a2028;
 	padding: 12px;
 	box-sizing: border-box;
-	border-right: 1px solid #e6e6e6;
+	border-right: 1px solid #30363d;
 	overflow: auto;
 }
 
 .sidebar h3 {
 	margin: 0 0 8px 0;
 	font-size: 16px;
+	color: #ffffff;
 }
 
 .map-area {
@@ -93,19 +107,45 @@
 
 #tile-control input {
 	width: 100%;
-	padding: 6px 8px;
-	border: 1px solid #ccc;
-	border-radius: 4px;
+	padding: 0.625rem 0.75rem;
+	border: 1px solid #30363d;
+	border-radius: 10px;
 	box-sizing: border-box;
+	background: #0d1117;
+	color: #c9d1d9;
+	transition: all 0.2s ease;
+	
+	&:focus {
+		border-color: #2ad783;
+		outline: none;
+		box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.15);
+	}
+	
+	&::placeholder {
+		color: #6e7681;
+	}
 }
 
 #tile-control button {
 	margin-top: 8px;
-	padding: 6px 10px;
+	padding: 0.625rem 1rem;
+	background: linear-gradient(135deg, #2ad783 0%, #22c55e 100%);
+	color: #171c22;
+	border: none;
+	border-radius: 10px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 4px 14px rgba(42, 215, 131, 0.3);
+	
+	&:hover {
+		box-shadow: 0 6px 20px rgba(42, 215, 131, 0.4);
+		transform: translateY(-1px);
+	}
 }
 
 #tileStatus {
 	margin-top: 8px;
 	font-size: 12px;
-	color: #333;
+	color: #8b949e;
 }
