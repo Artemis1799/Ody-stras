@@ -17,12 +17,17 @@ import {
   useFocusEffect,
 } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
-import { Evenement, EventScreenNavigationProp } from "../../types/types";
+import {
+  Evenement,
+  EventScreenNavigationProp,
+  Geometries,
+} from "../../types/types";
 import { getAllWhere } from "../../database/queries";
 import { Strings } from "../../types/strings";
 import { Header } from "../components/header";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
+import RenderGeometries from "../utils/RenderGeometry";
 
 export default function EventScreen() {
   const { theme } = useTheme();
@@ -31,7 +36,7 @@ export default function EventScreen() {
   const db = useSQLiteContext();
   const params = route.params as Evenement;
   const eventUUID = params.UUID;
-
+  const [geometries, setGeometries] = useState<string[]>([]);
   const [eventData, setEventData] = useState<Evenement>(params);
 
   const mapRef = useRef<MapView>(null);
@@ -80,6 +85,15 @@ export default function EventScreen() {
           if (events.length > 0) {
             setEventData(events[0]);
           }
+          //Récupération des géométries
+          const geoms = await getAllWhere<Geometries>(
+            db,
+            "EventGeometries",
+            ["EventID"],
+            [eventUUID]
+          );
+          const geojsonList = geoms.map((g) => g.GeoJSON);
+          setGeometries(geojsonList);
         } catch (err) {
           console.error("Erreur lors du chargement de l'événement:", err);
         }
@@ -112,7 +126,9 @@ export default function EventScreen() {
             }}
             showsUserLocation={true}
             showsMyLocationButton={true}
-          ></MapView>
+          >
+            <RenderGeometries geometries={geometries} />
+          </MapView>
         </View>
 
         {/* Event Details */}

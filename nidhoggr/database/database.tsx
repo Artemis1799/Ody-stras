@@ -1,5 +1,6 @@
 import { SQLiteDatabase } from "expo-sqlite";
 import * as SQLite from "expo-sqlite";
+import { EventGeometry } from "../types/types";
 
 export async function setupDatabase(db: SQLiteDatabase) {
   console.log("Initialisation de la base…");
@@ -61,6 +62,15 @@ export async function setupDatabase(db: SQLiteDatabase) {
       Stock_restant FLOAT
     );
   `);
+
+  await db.execAsync(`
+  CREATE TABLE IF NOT EXISTS EventGeometries (
+    EventID TEXT NOT NULL,
+    GeometryID TEXT PRIMARY KEY,
+    GeoJSON TEXT NOT NULL,
+    FOREIGN KEY(EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
+  );
+`);
 
   const rows: { count: number }[] = await db.getAllAsync(
     "SELECT COUNT(*) AS count FROM Equipement"

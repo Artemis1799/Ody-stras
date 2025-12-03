@@ -93,3 +93,31 @@ export interface Photos {
   Picture: string;
   Picture_name?: string;
 }
+
+export interface GeometriesList {
+  geometries: string[];
+}
+
+export interface Geometries {
+  EventId: string;
+  GeometryId: string;
+  GeoJSON: string;
+}
+
+export interface EventGeometry {
+  uuid: string;
+  eventId: string;
+  geoJson: geoJSON;
+}
+
+export type GeoJSONType = "Point" | "LineString" | "Polygon";
+
+export type Coordinates =
+  | [number, number]
+  | [number, number][]
+  | [[number, number][]];
+
+export interface geoJSON {
+  type: GeoJSONType;
+  coordinates: Coordinates;
+}

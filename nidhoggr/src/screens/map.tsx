@@ -19,15 +19,17 @@ import { useSQLiteContext } from "expo-sqlite";
 import * as Location from "expo-location";
 import {
   EventScreenNavigationProp,
+  Geometries,
   Point,
   PointOnMap,
   mapParams,
 } from "../../types/types";
-import { getPointsForEvent } from "../../database/queries";
+import { getAllWhere, getPointsForEvent } from "../../database/queries";
 import { Strings } from "../../types/strings";
 import { Header } from "../components/header";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
+import RenderGeometries from "../utils/RenderGeometry";
 
 export function MapScreen() {
   const { theme } = useTheme();
@@ -38,6 +40,7 @@ export function MapScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const mapRef = useRef<MapView>(null);
+  const [geometries, setGeometries] = useState<string[]>([]);
 
   const { eventId, eventName } = route.params as mapParams;
 
@@ -60,6 +63,17 @@ export function MapScreen() {
   const loadPoints = async () => {
     try {
       console.log("calling loadPoints");
+      console.log(eventId);
+      const geoms = await getAllWhere<Geometries>(
+        db,
+        "EventGeometries",
+        ["EventID"],
+        [eventId]
+      );
+      console.log("geoms");
+      console.log(geoms);
+      const geojsonList = geoms.map((g) => g.GeoJSON);
+      setGeometries(geojsonList);
       const sql: PointOnMap[] = await getPointsForEvent(db, eventId);
 
       const pts: PointOnMap[] = sql.map((row: PointOnMap) => ({
@@ -153,6 +167,8 @@ export function MapScreen() {
           longitudeDelta: 0.01,
         }}
       >
+        <RenderGeometries geometries={geometries} />
+
         {points.map((point) => (
           <Marker
             key={point.UUID}
