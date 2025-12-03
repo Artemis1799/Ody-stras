@@ -111,5 +111,5 @@ export interface EventGeometry {
 }
 export interface geoJSON {
   type: string;
-  coordinates: any; //[number, number][];
+  coordinates: [number, number][];
 }
