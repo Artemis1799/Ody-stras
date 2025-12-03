@@ -71,35 +71,6 @@ export async function setupDatabase(db: SQLiteDatabase) {
     FOREIGN KEY(EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
   );
 `);
-  await insertEventGeometries(db, [
-    {
-      uuid: "bdf1992b-7e61-4af2-ad35-e66748db5ac9",
-      eventId: "734c2549-fc74-4377-8730-82b75ed8ad3c",
-      geoJson: {
-        type: "LineString",
-        coordinates: [
-          [7.748322, 48.552888],
-          [7.756906, 48.551211],
-        ],
-      },
-    },
-    {
-      uuid: "4501061a-fb63-424b-83f2-7b057cbb9eb9",
-      eventId: "734c2549-fc74-4377-8730-82b75ed8ad3c",
-      geoJson: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [7.774844, 48.549165],
-            [7.7742, 48.557635],
-            [7.77905, 48.557805],
-            [7.779565, 48.549477],
-            [7.774844, 48.549165],
-          ],
-        ],
-      },
-    },
-  ]);
 
   const rows: { count: number }[] = await db.getAllAsync(
     "SELECT COUNT(*) AS count FROM Equipement"
@@ -141,33 +112,6 @@ export async function deleteDatabase(
     return true;
   } catch (e) {
     console.error("Erreur lors de la suppression :", e);
-    return false;
-  }
-}
-
-export async function insertEventGeometries(
-  db: SQLiteDatabase,
-  geometries: EventGeometry[]
-) {
-  try {
-    await db.execAsync("BEGIN TRANSACTION");
-
-    for (const geom of geometries) {
-      await db.runAsync(
-        `
-        INSERT INTO EventGeometries (GeometryID, EventID, GeoJSON)
-        VALUES (?, ?, ?)
-      `,
-        [geom.uuid, geom.eventId, JSON.stringify(geom.geoJson)]
-      );
-    }
-
-    await db.execAsync("COMMIT");
-    console.log("Géométries insérées :", geometries.length);
-    return true;
-  } catch (error) {
-    await db.execAsync("ROLLBACK");
-    console.error("Erreur insertion géométries :", error);
     return false;
   }
 }
