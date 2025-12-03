@@ -1,4 +1,105 @@
 <div class="personnes-container">
-  <h2>Personnes</h2>
-  <p>Gestion des personnes</p>
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-title">
+        <div class="title-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <div class="title-text">
+          <h2>Personnes</h2>
+          <p>Gérez les membres de votre organisation</p>
+        </div>
+      </div>
+    </div>
+    <button class="btn-create" (click)="openCreateDialog()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Ajouter
+    </button>
+  </div>
+
+  <!-- Loading state -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <span>Chargement...</span>
+    </div>
+  }
+
+  <!-- Empty state -->
+  @if (!isLoading() && members().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+      <h3>Aucune personne</h3>
+      <p>Commencez par ajouter une personne à votre organisation</p>
+      <button class="btn-create" (click)="openCreateDialog()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Ajouter une personne
+      </button>
+    </div>
+  }
+
+  <!-- Members grid -->
+  @if (!isLoading() && members().length > 0) {
+    <div class="persons-grid">
+      @for (member of members(); track member.uuid) {
+        <div class="person-card">
+          <div class="person-avatar">{{ getInitials(member) }}</div>
+          <div class="person-info">
+            <div class="person-name">{{ member.firstName }} {{ member.name }}</div>
+          </div>
+          <div class="person-actions">
+            <button class="btn-icon btn-edit" (click)="openEditDialog(member)" title="Modifier">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button class="btn-icon btn-delete" (click)="confirmDelete(member)" title="Supprimer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
 </div>
+
+<!-- Create/Edit Dialog -->
+@if (showDialog()) {
+  <app-person-popup
+    [isEditing]="isEditing()"
+    [person]="currentMember()"
+    (save)="onPersonSave($event)"
+    (close)="closeDialog()"
+  ></app-person-popup>
+}
+
+<!-- Delete Confirmation Dialog -->
+@if (showDeleteConfirm() && memberToDelete()) {
+  <app-delete-popup
+    title="Supprimer cette personne"
+    [itemName]="memberToDelete()!.firstName + ' ' + memberToDelete()!.name"
+    warningMessage="Cette action est irréversible."
+    (confirm)="deleteMember()"
+    (close)="cancelDelete()"
+  ></app-delete-popup>
+}
