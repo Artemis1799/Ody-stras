@@ -15,6 +15,7 @@ import { WS_URL } from '../shared/constants/wsUrl';
 
 export interface WebSocketMessage {
   type: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
 }
 
@@ -191,6 +192,7 @@ export class WebSocketExportService {
   /**
    * Traite les données reçues du WebSocket
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async processReceivedData(data: any): Promise<void> {
     console.log('📨 Message WebSocket reçu dans processReceivedData');
     console.log('   Type:', data.type);

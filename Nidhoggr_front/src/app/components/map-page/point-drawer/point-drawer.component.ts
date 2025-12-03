@@ -34,7 +34,9 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   visible = false;
   selectedPoint: Point | null = null;
   equipments: Equipment[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   equipmentOptions: any[] = []; // Inclut l'option "Aucun" + les équipements
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedEquipment: any | null = null;
   
   // Copie locale pour l'édition
@@ -155,7 +157,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     this.showPhotoViewer = false;
   }
 
-  onEquipmentChange(event: any): void {
+  onEquipmentChange(event: { value: Equipment | null }): void {
     const newEquipment = event.value;
     
     // Si on avait un équipement précédent, on remet sa quantité dans le stock
@@ -217,8 +219,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
 
     // Sauvegarder le point
     this.pointService.update(this.selectedPoint.uuid, updatedPoint).subscribe({
-      next: () => {
-        console.log('Point mis à jour avec succès');
+      next: (savedPoint) => {
         // Mettre à jour les valeurs précédentes
         this.previousEquipmentQuantity = this.editedEquipmentQuantity;
         this.previousEquipmentId = this.selectedEquipment?.uuid || null;
@@ -231,8 +232,13 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
           this.selectedPoint.equipmentQuantity = this.editedEquipmentQuantity;
         }
         
-        // Déclencher le rechargement des points dans la sidebar
-        this.mapService.triggerReloadPoints();
+        // Mettre à jour le MapService pour la réactivité de la sidebar et de la map
+        const currentPoints = this.mapService['pointsSubject'].value;
+        const index = currentPoints.findIndex((p: Point) => p.uuid === savedPoint.uuid);
+        if (index !== -1) {
+          currentPoints[index] = savedPoint;
+          this.mapService.setPoints([...currentPoints]);
+        }
       },
       error: (error) => {
         console.error('Erreur lors de la mise à jour du point:', error);
@@ -297,10 +303,12 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     // Fermer le drawer AVANT de supprimer
     this.closeDrawer();
 
-    // Supprimer le point (le BehaviorSubject mettra à jour automatiquement la sidebar)
+    // Supprimer le point et mettre à jour le MapService
     this.pointService.delete(pointToDelete.uuid).subscribe({
       next: () => {
-        console.log('Point supprimé avec succès');
+        // Mettre à jour le MapService pour la réactivité de la sidebar et de la map
+        const currentPoints = this.mapService['pointsSubject'].value;
+        this.mapService.setPoints(currentPoints.filter((p: Point) => p.uuid !== pointToDelete.uuid));
       },
       error: (error) => {
         console.error('Erreur lors de la suppression du point:', error);

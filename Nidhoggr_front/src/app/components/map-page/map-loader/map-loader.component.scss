@@ -39,6 +39,10 @@
       background: #2196f3;
     }
 
+    &.newly-created {
+      background: #2196f3;
+    }
+
     &:hover {
       transform: rotate(-45deg) scale(1.1);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);

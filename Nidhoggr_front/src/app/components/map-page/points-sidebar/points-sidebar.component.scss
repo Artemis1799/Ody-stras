@@ -8,27 +8,16 @@
   height: 100%;
   overflow: hidden;
 
-  .sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background: #2a2f38;
-    border-bottom: 2px solid #444c56;
-
-    h3 {
-      margin: 0;
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #ffffff;
-    }
-  }
-
   h3 {
     margin: 0 0 1rem 0;
     font-size: 1.2rem;
     color: #333;
   }
+}
+
+.event-selector {
+  padding: 0 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .search-box {
@@ -119,13 +108,22 @@
   background-color: #2ad783;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
   
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: #1d925a;
     box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.3);
   }
   
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(1px);
+  }
+
+  &.disabled,
+  &:disabled {
+    background-color: #444c56;
+    color: #8b949e;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.6;
   }
 }
 
@@ -386,5 +384,91 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+// Styles pour AutoComplete
+::ng-deep {
+  .event-selector {
+    .p-autocomplete {
+      width: 100%;
+      
+      .p-autocomplete-input {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid #444c56;
+        border-radius: 0.375rem;
+        font-size: 0.9375rem;
+        transition: all 0.2s;
+        background-color: #171c22;
+        color: #ffffff;
+        
+        &:hover {
+          border-color: #ffffff;
+        }
+        
+        &:focus {
+          border-color: #2ad783;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.2);
+        }
+      }
+      
+      .p-autocomplete-dropdown {
+        background-color: #444c56;
+        border-color: #444c56;
+        color: #ffffff;
+        
+        &:hover {
+          background-color: #2ad783;
+          border-color: #2ad783;
+          color: #171c22;
+        }
+      }
+    }
+    
+    .p-autocomplete-overlay {
+      background-color: #20272f !important;
+      border: 1px solid #444c56 !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+      border-radius: 0.375rem !important;
+      
+      .p-autocomplete-list {
+        background-color: #20272f !important;
+        
+        .p-autocomplete-option {
+          background-color: #20272f !important;
+          color: #ffffff !important;
+          padding: 0.75rem;
+          
+          &:hover {
+            background-color: #444c56 !important;
+          }
+          
+          &.p-autocomplete-option-selected {
+            background-color: #2ad783 !important;
+            color: #171c22 !important;
+          }
+        }
+      }
+    }
+  }
+  
+  .event-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    
+    .event-name {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      color: inherit;
+    }
+    
+    .event-description {
+      font-size: 0.8125rem;
+      opacity: 0.8;
+      color: inherit;
+    }
   }
 }

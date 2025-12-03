@@ -1,0 +1,187 @@
+.event-overlay {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.5);
+	z-index: 2000;
+	backdrop-filter: blur(2px);
+	animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes slideIn {
+	from {
+		transform: translateY(-20px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+.event-dialog {
+	background: #fff;
+	padding: 2.5rem 3rem;
+	border-radius: 12px;
+	min-width: 500px;
+	max-width: 600px;
+	position: relative;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+	animation: slideIn 0.3s ease-out;
+
+	h4 {
+		margin: 0 0 0.5rem 0;
+		font-size: 1.75rem;
+		font-weight: 600;
+		color: #333;
+	}
+
+	> p {
+		margin: 0 0 1.5rem 0;
+		color: #666;
+		font-size: 1rem;
+		line-height: 1.5;
+	}
+}
+
+.event-close {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	background: transparent;
+	border: none;
+	font-size: 1.5rem;
+	cursor: pointer;
+	color: #999;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	transition: all 0.2s;
+
+	&:hover {
+		background: #f5f5f5;
+		color: #333;
+	}
+
+	&:active {
+		transform: scale(0.95);
+	}
+}
+
+.form-group {
+	margin-bottom: 1.25rem;
+
+	label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+		color: #333;
+		font-size: 0.95rem;
+	}
+
+	input,
+	textarea,
+	select {
+		width: 100%;
+		padding: 0.75rem 1rem;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+		font-size: 1rem;
+		transition: border-color 0.2s, box-shadow 0.2s;
+		box-sizing: border-box;
+
+		&:focus {
+			outline: none;
+			border-color: #3b82f6;
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+		}
+
+		&::placeholder {
+			color: #aaa;
+		}
+	}
+
+	textarea {
+		resize: vertical;
+		min-height: 80px;
+	}
+
+	select {
+		cursor: pointer;
+		appearance: none;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 1rem center;
+		padding-right: 2.5rem;
+	}
+}
+
+.form-actions {
+	display: flex;
+	gap: 1rem;
+	margin-top: 2rem;
+	justify-content: flex-end;
+
+	button {
+		padding: 0.75rem 1.5rem;
+		border-radius: 8px;
+		font-size: 1rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s;
+
+		&:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+	}
+
+	.cancel-btn {
+		background: #f5f5f5;
+		border: 1px solid #ddd;
+		color: #666;
+
+		&:hover:not(:disabled) {
+			background: #eee;
+			color: #333;
+		}
+	}
+
+	.submit-btn {
+		background: #3b82f6;
+		border: none;
+		color: #fff;
+
+		&:hover:not(:disabled) {
+			background: #2563eb;
+		}
+
+		&:active:not(:disabled) {
+			transform: scale(0.98);
+		}
+	}
+}
+
+.error-message {
+	margin-top: 1rem;
+	padding: 0.75rem 1rem;
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	border-radius: 8px;
+	color: #dc2626;
+	font-size: 0.9rem;
+}
