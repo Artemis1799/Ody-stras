@@ -1,4 +1,4 @@
-@if (points$ | async; as points) {
+@if (points$Internal | async; as points) {
   @if (isLoading) {
     <div class="loading">Chargement des points...</div>
   } @else if (errorMessage) {
@@ -6,24 +6,22 @@
   } @else if (points.length === 0) {
     <div class="empty-state">{{ emptyMessage || 'Aucun point pour le moment' }}</div>
   } @else {
-    <div 
-      cdkDropList 
-      class="points-list"
-      (cdkDropListDropped)="onDrop($event, points)"
-    >
+    <div class="points-list">
       @for (point of points; track point.uuid; let i = $index) {
         <div 
           class="point-item"
           [class.selected]="selectedPointUuid === point.uuid"
-          cdkDrag
           (click)="onPointClick(point)"
         >
-          <div class="point-drag-handle">
-            <span class="drag-icon">⋮⋮</span>
-          </div>
           <div class="point-content">
             <span class="point-order">{{ point.order || i + 1 }}</span>
-            <span class="point-name">{{ getPointDisplayName(point) }}</span>
+            <div class="point-info">
+              <span class="point-name">{{ getPointDisplayName(point) }}</span>
+              <div class="point-dates">
+                <span class="date-badge installed">🟢 {{ getInstalledDateDisplay(point) }}</span>
+                <span class="date-badge removed">🔴 {{ getRemovedDateDisplay(point) }}</span>
+              </div>
+            </div>
           </div>
           <div class="point-status" [class.valid]="point.isValid" [class.invalid]="!point.isValid">
             {{ point.isValid ? '✓' : '✗' }}

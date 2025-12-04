@@ -13,6 +13,8 @@ export interface Point {
   created: Date;
   modified: Date;
   equipmentQuantity: number;
+  installedAt?: Date | null;
+  removedAt?: Date | null;
   event?: Event; 
   equipment?: Equipment;
 }
