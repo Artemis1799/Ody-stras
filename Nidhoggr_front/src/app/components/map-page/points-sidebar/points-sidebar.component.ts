@@ -185,20 +185,6 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     });
   }
 
-  onPointsReordered(points: Point[]): void {
-    // Utiliser le MapService pour la réactivité
-    this.mapService.setPoints(points);
-
-    // Mettre à jour la base de données
-    points.forEach((point) => {
-      this.pointService.update(point.uuid, point).subscribe({
-        error: (error) => {
-          console.error(`Erreur lors de la mise à jour du point ${point.uuid}:`, error);
-        },
-      });
-    });
-  }
-
   onPointClick(point: Point): void {
     this.selectedPointUuid = point.uuid;
 
