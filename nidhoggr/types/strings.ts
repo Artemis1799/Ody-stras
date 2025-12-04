@@ -46,6 +46,14 @@ export const Strings = {
     transferError: "Erreur de transfert",
     back: "Retour",
   },
+  importEvent: {
+    centerQRCode: "Scannez le QR code pour importer",
+    importInProgress: "Import en cours",
+    importComplete: "Import terminé",
+    importSuccess: "Import réussi",
+    importError: "Erreur d'import",
+    eventsReceived: "Événements reçus",
+  },
   map: {
     locationPermissionDenied: "Permission de localisation refusée",
     noEquipment: "Aucun équipement",

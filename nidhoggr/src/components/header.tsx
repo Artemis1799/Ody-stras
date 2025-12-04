@@ -1,8 +1,10 @@
-import { View, Image, TouchableOpacity } from "react-native";
+import { View, Image, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
+import { useSQLiteContext } from "expo-sqlite";
+import { deleteDatabase } from "../../database/database";
 
 type HeaderProps = {
   onBack?: () => void; // optionnel : fonction perso
@@ -14,10 +16,34 @@ export function Header({ onBack, showBack = true, rightIcon }: HeaderProps) {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const styles = getStyles(theme);
+  const db = useSQLiteContext();
 
   const handleBack = () => {
     if (onBack) return onBack(); // si custom → utiliser la fonction fournie
     navigation.goBack(); // sinon → goBack par défaut
+  };
+
+  const handleResetDatabase = () => {
+    Alert.alert(
+      "Réinitialiser la base",
+      "Êtes-vous sûr de vouloir supprimer toutes les données ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDatabase(db, "base.db");
+              Alert.alert("Succès", "Base de données supprimée. Redémarrez l'application.");
+            } catch (e) {
+              console.error(e);
+              Alert.alert("Erreur", "Impossible de supprimer la base de données.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -27,7 +53,9 @@ export function Header({ onBack, showBack = true, rightIcon }: HeaderProps) {
           <Ionicons name="arrow-back" size={28} color="white" />
         </TouchableOpacity>
       ) : (
-        <View style={{ width: 28 }} /> // pour garder la mise en page
+        <TouchableOpacity onPress={handleResetDatabase}>
+          <Ionicons name="trash-outline" size={28} color="white" />
+        </TouchableOpacity>
       )}
 
       <Image
