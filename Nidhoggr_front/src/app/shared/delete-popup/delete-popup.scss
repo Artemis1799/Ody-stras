@@ -1,0 +1,276 @@
+// Design System Tokens
+$bg-primary: #0d1117;
+$bg-secondary: #161b22;
+$bg-card: #171c22;
+$bg-elevated: #1a2028;
+
+$danger: #f87171;
+$danger-dark: #dc2626;
+$danger-gradient: linear-gradient(135deg, $danger 0%, $danger-dark 100%);
+$danger-bg: rgba(248, 113, 113, 0.15);
+
+$text-primary: #ffffff;
+$text-secondary: #c9d1d9;
+$text-muted: #8b949e;
+
+$border-primary: #30363d;
+$border-hover: #484f58;
+
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 2000;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-4px);
+  }
+  40%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+.popup-dialog {
+  background: linear-gradient(145deg, $bg-elevated 0%, $bg-card 100%);
+  padding: 0;
+  border-radius: 20px;
+  min-width: 380px;
+  max-width: 440px;
+  width: 90%;
+  position: relative;
+  box-shadow: 
+    0 25px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(248, 113, 113, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: $danger-gradient;
+  }
+}
+
+.popup-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  color: $text-muted;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: $text-primary;
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.75rem 1.75rem 1.25rem;
+  background: linear-gradient(180deg, rgba(248, 113, 113, 0.08) 0%, transparent 100%);
+
+  .header-icon {
+    width: 52px;
+    height: 52px;
+    background: $danger-gradient;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $text-primary;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(248, 113, 113, 0.3);
+    animation: shake 0.5s ease-in-out 0.3s;
+  }
+
+  .header-text {
+    flex: 1;
+    padding-top: 0.125rem;
+
+    h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.375rem;
+      font-weight: 700;
+      color: $text-primary;
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      margin: 0;
+      color: $text-muted;
+      font-size: 0.85rem;
+    }
+  }
+}
+
+.dialog-content {
+  padding: 1.25rem 1.75rem;
+
+  .confirm-message {
+    color: $text-secondary;
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0 0 1rem 0;
+
+    strong {
+      color: $text-primary;
+      font-weight: 600;
+    }
+  }
+
+  .warning-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    background: $danger-bg;
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    border-radius: 10px;
+    color: $danger;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 0;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1.25rem 1.75rem 1.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+  button {
+    flex: 1;
+    padding: 0.875rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  .cancel-btn {
+    background: transparent;
+    border: 1px solid $border-primary;
+    color: $text-muted;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: $border-hover;
+      color: $text-secondary;
+    }
+  }
+
+  .delete-btn {
+    background: $danger-gradient;
+    border: none;
+    color: $text-primary;
+    box-shadow: 0 4px 14px rgba(248, 113, 113, 0.3);
+
+    &:hover {
+      box-shadow: 0 6px 20px rgba(248, 113, 113, 0.4);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(248, 113, 113, 0.3);
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 480px) {
+  .popup-dialog {
+    min-width: unset;
+    margin: 1rem;
+    border-radius: 16px;
+  }
+
+  .dialog-header {
+    padding: 1.5rem 1.25rem 1rem;
+
+    .header-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+
+    .header-text h4 {
+      font-size: 1.25rem;
+    }
+  }
+
+  .dialog-content {
+    padding: 1rem 1.25rem;
+  }
+
+  .dialog-actions {
+    padding: 1rem 1.25rem 1.5rem;
+    flex-direction: column-reverse;
+  }
+}
