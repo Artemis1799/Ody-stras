@@ -1,0 +1,9 @@
+<mat-dialog-content style="height: 70vh; display: block">
+  <ngx-gantt [items]="data.items" [viewType]="GanttViewType.day">
+    <ngx-gantt-bar [item]="item" *ngxGanttBar="let item"></ngx-gantt-bar>
+  </ngx-gantt>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Fermer</button>
+</mat-dialog-actions>
