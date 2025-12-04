@@ -1,0 +1,123 @@
+<div class="popup-overlay" (click)="onClose()">
+  <div class="popup-dialog" (click)="$event.stopPropagation()">
+    <button class="popup-close" (click)="onClose()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    
+    <div class="dialog-header">
+      <div class="header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h4>{{ isEditing ? 'Modifier l\'équipe' : 'Nouvelle équipe' }}</h4>
+        <p>{{ isEditing ? 'Modifiez les informations de cette équipe' : 'Créez une nouvelle équipe et assignez des membres' }}</p>
+      </div>
+    </div>
+    
+    <form #teamForm="ngForm" (ngSubmit)="onSave()">
+      <div class="form-row">
+        <div class="form-group form-group-small">
+          <label for="number">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            Numéro
+          </label>
+          <input 
+            type="number" 
+            id="number" 
+            [(ngModel)]="team.number" 
+            name="number"
+            [min]="1"
+            placeholder="1"
+            [class.has-value]="team.number"
+          />
+        </div>
+        
+        <div class="form-group form-group-large">
+          <label for="teamName">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Nom de l'équipe <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="teamName" 
+            [ngModel]="team.teamName"
+            (ngModelChange)="team.teamName = $event"
+            name="teamName"
+            placeholder="Ex: Équipe Alpha"
+            required
+            [class.has-value]="team.teamName"
+          />
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          Membres de l'équipe
+        </label>
+        <div class="members-selector">
+          @if (allMembers.length === 0) {
+            <div class="no-members-message">
+              Aucun membre disponible. Créez d'abord des personnes.
+            </div>
+          } @else {
+            <div class="members-list">
+              @for (member of allMembers; track member.uuid) {
+                <div 
+                  class="member-item" 
+                  [class.selected]="isMemberSelected(member)"
+                  (click)="toggleMember(member)"
+                >
+                  <div class="member-avatar">{{ member.firstName.charAt(0) }}{{ member.name.charAt(0) }}</div>
+                  <span class="member-name">{{ member.firstName }} {{ member.name }}</span>
+                  <div class="member-check">
+                    @if (isMemberSelected(member)) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+        @if (selectedMembers.length > 0) {
+          <div class="selected-count">{{ selectedMembers.length }} membre(s) sélectionné(s)</div>
+        }
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="cancel-btn" (click)="onClose()">
+          Annuler
+        </button>
+        <button type="submit" class="submit-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          {{ isEditing ? 'Enregistrer' : 'Créer' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
