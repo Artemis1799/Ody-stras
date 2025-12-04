@@ -54,6 +54,9 @@
     "eslint-plugin-react-native": "^5.0.0",
     "typescript": "~5.9.2"
   },
+  "overrides": {
+    "react-server-dom-webpack": "19.1.2"
+  },
   "jest": {
     "preset": "jest-expo",
     "transformIgnorePatterns": [
