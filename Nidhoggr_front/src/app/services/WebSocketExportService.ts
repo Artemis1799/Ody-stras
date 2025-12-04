@@ -29,6 +29,9 @@ export class WebSocketExportService {
   private existingPoints: Map<string, Point> = new Map();
   private existingPhotos: Map<string, Photo> = new Map();
   private existingEquipments: Map<string, Equipment> = new Map();
+  
+  // UUID de l'événement en cours d'import (reçu du mobile via metadata)
+  private currentEventUuid: string | null = null;
 
   constructor(
     private pointService: PointService,
@@ -90,8 +93,8 @@ export class WebSocketExportService {
   async startServerAndConnect(): Promise<void> {
     console.log('🚀 Démarrage du processus de connexion WebSocket');
     
-    // Créer l'Event par défaut si nécessaire
-    await this.ensureEventExists(DEFAULT_EVENT_UUID);
+    // Réinitialiser l'eventUuid pour un nouvel import
+    this.currentEventUuid = null;
     
     // Vérifier si le serveur tourne déjà
     const isRunning = await this.checkServerStatus();
@@ -200,7 +203,14 @@ export class WebSocketExportService {
     console.log('   data.photo existe?', !!data.photo);
     console.log('   Données complètes:', JSON.stringify(data, null, 2));
     
-    if (data.type === 'point' && data.point) {
+    // Traiter les métadonnées pour récupérer l'eventUUID du mobile
+    if (data.type === 'metadata' && data.eventUUID) {
+      console.log('✅ CONDITION METADATA REMPLIE - Stockage eventUUID du mobile');
+      this.currentEventUuid = data.eventUUID;
+      console.log('   📋 Event UUID du mobile stocké:', this.currentEventUuid);
+      // S'assurer que l'événement existe dans la BD
+      await this.ensureEventExists(data.eventUUID);
+    } else if (data.type === 'point' && data.point) {
       console.log('✅ CONDITION POINT REMPLIE - Appel de processPoint');
       try {
         await this.processPoint(data.point);
@@ -220,6 +230,9 @@ export class WebSocketExportService {
       console.log('✅ CONDITION END REMPLIE - Rechargement des données');
       try {
         await this.loadExistingData();
+        // Réinitialiser l'eventUuid pour le prochain import
+        console.log('   🔄 Réinitialisation de currentEventUuid (était:', this.currentEventUuid, ')');
+        this.currentEventUuid = null;
         console.log('✅ loadExistingData terminé');
       } catch (error) {
         console.error('❌ Erreur dans loadExistingData:', error);
@@ -281,53 +294,77 @@ export class WebSocketExportService {
   /**
    * Traite un point reçu (création ou modification)
    */
-  private async processPoint(pointData: Point): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async processPoint(pointData: any): Promise<void> {
     console.log('🔧 processPoint appelé');
     console.log('   Données brutes:', pointData);
     
-    const uuid = pointData.uuid;
+    // Le mobile peut envoyer en PascalCase ou camelCase
+    const uuid = pointData.UUID || pointData.uuid;
     console.log('   🆔 UUID du point:', uuid);
     
-    // Convertir du format API (PascalCase) vers TypeScript (camelCase)
+    if (!uuid) {
+      console.error('   ❌ Pas d\'UUID trouvé dans les données du point!');
+      return;
+    }
+    
+    // Récupérer l'eventId : priorité au mobile, sinon currentEventUuid, sinon default
+    const mobileEventId = pointData.Event_ID || pointData.eventId;
+    const eventIdToUse = mobileEventId || this.currentEventUuid || DEFAULT_EVENT_UUID;
+    
+    console.log('   📋 EventId du mobile:', mobileEventId);
+    console.log('   📋 CurrentEventUuid (metadata):', this.currentEventUuid);
+    console.log('   📋 EventId utilisé:', eventIdToUse);
+    
+    // S'assurer que l'événement existe
+    if (eventIdToUse && eventIdToUse !== DEFAULT_EVENT_UUID) {
+      await this.ensureEventExists(eventIdToUse);
+    }
+    
+    // Convertir du format mobile vers TypeScript (camelCase)
     const point: Point = {
-      uuid: pointData.uuid,
-      eventId: DEFAULT_EVENT_UUID,
+      uuid: uuid,
+      eventId: eventIdToUse,
       equipmentId: '', // Sera défini après vérification de l'équipement
-      latitude: pointData.latitude,
-      longitude: pointData.longitude,
-      comment: pointData.comment,
-      imageId: pointData.imageId,
-      order: pointData.order,
-      isValid: pointData.isValid,
+      latitude: pointData.Latitude ?? pointData.latitude,
+      longitude: pointData.Longitude ?? pointData.longitude,
+      comment: pointData.Commentaire ?? pointData.Comment ?? pointData.comment ?? '',
+      imageId: pointData.Image_ID ?? pointData.imageId,
+      order: pointData.Ordre ?? pointData.Order ?? pointData.order ?? 0,
+      isValid: pointData.Valide !== undefined ? Boolean(pointData.Valide) : (pointData.Is_valid ?? pointData.isValid ?? true),
       equipmentQuantity: 0, // Sera défini après vérification de l'équipement
-      created: pointData.created ? new Date(pointData.created) : new Date(),
-      modified: pointData.modified ? new Date(pointData.modified) : new Date()
+      created: pointData.Created ? new Date(pointData.Created) : (pointData.created ? new Date(pointData.created) : new Date()),
+      modified: pointData.Modified ? new Date(pointData.Modified) : (pointData.modified ? new Date(pointData.modified) : new Date())
     };
     
+    // Récupérer l'équipement ID du format mobile
+    const mobileEquipmentId = pointData.Equipement_ID || pointData.equipmentId;
+    const mobileEquipmentQuantity = pointData.Equipement_quantite ?? pointData.Equipement_quantity ?? pointData.equipmentQuantity ?? 0;
+    
     console.log('   📦 Point converti:', point);
-    console.log('   ℹ️ Event_ID utilisé:', DEFAULT_EVENT_UUID);
-    console.log('   ℹ️ Equipement_ID du mobile:', pointData.equipmentId);
+    console.log('   ℹ️ Event_ID utilisé:', eventIdToUse);
+    console.log('   ℹ️ Equipement_ID du mobile:', mobileEquipmentId);
     
     // Si un équipement est spécifié, vérifier s'il existe ou le créer
-    if (pointData.equipmentId) {
+    if (mobileEquipmentId) {
       console.log('   ⚙️ Traitement de l\'équipement...');
       
       // Vérifier si l'équipement existe
-      const equipmentExists = this.existingEquipments.has(pointData.equipmentId);
+      const equipmentExists = this.existingEquipments.has(mobileEquipmentId);
       
       if (equipmentExists) {
-        console.log('   ✅ Équipement existe déjà:', pointData.equipmentId);
-        point.equipmentId = pointData.equipmentId;
-        point.equipmentQuantity = pointData.equipmentQuantity || 0;
+        console.log('   ✅ Équipement existe déjà:', mobileEquipmentId);
+        point.equipmentId = mobileEquipmentId;
+        point.equipmentQuantity = mobileEquipmentQuantity;
       } else {
-        console.log('   ➕ Création de l\'équipement:', pointData.equipmentId);
+        console.log('   ➕ Création de l\'équipement:', mobileEquipmentId);
         
         // Créer l'équipement d'abord
         const newEquipment: Equipment = {
-          uuid: pointData.equipmentId,
+          uuid: mobileEquipmentId,
           unit: 'pièce', // Unité par défaut (obligatoire en base de données)
-          totalStock: pointData.equipmentQuantity || 0,
-          remainingStock: pointData.equipmentQuantity || 0
+          totalStock: mobileEquipmentQuantity,
+          remainingStock: mobileEquipmentQuantity
         };
         
         // Essayer de créer l'équipement de manière synchrone
@@ -337,7 +374,7 @@ export class WebSocketExportService {
               console.log('   ✅ Équipement créé:', created.uuid);
               this.existingEquipments.set(created.uuid, created);
               point.equipmentId = created.uuid;
-              point.equipmentQuantity = pointData.equipmentQuantity || 0;
+              point.equipmentQuantity = mobileEquipmentQuantity;
               resolve();
             },
             error: (err) => {
@@ -405,21 +442,35 @@ export class WebSocketExportService {
   /**
    * Traite une photo reçue (création ou modification)
    */
-  private processPhoto(photoData: Photo, pointUUID: string): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private processPhoto(photoData: any, pointUUID: string): void {
     console.log('🔧 processPhoto appelé');
-    console.log('   Photo UUID:', photoData.uuid);
+    
+    // Le mobile peut envoyer en PascalCase ou camelCase
+    const uuid = photoData.UUID || photoData.uuid;
+    console.log('   Photo UUID:', uuid);
     console.log('   Point UUID:', pointUUID);
     
-    const uuid = photoData.uuid;
+    if (!uuid) {
+      console.error('   ❌ Pas d\'UUID trouvé dans les données de la photo!');
+      return;
+    }
     
-    // Convertir du format API vers TypeScript
+    // Récupérer et nettoyer les données de l'image
+    let pictureData = photoData.Picture || photoData.picture || '';
+    if (typeof pictureData === 'string' && pictureData.includes(',')) {
+      // Enlever le préfixe "data:image/...;base64,"
+      pictureData = pictureData.split(',')[1] || pictureData;
+    }
+    
+    // Convertir du format mobile vers TypeScript (camelCase)
     const photo: Photo = {
-      uuid: photoData.uuid,
-      pictureName: photoData.pictureName,
-      picture: photoData.picture
+      uuid: uuid,
+      pictureName: photoData.Picture_name || photoData.pictureName || 'photo.jpg',
+      picture: pictureData
     };
     
-    console.log('   📦 Photo convertie:', { ...photo, picture: '(base64 omis)' });
+    console.log('   📦 Photo convertie:', { ...photo, picture: '(base64 omis, longueur: ' + photo.picture.length + ')' });
     
     // Vérifier si la photo existe déjà
     if (this.existingPhotos.has(uuid)) {

@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Dialog } from 'primeng/dialog';
 import { Photo } from '../../models/photoModel';
 import { ImagePointService } from '../../services/ImagePointsService';
+import { PhotoService } from '../../services/PhotoService';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-photo-viewer',
@@ -21,6 +23,7 @@ export class PhotoViewer implements OnInit {
   loadingPhotos = false;
   
   private imagePointService = inject(ImagePointService);
+  private photoService = inject(PhotoService);
   private cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
@@ -38,22 +41,29 @@ export class PhotoViewer implements OnInit {
     this.currentPhotoIndex = 0;
     this.cdr.detectChanges();
 
-    this.imagePointService.getAll().subscribe({
+    // D'abord récupérer les ImagePoints pour ce point
+    this.imagePointService.getByPointId(this.pointId).subscribe({
       next: (imagePoints) => {
-        const pointImagePoints = imagePoints.filter(ip => ip.pointId === this.pointId);
-        
-        if (pointImagePoints.length === 0) {
+        if (imagePoints.length === 0) {
           this.loadingPhotos = false;
           this.cdr.detectChanges();
           return;
         }
 
-        this.photos = pointImagePoints
-          .map(ip => ip.photo)
-          .filter((photo): photo is Photo => photo !== undefined && photo !== null);
+        // Ensuite charger chaque photo par son imageId
+        const photoRequests = imagePoints.map(ip => this.photoService.getById(ip.imageId));
         
-        this.loadingPhotos = false;
-        this.cdr.detectChanges();
+        forkJoin(photoRequests).subscribe({
+          next: (photos) => {
+            this.photos = photos.filter((photo): photo is Photo => photo !== null && photo !== undefined);
+            this.loadingPhotos = false;
+            this.cdr.detectChanges();
+          },
+          error: () => {
+            this.loadingPhotos = false;
+            this.cdr.detectChanges();
+          }
+        });
       },
       error: () => {
         this.loadingPhotos = false;
