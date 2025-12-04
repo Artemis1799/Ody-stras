@@ -1,6 +1,6 @@
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 
 interface TimelineItem {
@@ -27,7 +27,10 @@ export class TimelinePopupComponent {
   maxDate: Date | null = null;
   totalDays = 0;
 
-  constructor(@Inject(MAT_DIALOG_DATA) public data: TimelineData) {
+  constructor(
+    @Inject(MAT_DIALOG_DATA) public data: TimelineData,
+    private dialogRef: MatDialogRef<TimelinePopupComponent>
+  ) {
     this.processTimeline();
   }
 
@@ -46,12 +49,19 @@ export class TimelinePopupComponent {
     });
 
     if (dates.length > 0) {
-      this.minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
-      this.maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
+      const minDateRaw = new Date(Math.min(...dates.map((d) => d.getTime())));
+      const maxDateRaw = new Date(Math.max(...dates.map((d) => d.getTime())));
+
+      // Ajouter une marge de 10% avant et après
+      const diffMs = maxDateRaw.getTime() - minDateRaw.getTime();
+      const marginMs = Math.ceil(diffMs * 0.1); // 10% de marge
+
+      this.minDate = new Date(minDateRaw.getTime() - marginMs);
+      this.maxDate = new Date(maxDateRaw.getTime() + marginMs);
 
       // Calculer le nombre de jours
-      const diffMs = this.maxDate.getTime() - this.minDate.getTime();
-      this.totalDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1;
+      const diffMsAdjusted = this.maxDate.getTime() - this.minDate.getTime();
+      this.totalDays = Math.ceil(diffMsAdjusted / (1000 * 60 * 60 * 24)) + 1;
     }
   }
 
@@ -118,5 +128,12 @@ export class TimelinePopupComponent {
     return `${this.formatDate(this.minDate)} → ${this.formatDate(this.maxDate)} (${
       this.totalDays
     } jours)`;
+  }
+
+  /**
+   * Ferme le dialog
+   */
+  close(): void {
+    this.dialogRef.close();
   }
 }
