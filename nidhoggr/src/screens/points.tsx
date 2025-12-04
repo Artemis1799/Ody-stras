@@ -18,7 +18,7 @@ import { useSQLiteContext } from "expo-sqlite";
 
 import { Ionicons } from "@expo/vector-icons";
 import { EventScreenNavigationProp, Point } from "../../types/types";
-import { getAllWhere, update } from "../../database/queries";
+import { getAllWhere, update, deleteWhere } from "../../database/queries";
 import { Strings } from "../../types/strings";
 import { Header } from "../components/header";
 import { useTheme } from "../utils/ThemeContext";
@@ -127,6 +127,29 @@ export default function PointsScreen() {
     }
   };
 
+  const deletePoint = async (point: Point) => {
+    Alert.alert(
+      "Supprimer le point",
+      `Êtes-vous sûr de vouloir supprimer ${point.Commentaire || `Point ${point.Ordre}`} ?`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteWhere(db, "Point", ["UUID"], [point.UUID]);
+              setPoints((prev) => prev.filter((p) => p.UUID !== point.UUID));
+            } catch (err) {
+              console.error("Erreur lors de la suppression:", err);
+              Alert.alert("Erreur", "Impossible de supprimer le point");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderItem = ({ item, index }: { item: Point; index: number }) => (
     <View style={styles.pointItemContainer}>
       {/*Pour l'instant on désactive les boutons de réordonnancement
@@ -167,10 +190,18 @@ export default function PointsScreen() {
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{item.Ordre}</Text>
         </View>
-        <Text style={styles.pointName}>
+        <Text style={[styles.pointName, { flex: 1 }]}>
           {item.Commentaire || Strings.points.pointLabel(item.Ordre ?? 0)}
         </Text>
-        <Ionicons name="chevron-forward-outline" size={20} color="#000" />
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
+            style={{ padding: 10 }}
+            onPress={() => deletePoint(item)}
+          >
+            <Ionicons name="trash-outline" size={24} color="red" />
+          </TouchableOpacity>
+          <Ionicons name="chevron-forward-outline" size={20} color="#000" />
+        </View>
       </TouchableOpacity>
     </View>
   );
