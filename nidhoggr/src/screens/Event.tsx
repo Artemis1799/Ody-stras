@@ -180,14 +180,6 @@ export default function EventScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {/* Bouton flottant pour import */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => navigation.navigate("ImportEvent")}
-      >
-        <Ionicons name="download" size={28} color="#fff" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
