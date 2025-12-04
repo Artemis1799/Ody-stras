@@ -11,7 +11,6 @@ import { Event } from '../models/eventModel';
 import { Point } from '../models/pointModel';
 import { Geometry } from '../models/geometryModel';
 import { Photo } from '../models/photoModel';
-import { ImagePoint } from '../models/imagePointsModel';
 import { Equipment } from '../models/equipmentModel';
 
 /**
@@ -49,11 +48,8 @@ export class EventExportService {
    * Récupère toutes les données complètes d'un événement
    */
   getCompleteEventData(eventId: string): Observable<EventExportData> {
-    console.log('🔄 Début de la récupération des données pour l\'événement:', eventId);
-
     return this.eventService.getById(eventId).pipe(
       switchMap(event => {
-        console.log('✅ Événement récupéré:', event.name);
 
         return forkJoin({
           event: of(event),
@@ -76,16 +72,9 @@ export class EventExportService {
           }
         };
 
-        console.log('✅ Données complètes assemblées:', {
-          points: exportData.points.length,
-          photos: totalPhotos,
-          geometries: exportData.geometries.length
-        });
-
         return exportData;
       }),
       catchError(error => {
-        console.error('❌ Erreur lors de la récupération des données:', error);
         throw error;
       })
     );
@@ -100,8 +89,6 @@ export class EventExportService {
         if (points.length === 0) {
           return of([]);
         }
-
-        console.log(`📍 ${points.length} points trouvés`);
 
         // Récupérer toutes les photos et relations imagePoints
         return forkJoin({
@@ -126,8 +113,6 @@ export class EventExportService {
                 ? allEquipments.find(e => e.uuid === point.equipmentId)
                 : undefined;
 
-              console.log(`   Point ${point.uuid}: ${pointPhotos.length} photo(s)`);
-
               return {
                 ...point,
                 photos: pointPhotos,
@@ -147,11 +132,9 @@ export class EventExportService {
     return this.geometryService.getAll().pipe(
       map(geometries => {
         const eventGeometries = geometries.filter(g => g.eventId === eventId);
-        console.log(`📐 ${eventGeometries.length} géométries trouvées`);
         return eventGeometries;
       }),
       catchError(() => {
-        console.warn('⚠️ Impossible de charger les géométries');
         return of([]);
       })
     );
