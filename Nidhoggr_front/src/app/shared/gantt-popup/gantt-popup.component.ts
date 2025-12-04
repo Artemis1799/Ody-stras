@@ -1,6 +1,6 @@
 import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { NgxGanttModule, GanttViewType, GANTT_GLOBAL_CONFIG } from '@worktile/gantt';
+import { GANTT_GLOBAL_CONFIG, NgxGanttModule, GanttViewType } from '@worktile/gantt';
 
 @Component({
   selector: 'app-gantt-popup',
@@ -12,8 +12,7 @@ import { NgxGanttModule, GanttViewType, GANTT_GLOBAL_CONFIG } from '@worktile/ga
     {
       provide: GANTT_GLOBAL_CONFIG,
       useValue: {
-        theme: 'default',
-        locale: 'fr',
+        locale: 'en',
       },
     },
   ],

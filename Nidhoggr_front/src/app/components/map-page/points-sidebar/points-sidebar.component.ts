@@ -17,7 +17,7 @@ import { EventCreatePopup } from '../../../shared/event-create-popup/event-creat
 import { EventEditPopup } from '../../../shared/event-edit-popup/event-edit-popup';
 import { PointsListComponent } from './points-list/points-list.component';
 import { MatDialog } from '@angular/material/dialog';
-import { GanttPopupComponent } from '../../../shared/gantt-popup/gantt-popup.component';
+import { TimelinePopupComponent } from '../../../shared/timeline-popup/timeline-popup.component';
 
 @Component({
   selector: 'app-points-sidebar',
@@ -334,41 +334,45 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.mapService.setPoints([]);
     this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
   }
+
   openGantt(): void {
-    const selectedEvent = this.mapService.getSelectedEvent();
-    console.log('called');
+    const selectedEvent = this.selectedEvent || this.mapService.getSelectedEvent();
     if (!selectedEvent) {
-      console.warn("Aucun événement sélectionné — impossible d'afficher le Gantt.");
+      console.warn("Aucun événement sélectionné — impossible d'afficher la frise.");
       return;
     }
 
     this.pointService.getByEventId(selectedEvent.uuid).subscribe({
       next: (points) => {
         if (!points || points.length === 0) {
-          console.warn('Aucun point à afficher dans le Gantt.');
+          console.warn('Aucun point à afficher dans la frise.');
           return;
         }
 
-        // Reproduire le même tri que loadPointsForEvent()
+        // Trier et préparer les items pour la frise
         const withOrder = points
           .filter((p) => p.order !== undefined && p.order !== null)
           .sort((a, b) => (a.order || 0) - (b.order || 0));
 
         const withoutOrder = points.filter((p) => p.order === undefined || p.order === null);
-
         const sortedPoints = [...withOrder, ...withoutOrder];
-        console.log(sortedPoints);
-        // Ouvrir le popup Gantt
-        this.dialog.open(GanttPopupComponent, {
-          width: '900px',
-          height: '80vh',
-          data: {
-            items: sortedPoints, // renommer ici pour matcher ton template
-          },
+
+        const items = sortedPoints.map((p) => ({
+          id: p.uuid,
+          title: p.comment || `Point ${p.uuid}`,
+          start: p.installedAt ? new Date(p.installedAt) : undefined,
+          end: p.removedAt ? new Date(p.removedAt) : undefined,
+        }));
+
+        this.dialog.open(TimelinePopupComponent, {
+          width: '70vw',
+          maxWidth: '1800px',
+          maxHeight: '95vh',
+          data: { items },
         });
       },
       error: (err) => {
-        console.error('Erreur lors du chargement des points :', err);
+        console.error('Erreur lors du chargement des points pour la frise :', err);
       },
     });
   }

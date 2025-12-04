@@ -1,0 +1,65 @@
+<mat-dialog-content class="timeline-container">
+  <div class="timeline-header">
+    <h2>Chronologie des Équipements</h2>
+    <p class="timeline-label">{{ getTimelineLabel() }}</p>
+  </div>
+
+  <div class="timeline-wrapper" *ngIf="timelineItems.length > 0; else noData">
+    <!-- Axe temporel de référence -->
+    <div class="timeline-axis">
+      <div class="axis-start">{{ formatDate(minDate) }}</div>
+      <div class="axis-end">{{ formatDate(maxDate) }}</div>
+    </div>
+
+    <!-- Barres de la frise -->
+    <div class="timeline-items">
+      <div class="timeline-item" *ngFor="let item of timelineItems">
+        <div class="item-label">
+          <span class="item-title">{{ item.title }}</span>
+        </div>
+
+        <div class="item-bar-container">
+          <div class="item-bar-background"></div>
+
+          <!-- Barre de période d'installation -->
+          <div
+            *ngIf="item.start && item.end"
+            class="item-bar"
+            [style.left.%]="getDatePosition(item.start)"
+            [style.width.%]="getDuration(item.start, item.end)"
+            [title]="'Du ' + formatDateTime(item.start) + ' au ' + formatDateTime(item.end)"
+          >
+            <span class="bar-label"
+              >{{ formatDateTime(item.start) }} → {{ formatDateTime(item.end) }}</span
+            >
+          </div>
+
+          <!-- Cas : seulement une date de début -->
+          <div
+            *ngIf="item.start && !item.end"
+            class="item-bar item-bar-start-only"
+            [style.left.%]="getDatePosition(item.start)"
+            [title]="'Démarrage : ' + formatDateTime(item.start)"
+          >
+            <span class="bar-label">À partir du {{ formatDateTime(item.start) }}</span>
+          </div>
+
+          <!-- Cas : pas de dates -->
+          <div *ngIf="!item.start && !item.end" class="item-bar-empty">
+            <span class="bar-label">Aucune date disponible</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noData>
+    <div class="no-data">
+      <p>Aucun point avec dates d'installation disponible.</p>
+    </div>
+  </ng-template>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Fermer</button>
+</mat-dialog-actions>
