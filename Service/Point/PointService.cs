@@ -77,6 +77,8 @@ public class PointService : IPointService
         existing.EquipmentQuantity = point.EquipmentQuantity;
         existing.EquipmentId = point.EquipmentId;
         existing.EventId = point.EventId;
+        existing.InstalledAt = point.InstalledAt;
+        existing.RemovedAt = point.RemovedAt;
 
         await _context.SaveChangesAsync();
         return existing;
