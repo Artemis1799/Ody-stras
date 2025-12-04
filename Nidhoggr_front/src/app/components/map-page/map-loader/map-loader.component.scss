@@ -25,7 +25,6 @@
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    transition: all 0.2s ease;
 
     &.valid {
       background: #4caf50;
@@ -44,7 +43,6 @@
     }
 
     &:hover {
-      transform: scale(1.1);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     }
 
@@ -52,6 +50,7 @@
       color: white;
       font-weight: bold;
       font-size: 12px;
+      transform: rotate(45deg);
     }
   }
 }
