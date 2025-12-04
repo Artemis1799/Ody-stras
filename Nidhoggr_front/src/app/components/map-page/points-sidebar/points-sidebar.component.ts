@@ -14,12 +14,13 @@ import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ExportPopup } from '../../../shared/export-popup/export-popup';
 import { ImportPopup } from '../../../shared/import-popup/import-popup';
 import { EventCreatePopup } from '../../../shared/event-create-popup/event-create-popup';
+import { EventEditPopup } from '../../../shared/event-edit-popup/event-edit-popup';
 import { PointsListComponent } from './points-list/points-list.component';
 
 @Component({
   selector: 'app-points-sidebar',
   standalone: true,
-  imports: [CommonModule, FormsModule, AutoComplete, ExportPopup, ImportPopup, EventCreatePopup, PointsListComponent],
+  imports: [CommonModule, FormsModule, AutoComplete, ExportPopup, ImportPopup, EventCreatePopup, EventEditPopup, PointsListComponent],
   templateUrl: './points-sidebar.component.html',
   styleUrls: ['./points-sidebar.component.scss']
 })
@@ -43,6 +44,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   showExportPopup = false;
   showImportPopup = false;
   showEventCreatePopup = false;
+  showEventEditPopup = false;
   
   // Events autocomplete
   events: Event[] = [];
@@ -297,5 +299,39 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.mapService.setSelectedEvent(event);
     // Charger les points (vide pour un nouvel événement)
     this.loadPointsForEvent(event.uuid);
+  }
+
+  openEventEdit(): void {
+    if (this.selectedEvent) {
+      this.showEventEditPopup = true;
+    }
+  }
+
+  closeEventEdit(): void {
+    this.showEventEditPopup = false;
+  }
+
+  onEventUpdated(updatedEvent: Event): void {
+    // Mettre à jour l'événement dans la liste locale
+    const index = this.events.findIndex(e => e.uuid === updatedEvent.uuid);
+    if (index !== -1) {
+      this.events[index] = updatedEvent;
+    }
+    // Mettre à jour la sélection
+    this.selectedEvent = updatedEvent;
+    this.selectedEventName = updatedEvent.name;
+    this.mapService.setSelectedEvent(updatedEvent);
+  }
+
+  onEventDeleted(eventUuid: string): void {
+    // Retirer l'événement de la liste locale
+    this.events = this.events.filter(e => e.uuid !== eventUuid);
+    // Désélectionner l'événement
+    this.selectedEvent = null;
+    this.selectedEventName = '';
+    this.mapService.setSelectedEvent(null);
+    // Vider les points
+    this.mapService.setPoints([]);
+    this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
   }
 }
