@@ -44,16 +44,14 @@
     }
 
     &:hover {
-      transform: rotate(-45deg) scale(1.1);
+      transform: scale(1.1);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     }
 
     .marker-number {
-      transform: rotate(45deg);
       color: white;
       font-weight: bold;
       font-size: 12px;
-      margin-top: -3px;
     }
   }
 }

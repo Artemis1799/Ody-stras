@@ -30,7 +30,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   selectedPointUuid: string | null = null;
   isLoading = false;
   errorMessage = '';
-  emptyMessage = 'Sélectionnez un événement pour voir ses points';
+  emptyMessage = 'Sélectionnez un évènement pour voir ses points';
   private pointsSubscription?: Subscription;
   
   // Search properties

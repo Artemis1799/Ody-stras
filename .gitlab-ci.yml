@@ -23,9 +23,11 @@ lint_job:
     - cd Nidhoggr_front
     - npm install --legacy-peer-deps
     - npm install @typescript-eslint/parser @typescript-eslint/eslint-plugin
-    - npm run lint -- --format json --output-file lint-report.json
+    - npm install -D eslint-formatter-checkstyle
+    - npm run lint -- --format checkstyle --output-file lint-report.xml
   artifacts:
     paths:
-      - Nidhoggr_front/lint-report.json
+      - Nidhoggr_front/lint-report.xml
+    when: always
   allow_failure: false
-  
+

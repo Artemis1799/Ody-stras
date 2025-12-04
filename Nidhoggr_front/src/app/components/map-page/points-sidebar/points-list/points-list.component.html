@@ -1,10 +1,10 @@
 @if (points$ | async; as points) {
   @if (isLoading) {
-    <div class="loading">Chargement...</div>
+    <div class="loading">Chargement des points...</div>
   } @else if (errorMessage) {
     <div class="error">{{ errorMessage }}</div>
   } @else if (points.length === 0) {
-    <div class="empty-state">{{ emptyMessage }}</div>
+    <div class="empty-state">{{ emptyMessage || 'Aucun point pour le moment' }}</div>
   } @else {
     <div 
       cdkDropList 
@@ -18,6 +18,9 @@
           cdkDrag
           (click)="onPointClick(point)"
         >
+          <div class="point-drag-handle">
+            <span class="drag-icon">⋮⋮</span>
+          </div>
           <div class="point-content">
             <span class="point-order">{{ point.order || i + 1 }}</span>
             <span class="point-name">{{ getPointDisplayName(point) }}</span>
@@ -30,5 +33,5 @@
     </div>
   }
 } @else {
-  <div class="empty-state">{{ emptyMessage }}</div>
+  <div class="empty-state">{{ emptyMessage || 'Aucun point pour le moment' }}</div>
 }

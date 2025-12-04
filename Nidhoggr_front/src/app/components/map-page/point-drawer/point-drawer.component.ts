@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Drawer } from 'primeng/drawer';
 import { InputText } from 'primeng/inputtext';
 import { InputNumber } from 'primeng/inputnumber';
-import { Select } from 'primeng/select';
+import { AutoComplete, AutoCompleteCompleteEvent, AutoCompleteSelectEvent } from 'primeng/autocomplete';
 import { Checkbox } from 'primeng/checkbox';
 import { MapService } from '../../../services/MapService';
 import { PointService } from '../../../services/PointService';
@@ -23,7 +23,7 @@ import { PhotoViewer } from '../../../shared/photo-viewer/photo-viewer';
     Drawer,
     InputText,
     InputNumber,
-    Select,
+    AutoComplete,
     Checkbox,
     PhotoViewer
   ],
@@ -38,6 +38,10 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   equipmentOptions: any[] = []; // Inclut l'option "Aucun" + les équipements
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedEquipment: any | null = null;
+  
+  // AutoComplete pour équipements
+  selectedEquipmentName = '';
+  filteredEquipments: string[] = [];
   
   // Copie locale pour l'édition
   editedComment = '';
@@ -129,9 +133,11 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     // Charger l'équipement actuel si présent
     if (point.equipmentId) {
       this.selectedEquipment = this.equipments.find(e => e.uuid === point.equipmentId) || null;
+      this.selectedEquipmentName = this.selectedEquipment ? this.getEquipmentDisplayName(this.selectedEquipment) : '';
     } else {
       // Si pas d'équipement, sélectionner l'option "Aucun"
-      this.selectedEquipment = this.equipmentOptions.find(e => e.uuid === null) || null;
+      this.selectedEquipment = null;
+      this.selectedEquipmentName = '';
     }
 
     this.visible = true;
@@ -143,6 +149,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     this.visible = false;
     this.selectedPoint = null;
     this.selectedEquipment = null;
+    this.selectedEquipmentName = '';
     this.showPhotoViewer = false;
     
     // Informer le MapService que le drawer est fermé
@@ -155,6 +162,43 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
 
   closePhotoViewer(): void {
     this.showPhotoViewer = false;
+  }
+
+  // Méthode pour filtrer les équipements (AutoComplete)
+  filterEquipments(event: AutoCompleteCompleteEvent): void {
+    const query = event.query.toLowerCase();
+    const equipmentNames = this.equipments.map(e => this.getEquipmentDisplayName(e));
+    
+    if (query) {
+      this.filteredEquipments = equipmentNames.filter(name => 
+        name.toLowerCase().includes(query)
+      );
+    } else {
+      this.filteredEquipments = [...equipmentNames];
+    }
+  }
+
+  // Méthode appelée lors de la sélection d'un équipement (AutoComplete)
+  onEquipmentSelect(event: AutoCompleteSelectEvent): void {
+    const selectedName = event.value;
+    const newEquipment = this.equipments.find(e => this.getEquipmentDisplayName(e) === selectedName) || null;
+    
+    // Si on avait un équipement précédent, on remet sa quantité dans le stock
+    if (this.previousEquipmentId && this.previousEquipmentQuantity > 0) {
+      const previousEquipment = this.equipments.find(e => e.uuid === this.previousEquipmentId);
+      if (previousEquipment && previousEquipment.remainingStock !== undefined) {
+        previousEquipment.remainingStock += this.previousEquipmentQuantity;
+        this.updateEquipmentStock(previousEquipment);
+      }
+    }
+
+    // Réinitialiser la quantité
+    this.editedEquipmentQuantity = 0;
+    this.selectedEquipment = newEquipment;
+
+    // Mettre à jour les valeurs précédentes
+    this.previousEquipmentId = newEquipment?.uuid || null;
+    this.previousEquipmentQuantity = 0;
   }
 
   onEquipmentChange(event: { value: Equipment | null }): void {
