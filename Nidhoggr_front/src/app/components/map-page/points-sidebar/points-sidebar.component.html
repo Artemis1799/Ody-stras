@@ -43,6 +43,9 @@
 
   <div class="bottom-buttons">
     @if (selectedEvent) {
+    <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent">
+      📊 Planning d'installation
+    </button>
     <button class="edit-event-btn" (click)="openEventEdit()">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -60,10 +63,6 @@
       </svg>
       Modifier l'événement
     </button>
-    <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent">
-      📊 Planning d'installation
-    </button>
-
     }
 
     <button class="equipment-btn" (click)="openEventCreate()">Créer un évènement</button>

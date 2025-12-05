@@ -213,6 +213,127 @@
 				box-shadow: 0 8px 24px rgba(239, 68, 68, 0.2);
 			}
 		}
+
+		&.phone {
+			.btn-icon {
+				background: rgba(99, 102, 241, 0.15);
+				color: #6366f1;
+			}
+
+			&:hover {
+				border-color: #6366f1;
+				box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+			}
+		}
+	}
+}
+
+.export-section {
+	margin-bottom: 1.5rem;
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+
+	.section-title {
+		margin: 0 0 0.75rem 0;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #8b949e;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+}
+
+// QR Code Section
+.qrcode-section {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1.5rem;
+	padding: 1rem 0;
+}
+
+.qrcode-container {
+	background: #ffffff;
+	border-radius: 16px;
+	padding: 1rem;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.qrcode-image {
+	display: block;
+	width: 250px;
+	height: 250px;
+	border-radius: 8px;
+}
+
+.qrcode-loading {
+	width: 250px;
+	height: 250px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	color: #333;
+
+	.spinner {
+		width: 40px;
+		height: 40px;
+		border: 3px solid #e0e0e0;
+		border-top-color: #2ad783;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.qrcode-status {
+	text-align: center;
+
+	.status-text {
+		margin: 0;
+		font-size: 1rem;
+		color: #c9d1d9;
+		line-height: 1.5;
+	}
+}
+
+.qrcode-actions {
+	display: flex;
+	gap: 1rem;
+	margin-top: 0.5rem;
+}
+
+.back-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	border-radius: 10px;
+	border: 1px solid #30363d;
+	background: rgba(255, 255, 255, 0.05);
+	color: #c9d1d9;
+	font-size: 0.9rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+
+	svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	&:hover {
+		background: rgba(255, 255, 255, 0.1);
+		border-color: #484f58;
+		color: #fff;
 	}
 }
 
