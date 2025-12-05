@@ -98,6 +98,50 @@
           Stock disponible: {{ getAvailableStock() }}
         </small>
       </div>
+
+      <!-- Dates de pose et dépose -->
+      <div class="form-row dates-section">
+        <div class="date-field">
+          <label for="installedAt">
+            <span class="pi pi-download"></span> Date de pose
+          </label>
+          <input 
+            id="installedAt" 
+            type="datetime-local" 
+            [(ngModel)]="editedInstalledAt"
+            class="w-full date-input"
+          />
+          <button 
+            type="button" 
+            class="clear-date-btn" 
+            *ngIf="editedInstalledAt"
+            (click)="editedInstalledAt = null"
+            title="Effacer la date"
+          >
+            <span class="pi pi-times"></span>
+          </button>
+        </div>
+        <div class="date-field">
+          <label for="removedAt">
+            <span class="pi pi-upload"></span> Date de dépose
+          </label>
+          <input 
+            id="removedAt" 
+            type="datetime-local" 
+            [(ngModel)]="editedRemovedAt"
+            class="w-full date-input"
+          />
+          <button 
+            type="button" 
+            class="clear-date-btn" 
+            *ngIf="editedRemovedAt"
+            (click)="editedRemovedAt = null"
+            title="Effacer la date"
+          >
+            <span class="pi pi-times"></span>
+          </button>
+        </div>
+      </div>
     </div>
   </ng-container>
 
@@ -115,7 +159,7 @@
         <button 
           type="button" 
           class="btn btn-danger"
-          (click)="deletePoint()"
+          (click)="confirmDeletePoint()"
         >
           <span class="pi pi-trash"></span>
           Supprimer
@@ -135,4 +179,14 @@
 
 @if (showPhotoViewer && selectedPoint) {
   <app-photo-viewer [pointId]="selectedPoint.uuid" (close)="closePhotoViewer()"></app-photo-viewer>
+}
+
+@if (showDeleteConfirm && selectedPoint) {
+  <app-delete-popup
+    [title]="'Supprimer le point'"
+    [itemName]="'Point #' + selectedPoint.order"
+    [warningMessage]="'Cette action est irréversible. Le point et toutes ses photos seront supprimés.'"
+    (confirm)="deletePoint()"
+    (close)="cancelDeletePoint()"
+  ></app-delete-popup>
 }

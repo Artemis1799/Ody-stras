@@ -13,6 +13,7 @@ import { Point } from '../../../models/pointModel';
 import { Subscription } from 'rxjs';
 import { Equipment } from '../../../models/equipmentModel';
 import { PhotoViewer } from '../../../shared/photo-viewer/photo-viewer';
+import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
 
 @Component({
   selector: 'app-point-drawer',
@@ -25,7 +26,8 @@ import { PhotoViewer } from '../../../shared/photo-viewer/photo-viewer';
     InputNumber,
     AutoComplete,
     Checkbox,
-    PhotoViewer
+    PhotoViewer,
+    DeletePopupComponent
   ],
   templateUrl: './point-drawer.component.html',
   styleUrls: ['./point-drawer.component.scss']
@@ -47,11 +49,16 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   editedComment = '';
   editedIsValid = false;
   editedEquipmentQuantity = 0;
+  editedInstalledAt: string | null = null;
+  editedRemovedAt: string | null = null;
   previousEquipmentId: string | null = null;
   previousEquipmentQuantity = 0;
 
   // Gestion des photos
   showPhotoViewer = false;
+
+  // Gestion de la confirmation de suppression
+  showDeleteConfirm = false;
 
   private selectedPointSubscription?: Subscription;
   private equipmentsSubscription?: Subscription;
@@ -129,6 +136,10 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     this.editedEquipmentQuantity = point.equipmentQuantity || 0;
     this.previousEquipmentId = point.equipmentId;
     this.previousEquipmentQuantity = point.equipmentQuantity || 0;
+    
+    // Charger les dates de pose/dépose (format datetime-local)
+    this.editedInstalledAt = point.installedAt ? this.formatDateForInput(point.installedAt) : null;
+    this.editedRemovedAt = point.removedAt ? this.formatDateForInput(point.removedAt) : null;
 
     // Charger l'équipement actuel si présent
     if (point.equipmentId) {
@@ -141,6 +152,20 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     }
 
     this.visible = true;
+  }
+  
+  // Convertit une Date en format datetime-local (YYYY-MM-DDTHH:mm)
+  private formatDateForInput(date: Date | string | null): string | null {
+    if (!date) return null;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    // Format: YYYY-MM-DDTHH:mm
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
   closeDrawer(): void {
@@ -246,7 +271,9 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
       comment: this.editedComment,
       isValid: this.editedIsValid,
       equipmentId: this.selectedEquipment?.uuid || null,
-      equipmentQuantity: this.editedEquipmentQuantity
+      equipmentQuantity: this.editedEquipmentQuantity,
+      installedAt: this.editedInstalledAt ? new Date(this.editedInstalledAt) : null,
+      removedAt: this.editedRemovedAt ? new Date(this.editedRemovedAt) : null
     };
 
     // Calculer les changements de stock
@@ -326,12 +353,19 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     return equipment.description || equipment.type || 'Équipement sans nom';
   }
 
+  confirmDeletePoint(): void {
+    if (!this.selectedPoint) return;
+    this.showDeleteConfirm = true;
+  }
+
+  cancelDeletePoint(): void {
+    this.showDeleteConfirm = false;
+  }
+
   deletePoint(): void {
     if (!this.selectedPoint) return;
 
-    if (!confirm(`Voulez-vous vraiment supprimer ce point ?`)) {
-      return;
-    }
+    this.showDeleteConfirm = false;
 
     const pointToDelete = this.selectedPoint;
 

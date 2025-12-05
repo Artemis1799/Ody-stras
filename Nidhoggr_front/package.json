@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": " npm run lint && ng serve",
+    "start": "ng serve",
     "ws-server": "node websocket-server.js",
     "start:full": "concurrently \"npm run ws-server\" \"npm run start\"",
     "extract-tiles": "node tools/extract_tiles.js",
@@ -40,6 +40,7 @@
     "@angular/platform-server": "^20.3.0",
     "@angular/router": "^20.3.13",
     "@angular/ssr": "^20.3.9",
+    "@worktile/gantt": "^20.0.0",
     "better-sqlite3": "^12.4.1",
     "express": "^5.1.0",
     "jspdf": "^3.0.4",
