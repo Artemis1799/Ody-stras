@@ -5,11 +5,12 @@ import { Router } from '@angular/router';
 import { AutoComplete } from 'primeng/autocomplete';
 import { PointService } from '../../../services/PointService';
 import { EventService } from '../../../services/EventService';
+import { GeometryService } from '../../../services/GeometryService';
 import { MapService } from '../../../services/MapService';
 import { NominatimService, NominatimResult } from '../../../services/NominatimService';
 import { Point } from '../../../models/pointModel';
 import { Event } from '../../../models/eventModel';
-import { Subscription, Subject, Observable } from 'rxjs';
+import { Subscription, Subject, Observable, forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ExportPopup } from '../../../shared/export-popup/export-popup';
 import { ImportPopup } from '../../../shared/import-popup/import-popup';
@@ -66,6 +67,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   constructor(
     private pointService: PointService,
     private eventService: EventService,
+    private geometryService: GeometryService,
     private mapService: MapService,
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -150,7 +152,110 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.selectedEventName = selectedEventObj.name;
       // Émettre l'événement sélectionné dans le service pour les autres composants
       this.mapService.setSelectedEvent(selectedEventObj);
-      this.loadPointsForEvent(selectedEventObj.uuid);
+      this.loadPointsAndCenterMap(selectedEventObj.uuid);
+    }
+  }
+
+  /**
+   * Charge les points et géométries de l'événement et centre la carte
+   */
+  loadPointsAndCenterMap(eventId: string): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    // Charger les points et géométries en parallèle
+    forkJoin({
+      points: this.pointService.getByEventId(eventId),
+      geometries: this.geometryService.getByEventId(eventId)
+    }).subscribe({
+      next: ({ points, geometries }) => {
+        // Trier les points
+        const withOrder = points
+          .filter((p) => p.order !== undefined && p.order !== null)
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
+        const withoutOrder = points.filter((p) => p.order === undefined || p.order === null);
+
+        const sortedPoints = [...withOrder, ...withoutOrder];
+        // Utiliser le MapService pour la réactivité avec le map-loader
+        this.mapService.setPoints(sortedPoints);
+        this.emptyMessage = 'Aucun point pour cet événement';
+
+        // Centrer la carte sur les points et géométries
+        this.centerMapOnEventData(sortedPoints, geometries);
+
+        this.isLoading = false;
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error("Erreur lors du chargement des données de l'événement:", error);
+        this.errorMessage = "Impossible de charger les données de l'événement";
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /**
+   * Centre la carte sur les bounds des points et géométries
+   */
+  private centerMapOnEventData(points: Point[], geometries: import('../../../models/geometryModel').Geometry[]): void {
+    const map = this.mapService.getMapInstance();
+    if (!map) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L = (window as any).L;
+    if (!L) return;
+
+    // Collecter toutes les coordonnées
+    const allCoords: [number, number][] = [];
+
+    // Ajouter les coordonnées des points
+    points.forEach(p => {
+      if (p.latitude && p.longitude) {
+        allCoords.push([p.latitude, p.longitude]);
+      }
+    });
+
+    // Ajouter les coordonnées des géométries
+    geometries.forEach(g => {
+      this.extractGeometryCoords(g.geoJson, allCoords);
+    });
+
+    // Si aucune coordonnée, ne rien faire
+    if (allCoords.length === 0) return;
+
+    // Créer les bounds et zoomer dessus
+    const bounds = L.latLngBounds(allCoords);
+    
+    // Ajouter un padding pour ne pas coller aux bords
+    // Prendre en compte la sidebar (300px) et le drawer potentiel (420px)
+    map.fitBounds(bounds, {
+      padding: [50, 50],
+      paddingTopLeft: [350, 50], // Compenser la sidebar
+      paddingBottomRight: [50, 50],
+      maxZoom: 17,
+      animate: true,
+      duration: 0.5
+    });
+  }
+
+  /**
+   * Extrait les coordonnées d'une géométrie GeoJSON
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private extractGeometryCoords(geoJson: any, coords: [number, number][]): void {
+    if (!geoJson) return;
+
+    if (geoJson.type === 'Point') {
+      const c = geoJson.coordinates as [number, number];
+      coords.push([c[1], c[0]]); // GeoJSON est [lng, lat]
+    } else if (geoJson.type === 'LineString') {
+      const lineCoords = geoJson.coordinates as [number, number][];
+      lineCoords.forEach(c => coords.push([c[1], c[0]]));
+    } else if (geoJson.type === 'Polygon') {
+      const polyCoords = geoJson.coordinates as [number, number][][];
+      polyCoords.forEach(ring => ring.forEach(c => coords.push([c[1], c[0]])));
     }
   }
 
