@@ -95,3 +95,11 @@
   (eventDeleted)="onEventDeleted($event)"
 ></app-event-edit-popup>
 }
+
+<app-timeline-popup
+  [timelineItems]="timelineItems"
+  [isVisible]="showTimeline"
+  (pointHovered)="onTimelinePointHovered($event)"
+  (pointHoverEnd)="onTimelinePointHoverEnd()"
+  (closed)="closeTimeline()"
+></app-timeline-popup>

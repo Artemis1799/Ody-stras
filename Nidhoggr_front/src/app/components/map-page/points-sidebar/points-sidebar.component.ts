@@ -17,7 +17,6 @@ import { ImportPopup } from '../../../shared/import-popup/import-popup';
 import { EventCreatePopup } from '../../../shared/event-create-popup/event-create-popup';
 import { EventEditPopup } from '../../../shared/event-edit-popup/event-edit-popup';
 import { PointsListComponent } from './points-list/points-list.component';
-import { MatDialog } from '@angular/material/dialog';
 import { TimelinePopupComponent } from '../../../shared/timeline-popup/timeline-popup.component';
 
 @Component({
@@ -32,6 +31,7 @@ import { TimelinePopupComponent } from '../../../shared/timeline-popup/timeline-
     EventCreatePopup,
     EventEditPopup,
     PointsListComponent,
+    TimelinePopupComponent,
   ],
   templateUrl: './points-sidebar.component.html',
   styleUrls: ['./points-sidebar.component.scss'],
@@ -45,6 +45,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   errorMessage = '';
   emptyMessage = 'Sélectionnez un évènement pour voir ses points';
   private pointsSubscription?: Subscription;
+
+  // Timeline properties
+  timelineItems: Array<{ id: string; title: string; start?: Date; end?: Date }> = [];
+  showTimeline = false;
+  timelinePoints: Point[] = [];
 
   // Search properties
   searchQuery = '';
@@ -71,8 +76,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     private mapService: MapService,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private nominatimService: NominatimService,
-    private dialog: MatDialog
+    private nominatimService: NominatimService
   ) {
     // Initialiser points$ après l'injection de mapService
     this.points$ = this.mapService.points$;
@@ -166,7 +170,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     // Charger les points et géométries en parallèle
     forkJoin({
       points: this.pointService.getByEventId(eventId),
-      geometries: this.geometryService.getByEventId(eventId)
+      geometries: this.geometryService.getByEventId(eventId),
     }).subscribe({
       next: ({ points, geometries }) => {
         // Trier les points
@@ -199,7 +203,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   /**
    * Centre la carte sur les bounds des points et géométries
    */
-  private centerMapOnEventData(points: Point[], geometries: import('../../../models/geometryModel').Geometry[]): void {
+  private centerMapOnEventData(
+    points: Point[],
+    geometries: import('../../../models/geometryModel').Geometry[]
+  ): void {
     const map = this.mapService.getMapInstance();
     if (!map) return;
 
@@ -211,14 +218,14 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     const allCoords: [number, number][] = [];
 
     // Ajouter les coordonnées des points
-    points.forEach(p => {
+    points.forEach((p) => {
       if (p.latitude && p.longitude) {
         allCoords.push([p.latitude, p.longitude]);
       }
     });
 
     // Ajouter les coordonnées des géométries
-    geometries.forEach(g => {
+    geometries.forEach((g) => {
       this.extractGeometryCoords(g.geoJson, allCoords);
     });
 
@@ -227,7 +234,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
     // Créer les bounds et zoomer dessus
     const bounds = L.latLngBounds(allCoords);
-    
+
     // Ajouter un padding pour ne pas coller aux bords
     // Prendre en compte la sidebar (300px) et le drawer potentiel (420px)
     map.fitBounds(bounds, {
@@ -236,7 +243,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       paddingBottomRight: [50, 50],
       maxZoom: 17,
       animate: true,
-      duration: 0.5
+      duration: 0.5,
     });
   }
 
@@ -252,10 +259,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       coords.push([c[1], c[0]]); // GeoJSON est [lng, lat]
     } else if (geoJson.type === 'LineString') {
       const lineCoords = geoJson.coordinates as [number, number][];
-      lineCoords.forEach(c => coords.push([c[1], c[0]]));
+      lineCoords.forEach((c) => coords.push([c[1], c[0]]));
     } else if (geoJson.type === 'Polygon') {
       const polyCoords = geoJson.coordinates as [number, number][][];
-      polyCoords.forEach(ring => ring.forEach(c => coords.push([c[1], c[0]])));
+      polyCoords.forEach((ring) => ring.forEach((c) => coords.push([c[1], c[0]])));
     }
   }
 
@@ -446,13 +453,17 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       console.warn("Aucun événement sélectionné — impossible d'afficher la frise.");
       return;
     }
-
     this.pointService.getByEventId(selectedEvent.uuid).subscribe({
       next: (points) => {
         if (!points || points.length === 0) {
           console.warn('Aucun point à afficher dans la frise.');
           return;
         }
+        if (this.showTimeline == true) {
+          console.log('here');
+        }
+        console.log('here2');
+        this.showTimeline = true;
 
         // Trier et préparer les items pour la frise
         const withOrder = points
@@ -462,23 +473,34 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         const withoutOrder = points.filter((p) => p.order === undefined || p.order === null);
         const sortedPoints = [...withOrder, ...withoutOrder];
 
-        const items = sortedPoints.map((p) => ({
+        this.timelineItems = sortedPoints.map((p) => ({
           id: p.uuid,
           title: p.comment || `Point ${p.uuid}`,
           start: p.installedAt ? new Date(p.installedAt) : undefined,
           end: p.removedAt ? new Date(p.removedAt) : undefined,
         }));
 
-        this.dialog.open(TimelinePopupComponent, {
-          width: '70vw',
-          maxWidth: '1800px',
-          maxHeight: '95vh',
-          data: { items },
-        });
+        this.timelinePoints = sortedPoints;
       },
       error: (err) => {
         console.error('Erreur lors du chargement des points pour la frise :', err);
       },
     });
+  }
+
+  onTimelinePointHovered(pointId: string): void {
+    const hoveredPoint = this.timelinePoints.find((p) => p.uuid === pointId);
+    if (hoveredPoint) {
+      this.mapService.focusOnPoint(hoveredPoint);
+    }
+  }
+
+  onTimelinePointHoverEnd(): void {
+    // Optionnel: réinitialiser le focus de la map
+    // this.mapService.resetFocus();
+  }
+
+  closeTimeline(): void {
+    this.showTimeline = false;
   }
 }

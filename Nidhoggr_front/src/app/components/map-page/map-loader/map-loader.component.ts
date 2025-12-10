@@ -14,9 +14,10 @@ import { PLATFORM_ID, inject } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './map-loader.component.html',
-  styleUrls: ['./map-loader.component.scss']
+  styleUrls: ['./map-loader.component.scss'],
 })
 export class MapLoaderComponent implements AfterViewInit, OnDestroy {
+  private openedPoint: Point | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private map: any | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,6 +28,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private selectedPointSubscription?: Subscription;
   private selectedEventSubscription?: Subscription;
   private geometriesSubscription?: Subscription;
+  private focusPointSubscription?: Subscription;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private drawnItems: any = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,49 +48,53 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     try {
-      if (!isPlatformBrowser(this.platformId)) { return; }
-      
+      if (!isPlatformBrowser(this.platformId)) {
+        return;
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const L: any = (window as any).L;
       const center: [number, number] = [48.5846, 7.7507];
-      
+
       // Limites géographiques basées sur les tuiles téléchargées
       const bounds = L.latLngBounds(
-        L.latLng(48.5130, 7.6380), // Sud-Ouest (MINLAT, MINLON)
-        L.latLng(48.6500, 7.8780)  // Nord-Est (MAXLAT, MAXLON)
+        L.latLng(48.513, 7.638), // Sud-Ouest (MINLAT, MINLON)
+        L.latLng(48.65, 7.878) // Nord-Est (MAXLAT, MAXLON)
       );
-      
+
       // Nettoyer l'ancienne instance si elle existe
       if (this.map && typeof this.map.remove === 'function') {
         this.map.remove();
         this.map = null;
       }
-      
-      this.map = L.map('map', { 
-        center, 
+
+      this.map = L.map('map', {
+        center,
         zoom: 13,
-        minZoom: 13,  
-        maxZoom: 17,    
-        maxBounds: bounds,           
-        maxBoundsViscosity: 1.0      
+        minZoom: 13,
+        maxZoom: 17,
+        maxBounds: bounds,
+        maxBoundsViscosity: 1.0,
       });
-      
+
       // Partager l'instance de map avec le service
       this.mapService.setMapInstance(this.map);
 
       // Charger Leaflet Draw dynamiquement pour éviter les problèmes SSR
-      import('leaflet-draw').then(() => {
-        this.leafletInstance = L;
-        this.initializeDrawControls(L);
-        
-        // S'abonner aux changements d'événement sélectionné
-        this.selectedEventSubscription = this.mapService.selectedEvent$.subscribe(event => {
-          this.selectedEvent = event;
-          this.updateDrawControlState();
+      import('leaflet-draw')
+        .then(() => {
+          this.leafletInstance = L;
+          this.initializeDrawControls(L);
+
+          // S'abonner aux changements d'événement sélectionné
+          this.selectedEventSubscription = this.mapService.selectedEvent$.subscribe((event) => {
+            this.selectedEvent = event;
+            this.updateDrawControlState();
+          });
+        })
+        .catch((err) => {
+          console.error('Erreur lors du chargement de Leaflet Draw:', err);
         });
-      }).catch(err => {
-        console.error('Erreur lors du chargement de Leaflet Draw:', err);
-      });
 
       const probe = async (template: string) => {
         try {
@@ -101,24 +107,29 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       };
 
       const defaultTemplate = '/assets/tiles/tiles/{z}/{x}/{y}.png';
-      
+
       // Nettoyer le localStorage si l'URL contient localhost:8080 ou une URL externe
       const saved = localStorage.getItem('tileUrlTemplate');
-      if (saved && (saved.includes('localhost:8080') || saved.startsWith('http://') || saved.startsWith('https://'))) {
+      if (
+        saved &&
+        (saved.includes('localhost:8080') ||
+          saved.startsWith('http://') ||
+          saved.startsWith('https://'))
+      ) {
         localStorage.removeItem('tileUrlTemplate');
       }
-      
+
       let chosen: string = defaultTemplate;
       (async () => {
         if (!this.map) return;
-        
+
         // Utiliser uniquement les tuiles locales
         chosen = defaultTemplate;
         if (!this.map) return;
-        let tileLayer = L.tileLayer(chosen, { 
+        let tileLayer = L.tileLayer(chosen, {
           minZoom: 13,
-          maxZoom: 17,  
-          attribution: '&copy; Local tiles' 
+          maxZoom: 17,
+          attribution: '&copy; Local tiles',
         }).addTo(this.map);
         const input = document.getElementById('tileUrlInput') as HTMLInputElement | null;
         const btn = document.getElementById('tileTestBtn') as HTMLButtonElement | null;
@@ -130,7 +141,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           btn.onclick = async () => {
             if (!this.map) return;
             const tpl = input.value.trim();
-            if (!tpl) { status.textContent = 'Entrez un template d\'URL.'; return; }
+            if (!tpl) {
+              status.textContent = "Entrez un template d'URL.";
+              return;
+            }
             status.textContent = 'Test en cours...';
             const ok = await probe(tpl);
             if (ok) {
@@ -140,40 +154,49 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
                 } else {
                   if (this.map) {
                     this.map.removeLayer(tileLayer);
-                    tileLayer = L.tileLayer(tpl, { maxZoom: 20, attribution: '&copy; Local tiles' }).addTo(this.map);
+                    tileLayer = L.tileLayer(tpl, {
+                      maxZoom: 20,
+                      attribution: '&copy; Local tiles',
+                    }).addTo(this.map);
                   }
                 }
                 localStorage.setItem('tileUrlTemplate', tpl);
                 status.textContent = 'Template appliqué et sauvegardé.';
               } catch {
-                status.textContent = 'Erreur lors de l\'application du template.';
+                status.textContent = "Erreur lors de l'application du template.";
               }
             } else {
-              status.textContent = 'Le test a échoué (404 ou indisponible). Vérifiez l\'URL dans l\'interface du tile server.';
+              status.textContent =
+                "Le test a échoué (404 ou indisponible). Vérifiez l'URL dans l'interface du tile server.";
             }
           };
         }
       })();
 
       // S'abonner aux changements de points
-      this.pointsSubscription = this.mapService.points$.subscribe(points => {
+      this.pointsSubscription = this.mapService.points$.subscribe((points) => {
         this.updateMarkers(points);
       });
 
       // S'abonner à la sélection de points
-      this.selectedPointSubscription = this.mapService.selectedPoint$.subscribe(point => {
+      this.selectedPointSubscription = this.mapService.selectedPoint$.subscribe((point) => {
         this.highlightMarker(point);
       });
 
+      // S'abonner au focus sur un point (depuis la timeline)
+      this.focusPointSubscription = this.mapService.focusPoint$.subscribe((point) => {
+        this.centerMapOnPoint(point);
+      });
+
       // Forcer Leaflet à recalculer la taille
-      setTimeout(() => { 
+      setTimeout(() => {
         if (this.map && this.map.invalidateSize) {
           this.map.invalidateSize();
         }
       }, 200);
-      
+
       // Recalcul supplémentaire pour s'assurer que la navbar est prise en compte
-      setTimeout(() => { 
+      setTimeout(() => {
         if (this.map && this.map.invalidateSize) {
           this.map.invalidateSize();
         }
@@ -189,7 +212,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     const L: any = (window as any).L;
 
     // Supprimer les anciens markers
-    this.markers.forEach(marker => {
+    this.markers.forEach((marker) => {
       if (this.map) {
         this.map.removeLayer(marker);
       }
@@ -208,8 +231,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
                    </div>`,
             iconSize: [30, 42],
             iconAnchor: [15, 42],
-            popupAnchor: [0, -42]
-          })
+            popupAnchor: [0, -42],
+          }),
         }).addTo(this.map);
 
         // Popup avec informations (ne s'ouvre que manuellement)
@@ -234,11 +257,25 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
   private highlightMarker(point: Point | null): void {
     if (!point) return;
-    
+
     const marker = this.markers.get(point.uuid);
     if (marker) {
+      if (this.openedPoint && this.openedPoint.uuid !== point.uuid) {
+        const openedMarker = this.markers.get(this.openedPoint.uuid);
+        openedMarker.closePopup();
+      }
       marker.openPopup();
+      this.openedPoint = point;
     }
+  }
+
+  private centerMapOnPoint(point: Point): void {
+    if (!this.map || !point.latitude || !point.longitude) return;
+    this.highlightMarker(point);
+    this.map.setView([point.latitude - 0.001, point.longitude], 17, {
+      animate: true,
+      duration: 0.5,
+    });
   }
 
   private getPointDisplayName(point: Point): string {
@@ -251,12 +288,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private onMarkerClick(point: Point): void {
     // Sélectionner le point (ouvrira automatiquement le drawer)
     this.mapService.selectPoint(point);
-    
+
     // Zoomer et centrer sur le point
     if (this.map && point.latitude && point.longitude) {
       this.map.setView([point.latitude, point.longitude], 17, {
         animate: true,
-        duration: 0.5
+        duration: 0.5,
       });
     }
   }
@@ -274,7 +311,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Les contrôles de dessin ne seront ajoutés que si un événement est sélectionné
     // On enregistre seulement les événements ici
-    
+
     // Événement : forme créée
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.map.on(L.Draw.Event.CREATED, (e: any) => {
@@ -314,8 +351,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     // Ajouter le contrôle seulement si un événement est sélectionné
     if (this.selectedEvent) {
       // Couleurs standardisées: lignes en rouge, zones en bleu
-      const LINE_COLOR = '#a91a1a';  // Rouge pour les lignes
-      const ZONE_COLOR = '#3388ff';  // Bleu pour les zones (polygones, cercles)
+      const LINE_COLOR = '#a91a1a'; // Rouge pour les lignes
+      const ZONE_COLOR = '#3388ff'; // Bleu pour les zones (polygones, cercles)
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const drawOptions: any = {
@@ -324,18 +361,18 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           polyline: {
             shapeOptions: {
               color: LINE_COLOR,
-              weight: 4
-            }
+              weight: 4,
+            },
           },
           polygon: {
             allowIntersection: false,
             drawError: {
               color: '#e1e100',
-              message: '<strong>Erreur:</strong> Les bords ne doivent pas se croiser!'
+              message: '<strong>Erreur:</strong> Les bords ne doivent pas se croiser!',
             },
             shapeOptions: {
-              color: ZONE_COLOR
-            }
+              color: ZONE_COLOR,
+            },
           },
           rectangle: false,
           circle: false,
@@ -346,15 +383,15 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
                      </div>`,
               iconSize: [30, 42],
               iconAnchor: [15, 42],
-              popupAnchor: [0, -42]
-            })
+              popupAnchor: [0, -42],
+            }),
           },
-          circlemarker: false
+          circlemarker: false,
         },
         edit: {
           featureGroup: this.drawnItems,
-          remove: true
-        }
+          remove: true,
+        },
       };
 
       this.drawControl = new L.Control.Draw(drawOptions);
@@ -376,7 +413,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Vider la map des géométries
     this.geometryLayers.clear();
-    
+
     // Vider la liste des géométries dans le service
     this.mapService.clearGeometries();
   }
@@ -390,16 +427,16 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       next: (geometries) => {
         // Mettre à jour le MapService avec les géométries chargées
         this.mapService.setGeometries(geometries);
-        
+
         // Afficher les géométries sur la carte
-        geometries.forEach(geometry => {
+        geometries.forEach((geometry) => {
           this.addGeometryToMap(geometry);
         });
       },
       error: (error) => {
         console.error('Erreur lors du chargement des géométries:', error);
         this.mapService.setGeometries([]);
-      }
+      },
     });
   }
 
@@ -422,8 +459,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let layer: any = null;
       // Couleurs standardisées: lignes en rouge, zones en bleu
-      const LINE_COLOR = '#a91a1a';  // Rouge pour les lignes
-      const ZONE_COLOR = '#3388ff';  // Bleu pour les zones
+      const LINE_COLOR = '#a91a1a'; // Rouge pour les lignes
+      const ZONE_COLOR = '#3388ff'; // Bleu pour les zones
 
       switch (geoJson.type) {
         case 'Point': {
@@ -434,27 +471,30 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
               html: `<div class="marker-pin newly-created"></div>`,
               iconSize: [30, 42],
               iconAnchor: [15, 42],
-              popupAnchor: [0, -42]
-            })
+              popupAnchor: [0, -42],
+            }),
           });
           break;
         }
 
         case 'LineString': {
-          const lineCoords = (geoJson.coordinates as [number, number][]).map(c => [c[1], c[0]]);
+          const lineCoords = (geoJson.coordinates as [number, number][]).map((c) => [c[1], c[0]]);
           layer = L.polyline(lineCoords, {
             color: LINE_COLOR,
-            weight: 4
+            weight: 4,
           });
           break;
         }
 
         case 'Polygon': {
-          const polygonCoords = (geoJson.coordinates as [number, number][][])[0].map(c => [c[1], c[0]]);
+          const polygonCoords = (geoJson.coordinates as [number, number][][])[0].map((c) => [
+            c[1],
+            c[0],
+          ]);
           layer = L.polygon(polygonCoords, {
             color: ZONE_COLOR,
             fillOpacity: 0.2,
-            weight: 3
+            weight: 3,
           });
           break;
         }
@@ -465,8 +505,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
             style: {
               color: ZONE_COLOR,
               fillOpacity: 0.2,
-              weight: 3
-            }
+              weight: 3,
+            },
           });
           break;
       }
@@ -485,7 +525,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.makeLayerInteractive(layer);
       }
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de la géométrie à la carte:', error);
+      console.error("Erreur lors de l'ajout de la géométrie à la carte:", error);
     }
   }
 
@@ -495,7 +535,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private onGeometryCreated(e: any): void {
     if (!this.drawnItems || typeof window === 'undefined') return;
-    
+
     // Vérifier qu'un événement est sélectionné
     if (!this.selectedEvent) {
       console.warn('Aucun événement sélectionné - élément non sauvegardé');
@@ -523,30 +563,33 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private saveMarkerAsPoint(layer: any, L: any): void {
     const latlng = layer.getLatLng();
-    
+
     // Mettre à jour l'icône du marker
-    layer.setIcon(L.divIcon({
-      className: 'custom-marker',
-      html: `<div class="marker-pin newly-created"></div>`,
-      iconSize: [30, 42],
-      iconAnchor: [15, 42],
-      popupAnchor: [0, -42]
-    }));
+    layer.setIcon(
+      L.divIcon({
+        className: 'custom-marker',
+        html: `<div class="marker-pin newly-created"></div>`,
+        iconSize: [30, 42],
+        iconAnchor: [15, 42],
+        popupAnchor: [0, -42],
+      })
+    );
 
     // Ajouter au groupe
     this.drawnItems.addLayer(layer);
 
     // Créer le point
-    const currentPoints = this.mapService.getMapInstance() ? 
-      Array.from(this.markers.keys()).length : 0;
-    
+    const currentPoints = this.mapService.getMapInstance()
+      ? Array.from(this.markers.keys()).length
+      : 0;
+
     const pointData: Partial<Point> = {
       eventId: this.selectedEvent!.uuid,
       latitude: latlng.lat,
       longitude: latlng.lng,
       order: currentPoints + 1,
       isValid: false,
-      comment: ' '
+      comment: ' ',
     };
 
     this.pointService.create(pointData).subscribe({
@@ -554,23 +597,23 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         // Associer l'UUID au layer
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (layer as any).pointUuid = point.uuid;
-        
+
         // Ajouter le marker à notre Map de markers
         this.markers.set(point.uuid, layer);
-        
+
         // Mettre à jour les points dans le MapService
         const currentPoints = [...this.mapService['pointsSubject'].value, point];
         this.mapService.setPoints(currentPoints);
-        
+
         // Rendre le marker interactif
         this.makeMarkerInteractive(layer, point);
-        
+
         // Ouvrir le drawer du point créé
         this.mapService.selectPoint(point);
       },
       error: (error) => {
         console.error('Erreur lors de la sauvegarde du point:', error);
-      }
+      },
     });
   }
 
@@ -587,7 +630,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       name: `${type} - ${new Date().toLocaleString()}`,
       color: this.getLayerColor(layer),
       created: new Date(),
-      modified: new Date()
+      modified: new Date(),
     };
 
     // Sauvegarder dans le service avec l'UUID de l'événement sélectionné
@@ -603,10 +646,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           // Associer l'UUID à la couche pour les modifications futures
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (layer as any).geometryUuid = geometry.uuid;
-          
+
           // Ajouter la géométrie à la liste locale
           this.mapService.addGeometry(geometry);
-          
+
           // Rendre la forme sélectionnable après la sauvegarde
           this.makeLayerInteractive(layer);
         },
@@ -614,7 +657,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           console.error('Erreur lors de la sauvegarde de la géométrie:', error);
           // Rendre quand même la forme interactive même en cas d'erreur
           this.makeLayerInteractive(layer);
-        }
+        },
       });
     } else {
       // Si pas de sauvegarde, rendre quand même interactive
@@ -635,7 +678,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const L: any = (window as any).L;
       L.DomEvent.stopPropagation(e);
-      
+
       // Sélectionner le point
       this.mapService.selectPoint(point);
     });
@@ -647,28 +690,30 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private onGeometriesEdited(e: any): void {
     const layers = e.layers;
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     layers.eachLayer((layer: any) => {
       if (layer.geometryUuid) {
         const geoJson = this.geometryService.leafletToGeoJSON(layer);
-        
+
         if (geoJson) {
           const properties: GeometryProperties = {
             color: this.getLayerColor(layer),
-            modified: new Date()
+            modified: new Date(),
           };
 
-          this.geometryService.update(layer.geometryUuid, {
-            geoJson,
-            properties,
-            modified: new Date()
-          }).subscribe({
-            next: () => {},  // Modification réussie
-            error: (error) => {
-              console.error('Erreur lors de la modification:', error);
-            }
-          });
+          this.geometryService
+            .update(layer.geometryUuid, {
+              geoJson,
+              properties,
+              modified: new Date(),
+            })
+            .subscribe({
+              next: () => {}, // Modification réussie
+              error: (error) => {
+                console.error('Erreur lors de la modification:', error);
+              },
+            });
         }
       }
     });
@@ -680,7 +725,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private onGeometriesDeleted(e: any): void {
     const layers = e.layers;
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     layers.eachLayer((layer: any) => {
       if (layer.geometryUuid) {
@@ -692,7 +737,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           },
           error: (error) => {
             console.error('Erreur lors de la suppression:', error);
-          }
+          },
         });
       }
     });
@@ -711,14 +756,14 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       if (typeof window === 'undefined') return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const L: any = (window as any).L;
-      
+
       // Arrêter la propagation pour éviter les conflits
       L.DomEvent.stopPropagation(e);
 
       // Mettre en surbrillance la forme sélectionnée
       this.highlightLayer(layer);
       this.selectedLayer = layer;
-      
+
       // Créer un popup avec option de suppression
       const popupContent = `
         <div class="geometry-popup" style="text-align: center;">
@@ -733,11 +778,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // Créer et ouvrir le popup
       if (layer.bindPopup) {
         layer.bindPopup(popupContent).openPopup();
-        
+
         // Attacher l'événement au bouton après l'ouverture du popup
         setTimeout(() => {
           const deleteBtn = document.getElementById('delete-geometry-btn');
-          
+
           if (deleteBtn) {
             deleteBtn.onclick = (event) => {
               event.stopPropagation();
@@ -752,7 +797,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     layer.on('mouseover', () => {
       if (layer.setStyle && this.selectedLayer !== layer) {
         layer.setStyle({
-          weight: 5
+          weight: 5,
         });
       }
     });
@@ -764,7 +809,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         const L: any = (window as any).L;
         const isLine = layer instanceof L.Polyline && !(layer instanceof L.Polygon);
         layer.setStyle({
-          weight: isLine ? 4 : 3
+          weight: isLine ? 4 : 3,
         });
       }
     });
@@ -776,7 +821,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private highlightLayer(layer: any): void {
     if (!this.drawnItems || typeof window === 'undefined') return;
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const L: any = (window as any).L;
 
@@ -787,7 +832,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         // Restaurer l'épaisseur normale
         const isLine = l instanceof L.Polyline && !(l instanceof L.Polygon);
         l.setStyle({
-          weight: isLine ? 4 : 3
+          weight: isLine ? 4 : 3,
         });
       }
     });
@@ -795,7 +840,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     // Épaissir légèrement la couche sélectionnée
     if (layer.setStyle) {
       layer.setStyle({
-        weight: 6
+        weight: 6,
       });
     }
   }
@@ -806,20 +851,20 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private deleteGeometry(layer: any): void {
     if (!layer) return;
-    
+
     const confirmed = confirm('Voulez-vous vraiment supprimer cet élément géométrique ?');
-    
+
     if (confirmed) {
       // Fermer le popup
       if (layer.closePopup) {
         layer.closePopup();
       }
-      
+
       // Supprimer du groupe
       if (this.drawnItems) {
         this.drawnItems.removeLayer(layer);
       }
-      
+
       // Supprimer de la base de données si sauvegardé
       if (layer.geometryUuid) {
         this.geometryService.delete(layer.geometryUuid).subscribe({
@@ -829,10 +874,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           },
           error: (error) => {
             console.error('Erreur lors de la suppression:', error);
-          }
+          },
         });
       }
-      
+
       // Réinitialiser la sélection
       this.selectedLayer = null;
     }
@@ -863,9 +908,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     if (this.geometriesSubscription) {
       this.geometriesSubscription.unsubscribe();
     }
+    if (this.focusPointSubscription) {
+      this.focusPointSubscription.unsubscribe();
+    }
 
     // Nettoyer les markers
-    this.markers.forEach(marker => {
+    this.markers.forEach((marker) => {
       if (this.map) {
         this.map.removeLayer(marker);
       }
