@@ -67,6 +67,6 @@ export const Strings = {
     accessApplication: "Entrer dans l'application",
     skipIntro: "Passer l'intro",
     welcomeTitle: "Bienvenue",
-    welcomeSubtitle: "Capitale de l’Europe",
+    welcomeSubtitle: "Strasbourg\nCapitale de l'Europe",
   },
 };
