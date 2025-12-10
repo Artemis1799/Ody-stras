@@ -360,6 +360,7 @@ function handleEventExport(data, ws) {
   console.log('   Événement:', data.event?.name || 'Sans nom');
   console.log('   Points:', data.points?.length || 0);
   console.log('   Géométries:', data.geometries?.length || 0);
+  console.log('   Équipements:', data.equipments?.length || 0);
 
   let clientsSent = 0;
 
@@ -416,6 +417,14 @@ function handleEventExport(data, ws) {
       geoJson: geom.geoJson,
       properties: geom.properties
     })),
+    equipments: (data.equipments || []).map(equip => ({
+      uuid: equip.uuid,
+      type: equip.type,
+      description: equip.description,
+      unit: equip.unit,
+      totalStock: equip.totalStock || 0,
+      remainingStock: equip.remainingStock || 0
+    })),
     metadata: {
       exportDate: new Date().toISOString(),
       version: '1.0'
@@ -438,7 +447,8 @@ function handleEventExport(data, ws) {
     summary: {
       points: data.points?.length || 0,
       photos: data.points?.reduce((sum, p) => sum + (p.photos?.length || 0), 0) || 0,
-      geometries: data.geometries?.length || 0
+      geometries: data.geometries?.length || 0,
+      equipments: data.equipments?.length || 0
     }
   }));
 }
