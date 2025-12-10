@@ -71,30 +71,6 @@ export async function setupDatabase(db: SQLiteDatabase) {
     FOREIGN KEY(EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
   );
 `);
-
-  const rows: { count: number }[] = await db.getAllAsync(
-    "SELECT COUNT(*) AS count FROM Equipement"
-  );
-
-  if (rows[0].count === 0) {
-    console.log("Insertion des équipements par défaut…");
-
-    await db.execAsync(`
-      INSERT INTO Equipement (UUID, Type, Description, Unite, Stock_total, Stock_restant)
-      VALUES
-        ('f50252ce-31bb-4c8b-a70c-51b7bb630bc3', 'Aucun', 'Aucun', 'U', 0, 0),
-        ('21ddc970-e5eb-4105-830b-80e1161eea72', 'Glissières béton armé (GBA)', '60 cm de large – Longueur de 2 mètres ou 1 mètre', 'U', 0, 0),
-        ('1ce53d08-b85a-4fb0-8e0b-dfba5b2fb17b', 'Blocs de béton', 'Bloc de taille 0,6m x 0,6m x 1m ou 0,6m x 0,6m x 2,5m', 'U', 0, 0),
-        ('60655695-a8ec-4e88-8d9f-0c770cb84a1a', 'Barrières Vauban', 'Barrières de 2 mètres', 'U', 0, 0),
-        ('7f05e6b6-1bb9-4c9a-bd4a-04aaba995cd1', 'Barrières Héras', 'Barrières de 3,5 mètres', 'U', 0, 0),
-        ('d712a245-2786-4696-8788-96c9a705eb0b', 'Obstacles', 'Existent avec un voile d’occultation', 'U', 0, 0),
-        ('c464a420-df26-478d-bdb8-e3c9301afab9', 'Engins de blocage', 'Engins routiers et matériels, ensembles mobiles pour permettre le passage des secours, utilisés pour bloquer les rues.', 'U', 0, 0)
-    `);
-
-    console.log("Équipements insérés !");
-  } else {
-    console.log("Équipements déjà présents.");
-  }
   console.log("Base initialisée !");
 }
 
