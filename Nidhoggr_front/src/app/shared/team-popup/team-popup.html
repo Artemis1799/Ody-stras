@@ -76,13 +76,13 @@
           Membres de l'équipe
         </label>
         <div class="members-selector">
-          @if (allMembers.length === 0) {
+          @if (sortedMembers.length === 0) {
             <div class="no-members-message">
               Aucun membre disponible. Créez d'abord des personnes.
             </div>
           } @else {
             <div class="members-list">
-              @for (member of allMembers; track member.uuid) {
+              @for (member of sortedMembers; track member.uuid) {
                 <div 
                   class="member-item" 
                   [class.selected]="isMemberSelected(member)"

@@ -22,6 +22,13 @@ export class TeamPopupComponent {
   @Input() allMembers: Member[] = [];
   @Input() selectedMembers: Member[] = [];
   
+  get sortedMembers(): Member[] {
+    return [...this.allMembers].sort((a, b) => {
+      const firstNameCompare = a.firstName.localeCompare(b.firstName, 'fr');
+      return firstNameCompare !== 0 ? firstNameCompare : a.name.localeCompare(b.name, 'fr');
+    });
+  }
+  
   @Output() selectedMembersChange = new EventEmitter<Member[]>();
   @Output() save = new EventEmitter<TeamFormData>();
   @Output() close = new EventEmitter<void>();

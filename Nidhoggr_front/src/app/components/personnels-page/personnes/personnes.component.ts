@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MemberService } from '../../../services/MemberService';
@@ -16,8 +16,13 @@ import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup'
 export class PersonnesComponent implements OnInit {
   private memberService = inject(MemberService);
   
-  // Accès direct aux signals du service
-  members = this.memberService.members;
+  // Signal calculé pour trier les membres par ordre alphabétique
+  members = computed(() => 
+    [...this.memberService.members()].sort((a, b) => {
+      const firstNameCompare = a.firstName.localeCompare(b.firstName, 'fr');
+      return firstNameCompare !== 0 ? firstNameCompare : a.name.localeCompare(b.name, 'fr');
+    })
+  );
   isLoading = this.memberService.loading;
   
   // État local avec signals

@@ -39,7 +39,12 @@ export class GroupesComponent implements OnInit {
         .filter((tm: TeamMember) => tm.teamId === team.uuid)
         .map((tm: TeamMember) => tm.memberId);
       
-      const teamMembersList = members.filter(m => memberIds.includes(m.uuid));
+      const teamMembersList = members
+        .filter(m => memberIds.includes(m.uuid))
+        .sort((a, b) => {
+          const firstNameCompare = a.firstName.localeCompare(b.firstName, 'fr');
+          return firstNameCompare !== 0 ? firstNameCompare : a.name.localeCompare(b.name, 'fr');
+        });
       
       return {
         ...team,
@@ -48,7 +53,12 @@ export class GroupesComponent implements OnInit {
     });
   });
   
-  readonly allMembers = computed(() => this.memberService.members());
+  readonly allMembers = computed(() => 
+    [...this.memberService.members()].sort((a, b) => {
+      const firstNameCompare = a.firstName.localeCompare(b.firstName, 'fr');
+      return firstNameCompare !== 0 ? firstNameCompare : a.name.localeCompare(b.name, 'fr');
+    })
+  );
   
   readonly isLoading = computed(() => 
     this.teamService.loading() || 
