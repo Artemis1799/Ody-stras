@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using t5_back.Data;
 
@@ -10,9 +11,11 @@ using t5_back.Data;
 namespace t5_back.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251203102618_RemoveNotMappedFromNavigationProperties")]
+    partial class RemoveNotMappedFromNavigationProperties
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -209,9 +212,6 @@ namespace t5_back.Migrations
                     b.Property<Guid?>("ImageId")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("InstalledAt")
-                        .HasColumnType("TEXT");
-
                     b.Property<bool>("IsValid")
                         .HasColumnType("INTEGER");
 
@@ -226,9 +226,6 @@ namespace t5_back.Migrations
 
                     b.Property<int?>("Order")
                         .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("RemovedAt")
-                        .HasColumnType("TEXT");
 
                     b.HasKey("UUID");
 

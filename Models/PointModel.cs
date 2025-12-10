@@ -32,9 +32,12 @@ public class Point
     
     public DateTime Modified { get; set; } = DateTime.UtcNow;
 
-	public int EquipmentQuantity { get; set; } = 0;
+    public int EquipmentQuantity { get; set; } = 0;
     
-    [JsonIgnore]
+    public DateTime? InstalledAt { get; set; }
+    
+    public DateTime? RemovedAt { get; set; }
+    
     [ForeignKey("EventId")]
     [NotMapped]
     [JsonIgnore]
