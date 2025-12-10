@@ -14,7 +14,7 @@ import {
   Photos,
 } from "../../types/types";
 import { useSQLiteContext } from "expo-sqlite";
-import { getPointsForEvent, getPhotosForPoint } from "../../database/queries";
+import { getPointsForEvent, getPhotosForPoint, flushDatabase } from "../../database/queries";
 import { useEffect, useState, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
@@ -234,7 +234,7 @@ export default function ExportEventScreen() {
           );
         };
 
-        ws.onmessage = (event) => {
+        ws.onmessage = async (event) => {
           // Vérifier si c'est l'ACK final
           if (event.data.includes("complete") || event.data.includes("reçu")) {
             setSendStatus("Transfert terminé");
@@ -243,6 +243,10 @@ export default function ExportEventScreen() {
               duration: 300,
               useNativeDriver: false,
             }).start();
+
+            // Flush database on success
+            await flushDatabase(db);
+
             resolve();
           }
         };
@@ -358,24 +362,24 @@ export default function ExportEventScreen() {
                 isSending
                   ? "cloud-upload"
                   : sendStatus === "Transfert terminé"
-                  ? "checkmark-circle"
-                  : "alert-circle"
+                    ? "checkmark-circle"
+                    : "alert-circle"
               }
               size={60}
               color={
                 isSending
                   ? "#0E47A1"
                   : sendStatus === "Transfert terminé"
-                  ? "#43A047"
-                  : "#E53935"
+                    ? "#43A047"
+                    : "#E53935"
               }
             />
             <Text style={styles.headerTitle}>
               {isSending
                 ? Strings.exportEvent.exportInProgress
                 : sendStatus === Strings.exportEvent.transferComplete
-                ? Strings.exportEvent.exportSuccess
-                : Strings.exportEvent.export}
+                  ? Strings.exportEvent.exportSuccess
+                  : Strings.exportEvent.export}
             </Text>
           </View>
 
