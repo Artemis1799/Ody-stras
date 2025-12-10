@@ -141,6 +141,7 @@ jest.mock("../../../database/queries", () => ({
   getAll: jest.fn(() => Promise.resolve([])),
   getAllWhere: jest.fn(() => Promise.resolve([])),
   insert: jest.fn(() => Promise.resolve()),
+  insertOrReplace: jest.fn(() => Promise.resolve()),
   update: jest.fn(() => Promise.resolve()),
   deleteWhere: jest.fn(() => Promise.resolve()),
   getPointsForEvent: jest.fn(() => Promise.resolve([])),
@@ -156,6 +157,7 @@ import { MapScreen } from "../map";
 import PointsScreen from "../points";
 import { PointPhotosScreen } from "../pointPhotos";
 import ExportEventScreen from "../exportEvent";
+import ImportEventScreen from "../importEvent";
 import SimulateScreen from "../simulateScreen";
 import * as Queries from "../../../database/queries";
 import HomeScreen from "../HomeScreen";
@@ -183,7 +185,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
     global.alert = jest.fn(); // STUB: Remplace l'alerte par une fonction vide
     // Mock Alert.alert
     // SPY & STUB: On espionne Alert.alert et on remplace son implémentation pour ne rien faire
-    jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    jest.spyOn(Alert, "alert").mockImplementation(() => { });
   });
 
   // -------------------------------------------------------------------------
@@ -992,69 +994,222 @@ describe("Project Tests - Arrange-Act-Assert", () => {
   //                 Test 31 affichage et suppression d'un bouton             //
   // -------------------------------------------------------------------------//
 
-describe("Tests personnalisés points", () => {
-  test("Affichage des points", async () => {
-    (Queries.getAllWhere as jest.Mock).mockResolvedValue([
-      { UUID: "p1", Type: "Poteau", Ordre: 1, Commentaire: "Poteau" },
-      { UUID: "p2", Type: "Armoire", Ordre: 2, Commentaire: "Armoire" },
-    ]);
-    let tree: ReactTestRenderer | undefined;
-    await act(async () => {
-      tree = renderer.create(<PointsScreen />);
+  describe("Tests personnalisés points", () => {
+    test("Affichage des points", async () => {
+      (Queries.getAllWhere as jest.Mock).mockResolvedValue([
+        { UUID: "p1", Type: "Poteau", Ordre: 1, Commentaire: "Poteau" },
+        { UUID: "p2", Type: "Armoire", Ordre: 2, Commentaire: "Armoire" },
+      ]);
+      let tree: ReactTestRenderer | undefined;
+      await act(async () => {
+        tree = renderer.create(<PointsScreen />);
+      });
+      // Vérifie que la fonction de récupération est appelée
+      expect(Queries.getAllWhere).toHaveBeenCalled();
+      // Vérifie que les points sont affichés via le commentaire
+      const texts = tree!.root.findAllByType(Text);
+      expect(texts.some((t) => t.props.children === "Poteau")).toBe(true);
+      expect(texts.some((t) => t.props.children === "Armoire")).toBe(true);
     });
-    // Vérifie que la fonction de récupération est appelée
-    expect(Queries.getAllWhere).toHaveBeenCalled();
-    // Vérifie que les points sont affichés via le commentaire
-    const texts = tree!.root.findAllByType(Text);
-    expect(texts.some((t) => t.props.children === "Poteau")).toBe(true);
-    expect(texts.some((t) => t.props.children === "Armoire")).toBe(true);
-  });
 
-  test("Suppression d'un point", async () => {
-    // Mock Alert.alert pour capturer l'appel et simuler le clic sur "Supprimer"
-    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(
-      (title: any, message: any, buttons: any) => {
-        // Simule le clic sur le bouton "Supprimer" (le deuxième bouton)
-        if (buttons && buttons[1] && buttons[1].onPress) {
-          buttons[1].onPress();
+    test("Suppression d'un point", async () => {
+      // Mock Alert.alert pour capturer l'appel et simuler le clic sur "Supprimer"
+      const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(
+        (title: any, message: any, buttons: any) => {
+          // Simule le clic sur le bouton "Supprimer" (le deuxième bouton)
+          if (buttons && buttons[1] && buttons[1].onPress) {
+            buttons[1].onPress();
+          }
         }
-      }
-    );
+      );
 
-    (Queries.getAllWhere as jest.Mock).mockResolvedValue([
-      { UUID: "p1", Type: "Poteau", Ordre: 1, Commentaire: "Poteau" },
-    ]);
-    let tree: ReactTestRenderer | undefined;
-    await act(async () => {
-      tree = renderer.create(<PointsScreen />);
+      (Queries.getAllWhere as jest.Mock).mockResolvedValue([
+        { UUID: "p1", Type: "Poteau", Ordre: 1, Commentaire: "Poteau" },
+      ]);
+      let tree: ReactTestRenderer | undefined;
+      await act(async () => {
+        tree = renderer.create(<PointsScreen />);
+      });
+
+      // On cherche tous les TouchableOpacity et on prend celui avec padding: 10 (bouton trash)
+      const allTouchables = tree!.root.findAllByType(TouchableOpacity);
+      // Le bouton trash a un style { padding: 10 } dans points.tsx
+      const trashButton = allTouchables.find((t) => {
+        const style = t.props.style;
+        return style && style.padding === 10;
+      });
+
+      expect(trashButton).toBeDefined();
+
+      await act(async () => {
+        trashButton!.props.onPress();
+      });
+
+      // Vérifie que Alert.alert a été appelé
+      expect(alertSpy).toHaveBeenCalled();
+
+      // Vérifie que la suppression est appelée
+      expect(Queries.deleteWhere).toHaveBeenCalledWith(
+        expect.anything(),
+        "Point",
+        ["UUID"],
+        ["p1"]
+      );
+
+      alertSpy.mockRestore();
     });
-
-    // On cherche tous les TouchableOpacity et on prend celui avec padding: 10 (bouton trash)
-    const allTouchables = tree!.root.findAllByType(TouchableOpacity);
-    // Le bouton trash a un style { padding: 10 } dans points.tsx
-    const trashButton = allTouchables.find((t) => {
-      const style = t.props.style;
-      return style && style.padding === 10;
-    });
-
-    expect(trashButton).toBeDefined();
-
-    await act(async () => {
-      trashButton!.props.onPress();
-    });
-
-    // Vérifie que Alert.alert a été appelé
-    expect(alertSpy).toHaveBeenCalled();
-
-    // Vérifie que la suppression est appelée
-    expect(Queries.deleteWhere).toHaveBeenCalledWith(
-      expect.anything(),
-      "Point",
-      ["UUID"],
-      ["p1"]
-    );
-
-    alertSpy.mockRestore();
   });
-});
+
+  // -------------------------------------------------------------------------
+  // 11. ImportEventScreen (Tests 32-33)
+  // -------------------------------------------------------------------------
+  describe("ImportEventScreen", () => {
+    let mockWebSocket: any;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      mockWebSocket = {
+        onopen: null,
+        onmessage: null,
+        onerror: null,
+        onclose: null,
+        send: jest.fn(),
+        close: jest.fn(),
+        readyState: 1,
+      };
+      // @ts-ignore
+      global.WebSocket = jest.fn(() => mockWebSocket);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    test("Test 32: Scan QR Code et Connexion WebSocket", async () => {
+      // Arrange
+      let tree: ReactTestRenderer | undefined;
+      await act(async () => {
+        tree = renderer.create(<ImportEventScreen />);
+      });
+
+      // Act - Simulate QR Scan
+      const camera = tree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        if (camera.props.onBarcodeScanned) {
+          camera.props.onBarcodeScanned({ data: "ws://test.local:8080" });
+        }
+      });
+
+      // Assert - WebSocket Connection
+      expect(global.WebSocket).toHaveBeenCalledWith("ws://test.local:8080");
+
+      // Act - Simulate WebSocket Open
+      await act(async () => {
+        if (mockWebSocket.onopen) {
+          mockWebSocket.onopen();
+        }
+      });
+
+      // Assert - Request sent
+      expect(mockWebSocket.send).toHaveBeenCalledWith(
+        expect.stringContaining('"type":"import_request"')
+      );
+    });
+
+    test("Test 33: Réception et Traitement des données (Event + Equipments)", async () => {
+      // Arrange
+      let tree: ReactTestRenderer | undefined;
+      await act(async () => {
+        tree = renderer.create(<ImportEventScreen />);
+      });
+
+      // Connect first
+      const camera = tree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        camera.props.onBarcodeScanned({ data: "ws://test.local:8080" });
+      });
+      await act(async () => {
+        if (mockWebSocket.onopen) mockWebSocket.onopen();
+      });
+
+      // Prepare Data
+      const eventData = {
+        type: "event_data",
+        event: {
+          uuid: "evt-1",
+          name: "Test Event",
+          description: "Desc",
+          startDate: "2025-01-01",
+          status: 1,
+          responsable: "Resp",
+        },
+        points: [
+          {
+            uuid: "pt-1",
+            eventId: "evt-1",
+            photos: [],
+            equipment: { uuid: "eq-1", type: "Type1", totalStock: 10 },
+          },
+        ],
+        geometries: [],
+        equipments: [
+          { uuid: "eq-2", type: "Type2", totalStock: 5 },
+        ],
+        metadata: { exportDate: "2025", version: "1.0" },
+      };
+
+      // Act - Receive Data
+      await act(async () => {
+        if (mockWebSocket.onmessage) {
+          await mockWebSocket.onmessage({ data: JSON.stringify(eventData) });
+        }
+      });
+
+      // Assert - Database Operations
+      // 1. Delete existing
+      expect(Queries.deleteWhere).toHaveBeenCalledWith(
+        expect.anything(),
+        "Evenement",
+        ["UUID"],
+        ["evt-1"]
+      );
+
+      // 2. Insert Event
+      expect(Queries.insertOrReplace).toHaveBeenCalledWith(
+        expect.anything(),
+        "Evenement",
+        expect.objectContaining({ UUID: "evt-1", Nom: "Test Event" })
+      );
+
+      // 3. Insert Equipments (Both from list and points)
+      // eq-1 from point
+      expect(Queries.insertOrReplace).toHaveBeenCalledWith(
+        expect.anything(),
+        "Equipement",
+        expect.objectContaining({ UUID: "eq-1" })
+      );
+      // eq-2 from list
+      expect(Queries.insertOrReplace).toHaveBeenCalledWith(
+        expect.anything(),
+        "Equipement",
+        expect.objectContaining({ UUID: "eq-2" })
+      );
+
+      // 4. Insert Point
+      expect(Queries.insertOrReplace).toHaveBeenCalledWith(
+        expect.anything(),
+        "Point",
+        expect.objectContaining({ UUID: "pt-1" })
+      );
+
+      // 5. ACK sent
+      expect(mockWebSocket.send).toHaveBeenCalledWith(
+        expect.stringContaining('"type":"import_complete"')
+      );
+
+      // Advance timers to trigger close
+      jest.advanceTimersByTime(500);
+      expect(mockWebSocket.close).toHaveBeenCalled();
+    });
+  });
 });
