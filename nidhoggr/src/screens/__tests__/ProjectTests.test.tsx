@@ -988,4 +988,73 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       jest.useRealTimers();
     });
   });
+  // -------------------------------------------------------------------------//
+  //                 Test 31 affichage et suppression d'un bouton             //
+  // -------------------------------------------------------------------------//
+
+describe("Tests personnalisés points", () => {
+  test("Affichage des points", async () => {
+    (Queries.getAllWhere as jest.Mock).mockResolvedValue([
+      { UUID: "p1", Type: "Poteau", Ordre: 1, Commentaire: "Poteau" },
+      { UUID: "p2", Type: "Armoire", Ordre: 2, Commentaire: "Armoire" },
+    ]);
+    let tree: ReactTestRenderer | undefined;
+    await act(async () => {
+      tree = renderer.create(<PointsScreen />);
+    });
+    // Vérifie que la fonction de récupération est appelée
+    expect(Queries.getAllWhere).toHaveBeenCalled();
+    // Vérifie que les points sont affichés via le commentaire
+    const texts = tree!.root.findAllByType(Text);
+    expect(texts.some((t) => t.props.children === "Poteau")).toBe(true);
+    expect(texts.some((t) => t.props.children === "Armoire")).toBe(true);
+  });
+
+  test("Suppression d'un point", async () => {
+    // Mock Alert.alert pour capturer l'appel et simuler le clic sur "Supprimer"
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(
+      (title: any, message: any, buttons: any) => {
+        // Simule le clic sur le bouton "Supprimer" (le deuxième bouton)
+        if (buttons && buttons[1] && buttons[1].onPress) {
+          buttons[1].onPress();
+        }
+      }
+    );
+
+    (Queries.getAllWhere as jest.Mock).mockResolvedValue([
+      { UUID: "p1", Type: "Poteau", Ordre: 1, Commentaire: "Poteau" },
+    ]);
+    let tree: ReactTestRenderer | undefined;
+    await act(async () => {
+      tree = renderer.create(<PointsScreen />);
+    });
+
+    // On cherche tous les TouchableOpacity et on prend celui avec padding: 10 (bouton trash)
+    const allTouchables = tree!.root.findAllByType(TouchableOpacity);
+    // Le bouton trash a un style { padding: 10 } dans points.tsx
+    const trashButton = allTouchables.find((t) => {
+      const style = t.props.style;
+      return style && style.padding === 10;
+    });
+
+    expect(trashButton).toBeDefined();
+
+    await act(async () => {
+      trashButton!.props.onPress();
+    });
+
+    // Vérifie que Alert.alert a été appelé
+    expect(alertSpy).toHaveBeenCalled();
+
+    // Vérifie que la suppression est appelée
+    expect(Queries.deleteWhere).toHaveBeenCalledWith(
+      expect.anything(),
+      "Point",
+      ["UUID"],
+      ["p1"]
+    );
+
+    alertSpy.mockRestore();
+  });
+});
 });
