@@ -73,6 +73,7 @@ interface EventDataMessage {
     event: ImportedEvent;
     points: ImportedPoint[];
     geometries: ImportedGeometry[];
+    equipments?: ImportedEquipment[];
     metadata: {
         exportDate: string;
         version: string;
@@ -109,6 +110,7 @@ export default function ImportEventScreen() {
 
     const progressAnim = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
+    const isProcessing = useRef(false);
 
     useEffect(() => {
         if (!permission?.granted) {
@@ -260,7 +262,7 @@ export default function ImportEventScreen() {
 
     // Traiter les données de l'événement complet
     const processEventData = async (data: EventDataMessage) => {
-        const { event, points, geometries } = data;
+        const { event, points, geometries, equipments } = data;
 
         // Calculer les totaux
         const totalPhotos = points.reduce((acc, p) => acc + p.photos.length, 0);
@@ -285,6 +287,15 @@ export default function ImportEventScreen() {
 
             // 2. Collecter et sauvegarder les équipements uniques
             const equipmentMap = new Map<string, ImportedEquipment>();
+
+            // Ajouter les équipements de la liste principale
+            if (equipments) {
+                for (const equipment of equipments) {
+                    equipmentMap.set(equipment.uuid, equipment);
+                }
+            }
+
+            // Ajouter les équipements liés aux points
             for (const point of points) {
                 if (point.equipment) {
                     equipmentMap.set(point.equipment.uuid, point.equipment);
@@ -292,7 +303,7 @@ export default function ImportEventScreen() {
             }
 
             setReceiveStatus("Sauvegarde des équipements...");
-            for (const equipment of equipmentMap.values()) {
+            for (const equipment of Array.from(equipmentMap.values())) {
                 await saveEquipmentToDatabase(equipment);
             }
 
@@ -358,6 +369,7 @@ export default function ImportEventScreen() {
             totalGeometries: 0,
         });
         setImportedEvent(null);
+        isProcessing.current = false;
 
         try {
             const ws = new WebSocket(wsUrl);
@@ -387,10 +399,15 @@ export default function ImportEventScreen() {
 
                         const message: WebSocketMessage = JSON.parse(wsEvent.data);
                         console.log("Message reçu:", message.type);
-                        console.log("JSON complet reçu:", JSON.stringify(message, null, 2));
+                        // console.log("JSON complet reçu:", JSON.stringify(message, null, 2));
 
                         switch (message.type) {
                             case "event_data":
+                                if (isProcessing.current) {
+                                    console.log("Traitement déjà en cours, message ignoré.");
+                                    return;
+                                }
+                                isProcessing.current = true;
                                 setReceiveStatus("Traitement des données...");
                                 await processEventData(message);
 

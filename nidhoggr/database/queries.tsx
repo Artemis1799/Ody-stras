@@ -156,3 +156,18 @@ export async function deleteWhere(
     return 0;
   }
 }
+
+export async function flushDatabase(db: SQLiteDatabase): Promise<void> {
+  try {
+    console.log("Flushing database...");
+    await db.runAsync("DELETE FROM Image_Point");
+    await db.runAsync("DELETE FROM Photo");
+    await db.runAsync("DELETE FROM Point");
+    await db.runAsync("DELETE FROM EventGeometries");
+    await db.runAsync("DELETE FROM Evenement");
+    await db.runAsync("DELETE FROM Equipement");
+    console.log("Database flushed successfully.");
+  } catch (error) {
+    console.error("Error flushing database:", error);
+  }
+}
