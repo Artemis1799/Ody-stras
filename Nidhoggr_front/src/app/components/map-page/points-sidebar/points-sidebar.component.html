@@ -53,6 +53,7 @@
   <!-- Points list component -->
   <app-points-list
     [points]="paginatedPoints"
+    [startIndex]="(currentPage - 1) * itemsPerPage"
     [selectedPointUuid]="selectedPointUuid"
     [isLoading]="isLoading"
     [errorMessage]="errorMessage"

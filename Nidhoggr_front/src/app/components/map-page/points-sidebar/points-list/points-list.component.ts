@@ -11,6 +11,7 @@ import { Point } from '../../../../models/pointModel';
 })
 export class PointsListComponent {
   @Input() points: Point[] = [];
+  @Input() startIndex: number = 0;
   @Input() selectedPointUuid: string | null = null;
   @Input() isLoading = false;
   @Input() errorMessage = '';

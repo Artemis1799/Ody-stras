@@ -501,7 +501,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   applyPointsFiltersAndPagination(): void {
     // Filtrer les points selon la recherche
-    this.filteredPoints = this.filterPoints(this.allPoints, this.pointsSearchQuery);
+    let filtered = this.filterPoints(this.allPoints, this.pointsSearchQuery);
+    
+    // Trier les points par date d'installation
+    this.filteredPoints = this.sortPointsByInstalledDate(filtered);
     
     // Calculer le nombre total de pages
     this.totalPages = Math.ceil(this.filteredPoints.length / this.itemsPerPage);
@@ -520,6 +523,14 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
     this.paginatedPoints = this.filteredPoints.slice(startIndex, endIndex);
+  }
+
+  sortPointsByInstalledDate(points: Point[]): Point[] {
+    return [...points].sort((a, b) => {
+      const dateA = a.installedAt ? new Date(a.installedAt).getTime() : Infinity;
+      const dateB = b.installedAt ? new Date(b.installedAt).getTime() : Infinity;
+      return dateA - dateB;
+    });
   }
 
   filterPoints(points: Point[], query: string): Point[] {

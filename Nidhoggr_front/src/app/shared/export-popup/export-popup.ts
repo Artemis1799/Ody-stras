@@ -300,7 +300,7 @@ export class ExportPopup implements OnInit, OnDestroy {
       }
 
       // Charger la tuile de fond OpenStreetMap
-      const tileUrl = `https://tile.openstreetmap.org/${zoom}/${this.lonToTileX(centerLng, zoom)}/${this.latToTileY(centerLat, zoom)}.png`;
+      //const tileUrl = `https://tile.openstreetmap.org/${zoom}/${this.lonToTileX(centerLng, zoom)}/${this.latToTileY(centerLat, zoom)}.png`;
       
       // Créer l'image de fond avec plusieurs tuiles
       this.loadMapTiles(ctx, canvas, centerLat, centerLng, zoom, width, height).then(() => {
