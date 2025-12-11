@@ -17,8 +17,12 @@
           <div class="point-info">
             <span class="point-name">{{ getPointDisplayName(point) }}</span>
             <div class="point-dates">
-              <span class="date-badge installed">🟢 {{ getInstalledDateDisplay(point) }}</span>
-              <span class="date-badge removed">🔴 {{ getRemovedDateDisplay(point) }}</span>
+              @if (point.installedAt) {
+                <span class="date-badge installed">🟢 {{ getInstalledDateDisplay(point) }}</span>
+              }
+              @if (point.removedAt) {
+                <span class="date-badge removed">🔴 {{ getRemovedDateDisplay(point) }}</span>
+              }
             </div>
           </div>
         </div>
