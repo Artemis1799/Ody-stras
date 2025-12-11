@@ -98,7 +98,7 @@
 
   <div class="bottom-buttons">
     @if (selectedEvent) {
-    <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent">
+    <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent || allPoints.length === 0">
       📊 Planning d'installation
     </button>
     <button class="edit-event-btn" (click)="openEventEdit()">
