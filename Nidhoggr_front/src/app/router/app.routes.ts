@@ -4,7 +4,7 @@ import { MapLoaderComponent } from '../components/map-page/map-loader/map-loader
 import { EquipmentManagerComponent } from '../components/equipement-page/equipment-manager.component';
 import { AccueilPage } from '../components/accueil-page/accueil-page/accueil-page';
 import { PersonnesComponent } from '../components/personnels-page/personnes/personnes.component';
-import { GroupesComponent } from '../components/personnels-page/groupes/groupes.component';
+import { TeamsComponent } from '../components/personnels-page/teams/teams.component'
 
 export const routes: Routes = [
   { path: '', component: AccueilPage },
@@ -17,5 +17,5 @@ export const routes: Routes = [
   },
   { path: 'equipments', component: EquipmentManagerComponent },
   { path: 'personnels/personnes', component: PersonnesComponent },
-  { path: 'personnels/groupes', component: GroupesComponent }
+  { path: 'personnels/teams', component: TeamsComponent }
 ];
