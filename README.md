@@ -94,7 +94,7 @@ If you have run out of energy or time for your project, put a note at the top of
 
 
 
-# Ajout du docker global 
+# Ajout du docker global (front)
 ## Build et démarrage complet
 docker-compose up -d --build
 

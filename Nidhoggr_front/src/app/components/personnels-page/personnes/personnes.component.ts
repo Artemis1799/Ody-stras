@@ -5,6 +5,7 @@ import { MemberService } from '../../../services/MemberService';
 import { Member } from '../../../models/memberModel';
 import { PersonPopupComponent } from '../../../shared/person-popup/person-popup';
 import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
+import { ToastService } from '../../../services/ToastService';
 
 @Component({
   selector: 'app-personnes',
@@ -15,6 +16,7 @@ import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup'
 })
 export class PersonnesComponent implements OnInit {
   private memberService = inject(MemberService);
+  private toastService = inject(ToastService);
   
   // Signal calculé pour trier les membres par ordre alphabétique
   members = computed(() => 
@@ -68,12 +70,22 @@ export class PersonnesComponent implements OnInit {
     if (this.isEditing() && person.uuid) {
       // Mise à jour optimiste - l'UI se met à jour instantanément
       this.memberService.update(person.uuid, person as Member).subscribe({
-        error: (error) => console.error('Erreur lors de la modification:', error)
+        next: () => {
+          this.toastService.showSuccess('Personne modifiée', `${person.firstName} ${person.name} a été modifié(e) avec succès`);
+        },
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible de modifier la personne');
+        }
       });
     } else {
       // Création optimiste - le membre apparaît immédiatement
       this.memberService.create(person as Member).subscribe({
-        error: (error) => console.error('Erreur lors de la création:', error)
+        next: () => {
+          this.toastService.showSuccess('Personne créée', `${person.firstName} ${person.name} a été créé(e) avec succès`);
+        },
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible de créer la personne');
+        }
       });
     }
   }
@@ -96,7 +108,12 @@ export class PersonnesComponent implements OnInit {
     this.cancelDelete();
     
     this.memberService.delete(member.uuid).subscribe({
-      error: (error) => console.error('Erreur lors de la suppression:', error)
+      next: () => {
+        this.toastService.showSuccess('Personne supprimée', `${member.firstName} ${member.name} a été supprimé(e)`);
+      },
+      error: () => {
+        this.toastService.showError('Erreur', 'Impossible de supprimer la personne');
+      }
     });
   }
 

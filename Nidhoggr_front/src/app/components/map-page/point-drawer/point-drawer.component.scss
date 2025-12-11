@@ -493,6 +493,12 @@
     &:hover:not(:disabled) {
       box-shadow: 0 6px 20px rgba(42, 215, 131, 0.4);
     }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
   }
 }
 

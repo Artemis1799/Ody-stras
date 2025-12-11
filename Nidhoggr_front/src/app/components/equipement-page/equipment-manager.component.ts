@@ -8,6 +8,7 @@ import { PointService } from '../../services/PointService';
 import { Equipment } from '../../models/equipmentModel';
 import { Observable } from 'rxjs';
 import { EquipmentCard } from './equipment-card/equipment-card';
+import { ToastService } from '../../services/ToastService';
 
 @Component({
   selector: 'app-equipment-manager',
@@ -40,7 +41,8 @@ export class EquipmentManagerComponent implements OnInit {
 
   constructor(
     private equipmentService: EquipmentService,
-    private pointService: PointService
+    private pointService: PointService,
+    private toastService: ToastService
   ) {
     this.equipments$ = this.equipmentService.equipments$;
   }
@@ -90,13 +92,15 @@ export class EquipmentManagerComponent implements OnInit {
       }
     }
 
+    const editedEquipmentName = this.editingEquipment.description || this.editingEquipment.type;
+
     this.equipmentService.update(equipment.uuid, this.editingEquipment).subscribe({
       next: () => {
+        this.toastService.showSuccess('Équipement modifié', `L'équipement "${editedEquipmentName}" a été modifié avec succès`);
         this.editingEquipment = null;
       },
       error: (error) => {
-        console.error('Erreur lors de la mise à jour de l\'équipement:', error);
-        alert('Erreur lors de la mise à jour de l\'équipement');
+        this.toastService.showError('Erreur', 'Impossible de modifier l\'équipement');
       }
     });
   }
@@ -125,16 +129,14 @@ export class EquipmentManagerComponent implements OnInit {
           // Supprimer l'équipement
           this.equipmentService.delete(equipment.uuid).subscribe({
             next: () => {
-              alert(`Équipement supprimé. ${pointsWithEquipment.length} point(s) mis à jour.`);
+              this.toastService.showSuccess('Équipement supprimé', `L'équipement "${equipment.description || equipment.type}" a été supprimé. ${pointsWithEquipment.length} point(s) mis à jour.`);
             },
             error: (error) => {
-              console.error('Erreur lors de la suppression de l\'équipement:', error);
-              alert('Erreur lors de la suppression de l\'équipement');
+              this.toastService.showError('Erreur', 'Impossible de supprimer l\'équipement');
             }
           });
         }).catch((error) => {
-          console.error('Erreur lors de la mise à jour des points:', error);
-          alert('Erreur lors de la mise à jour des points');
+          this.toastService.showError('Erreur', 'Impossible de mettre à jour les points');
         });
       },
       error: (error) => {
@@ -158,7 +160,7 @@ export class EquipmentManagerComponent implements OnInit {
 
   addEquipment(): void {
     if (!this.newEquipment.type || !this.newEquipment.description) {
-      alert('Le type et la description sont obligatoires');
+      this.toastService.showWarning('Champs requis', 'Le type et la description sont obligatoires');
       return;
     }
 
@@ -167,6 +169,7 @@ export class EquipmentManagerComponent implements OnInit {
 
     this.equipmentService.create(this.newEquipment as Equipment).subscribe({
       next: () => {
+        this.toastService.showSuccess('Équipement créé', `L'équipement "${this.newEquipment.description || this.newEquipment.type}" a été créé avec succès`);
         this.showAddForm = false;
         this.newEquipment = {
           type: '',
@@ -177,8 +180,7 @@ export class EquipmentManagerComponent implements OnInit {
         };
       },
       error: (error) => {
-        console.error('Erreur lors de la création de l\'équipement:', error);
-        alert('Erreur lors de la création de l\'équipement');
+        this.toastService.showError('Erreur', 'Impossible de créer l\'équipement');
       }
     });
   }
@@ -187,3 +189,4 @@ export class EquipmentManagerComponent implements OnInit {
     return this.editingEquipment?.uuid === equipment.uuid;
   }
 }
+
