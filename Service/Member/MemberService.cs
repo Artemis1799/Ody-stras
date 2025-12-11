@@ -52,6 +52,8 @@ public class MemberService : IMemberService
 
 		existing.Name = member.Name;
 		existing.FirstName = member.FirstName;
+		existing.Email = member.Email;
+        existing.PhoneNumber = member.PhoneNumber;
 
 		await _context.SaveChangesAsync();
 
