@@ -304,8 +304,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   onPointClick(point: Point): void {
     this.selectedPointUuid = point.uuid;
 
+    // Trouver l'index du point dans la liste filtrée
+    const pointIndex = this.filteredPoints.findIndex(p => p.uuid === point.uuid);
+
     // Sélectionner le point (ouvrira le drawer)
-    this.mapService.selectPoint(point);
+    this.mapService.selectPoint(point, pointIndex + 1);
 
     // Attendre que le drawer s'ouvre puis recentrer avec offset
     setTimeout(() => {

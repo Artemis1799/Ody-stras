@@ -12,6 +12,7 @@ export class MapService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapInstanceSubject = new BehaviorSubject<any>(null);
   private selectedPointSubject = new BehaviorSubject<Point | null>(null);
+  private selectedPointIndexSubject = new BehaviorSubject<number | null>(null);
   private reloadPointsSubject = new Subject<void>();
   private selectedEventSubject = new BehaviorSubject<Event | null>(null);
   private reloadEventSubject = new Subject<void>();
@@ -21,6 +22,7 @@ export class MapService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapInstance$: Observable<any> = this.mapInstanceSubject.asObservable();
   selectedPoint$: Observable<Point | null> = this.selectedPointSubject.asObservable();
+  selectedPointIndex$: Observable<number | null> = this.selectedPointIndexSubject.asObservable();
   reloadPoints$: Observable<void> = this.reloadPointsSubject.asObservable();
   selectedEvent$: Observable<Event | null> = this.selectedEventSubject.asObservable();
   reloadEvent$: Observable<void> = this.reloadEventSubject.asObservable();
@@ -35,8 +37,13 @@ export class MapService {
     this.mapInstanceSubject.next(map);
   }
 
-  selectPoint(point: Point | null): void {
+  selectPoint(point: Point | null, index?: number): void {
     this.selectedPointSubject.next(point);
+    this.selectedPointIndexSubject.next(index ?? null);
+  }
+
+  getSelectedPointIndex(): number | null {
+    return this.selectedPointIndexSubject.value;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
