@@ -2,6 +2,7 @@ import { Component, signal, OnInit, ChangeDetectorRef, PLATFORM_ID, Inject } fro
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { ToastModule } from 'primeng/toast';
 import { PointService } from './services/PointService';
 import { PhotoService } from './services/PhotoService';
 import { ImagePointService } from './services/ImagePointsService';
@@ -14,7 +15,7 @@ import { LoginPageComponent } from './components/login-page/login.component';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, Navbar, LoginPageComponent],
+  imports: [CommonModule, RouterOutlet, Navbar, LoginPageComponent, ToastModule],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
