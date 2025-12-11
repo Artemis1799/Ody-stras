@@ -51,52 +51,55 @@
   }
 
   <!-- Points list component -->
-  <app-points-list
-    [points]="paginatedPoints"
-    [startIndex]="(currentPage - 1) * itemsPerPage"
-    [selectedPointUuid]="selectedPointUuid"
-    [isLoading]="isLoading"
-    [errorMessage]="errorMessage"
-    [emptyMessage]="emptyMessage"
-    (pointClick)="onPointClick($event)"
-  />
-
-  <!-- Pagination -->
-  @if (totalPages > 1) {
-    <div class="points-pagination">
-      <button 
-        class="pagination-btn" 
-        [disabled]="currentPage === 1"
-        (click)="previousPointsPage()"
-      >
-        ◀
-      </button>
-      
-      @for (page of getPointsPageNumbers(); track page) {
-        <button 
-          class="pagination-btn page-number"
-          [class.active]="page === currentPage"
-          (click)="goToPointsPage(page)"
-        >
-          {{ page }}
-        </button>
-      }
-      
-      <button 
-        class="pagination-btn" 
-        [disabled]="currentPage === totalPages"
-        (click)="nextPointsPage()"
-      >
-        ▶
-      </button>
-    </div>
-    
-    <div class="pagination-info">
-      Page {{ currentPage }} / {{ totalPages }}
-    </div>
-  }
+  <div class="points-list-wrapper">
+    <app-points-list
+      [points]="paginatedPoints"
+      [startIndex]="(currentPage - 1) * itemsPerPage"
+      [selectedPointUuid]="selectedPointUuid"
+      [isLoading]="isLoading"
+      [errorMessage]="errorMessage"
+      [emptyMessage]="emptyMessage"
+      (pointClick)="onPointClick($event)"
+    />
+  </div>
 
   <div class="bottom-buttons">
+    @if (totalPages > 1) {
+      <div class="points-pagination">
+        <div class="pagination-buttons">
+          <button 
+            class="pagination-btn" 
+            [disabled]="currentPage === 1"
+            (click)="previousPointsPage()"
+          >
+            ◀
+          </button>
+          
+          @for (page of getPointsPageNumbers(); track page) {
+            <button 
+              class="pagination-btn page-number"
+              [class.active]="page === currentPage"
+              (click)="goToPointsPage(page)"
+            >
+              {{ page }}
+            </button>
+          }
+          
+          <button 
+            class="pagination-btn" 
+            [disabled]="currentPage === totalPages"
+            (click)="nextPointsPage()"
+          >
+            ▶
+          </button>
+        </div>
+        
+        <div class="pagination-info">
+          Page {{ currentPage }} / {{ totalPages }}
+        </div>
+      </div>
+    }
+    
     @if (selectedEvent) {
     <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent || allPoints.length === 0">
       📊 Planning d'installation
