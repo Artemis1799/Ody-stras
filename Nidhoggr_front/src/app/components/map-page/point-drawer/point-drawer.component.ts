@@ -35,6 +35,7 @@ import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup'
 export class PointDrawerComponent implements OnInit, OnDestroy {
   visible = false;
   selectedPoint: Point | null = null;
+  selectedPointIndex: number | null = null;
   equipments: Equipment[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   equipmentOptions: any[] = []; // Inclut l'option "Aucun" + les équipements
@@ -61,6 +62,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   showDeleteConfirm = false;
 
   private selectedPointSubscription?: Subscription;
+  private selectedPointIndexSubscription?: Subscription;
   private equipmentsSubscription?: Subscription;
 
   constructor(
@@ -89,6 +91,12 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     });
     
+    // S'abonner aux changements de l'index du point sélectionné
+    this.selectedPointIndexSubscription = this.mapService.selectedPointIndex$.subscribe(index => {
+      this.selectedPointIndex = index;
+      this.cdr.detectChanges();
+    });
+    
     // S'abonner aux changements de point sélectionné
     this.selectedPointSubscription = this.mapService.selectedPoint$.subscribe(point => {
       if (point && point.uuid !== this.selectedPoint?.uuid) {
@@ -96,6 +104,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
       } else if (!point && this.visible) {
         this.visible = false;
         this.selectedPoint = null;
+        this.selectedPointIndex = null;
         this.selectedEquipment = null;
         this.showPhotoViewer = false;
       }
@@ -105,6 +114,9 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.selectedPointSubscription) {
       this.selectedPointSubscription.unsubscribe();
+    }
+    if (this.selectedPointIndexSubscription) {
+      this.selectedPointIndexSubscription.unsubscribe();
     }
     if (this.equipmentsSubscription) {
       this.equipmentsSubscription.unsubscribe();
