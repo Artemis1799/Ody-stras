@@ -34,10 +34,10 @@
           type="text" 
           class="search-input" 
           placeholder="Rechercher par nom..."
-          [(ngModel)]="searchName"
-          (ngModelChange)="onSearchChange()"
+          [value]="searchName()"
+          (input)="searchName.set($event.target.value); onSearchChange()"
         />
-        @if (searchName) {
+        @if (searchName()) {
           <button class="clear-btn" (click)="clearSearch('name')" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -55,10 +55,10 @@
           type="text" 
           class="search-input" 
           placeholder="Rechercher par prénom..."
-          [(ngModel)]="searchFirstName"
-          (ngModelChange)="onSearchChange()"
+          [value]="searchFirstName()"
+          (input)="searchFirstName.set($event.target.value); onSearchChange()"
         />
-        @if (searchFirstName) {
+        @if (searchFirstName()) {
           <button class="clear-btn" (click)="clearSearch('firstName')" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -76,10 +76,10 @@
           type="text" 
           class="search-input" 
           placeholder="Rechercher par email..."
-          [(ngModel)]="searchEmail"
-          (ngModelChange)="onSearchChange()"
+          [value]="searchEmail()"
+          (input)="searchEmail.set($event.target.value); onSearchChange()"
         />
-        @if (searchEmail) {
+        @if (searchEmail()) {
           <button class="clear-btn" (click)="clearSearch('email')" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
