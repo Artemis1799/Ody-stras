@@ -511,7 +511,8 @@
     z-index: 1000 !important;
     top: 4rem !important;
     height: calc(100vh - 4rem) !important;
-    border-left: 1px solid #30363d;
+    border: none !important;
+    outline: none !important;
   }
 
   .p-drawer-mask {

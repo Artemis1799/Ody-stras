@@ -1,6 +1,5 @@
 import { Component, EventEmitter, Input, Output, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Dialog } from 'primeng/dialog';
 import { Photo } from '../../models/photoModel';
 import { ImagePointService } from '../../services/ImagePointsService';
 import { PhotoService } from '../../services/PhotoService';
@@ -9,7 +8,7 @@ import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-photo-viewer',
   standalone: true,
-  imports: [CommonModule, Dialog],
+  imports: [CommonModule],
   templateUrl: './photo-viewer.html',
   styleUrls: ['./photo-viewer.scss'],
 })

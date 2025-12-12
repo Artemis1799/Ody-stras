@@ -27,6 +27,31 @@ export class PersonnesComponent implements OnInit {
   );
   isLoading = this.memberService.loading;
   
+  // Champs de recherche
+  searchName = signal('');
+  searchFirstName = signal('');
+  searchEmail = signal('');
+  
+  // Signal calculé pour les membres filtrés
+  filteredMembers = computed(() => {
+    const members = this.members();
+    const nameFilter = this.searchName().toLowerCase().trim();
+    const firstNameFilter = this.searchFirstName().toLowerCase().trim();
+    const emailFilter = this.searchEmail().toLowerCase().trim();
+    
+    if (!nameFilter && !firstNameFilter && !emailFilter) {
+      return members;
+    }
+    
+    return members.filter(member => {
+      const matchesName = !nameFilter || member.name.toLowerCase().includes(nameFilter);
+      const matchesFirstName = !firstNameFilter || member.firstName.toLowerCase().includes(firstNameFilter);
+      const matchesEmail = !emailFilter || (member.email?.toLowerCase().includes(emailFilter) ?? false);
+      
+      return matchesName && matchesFirstName && matchesEmail;
+    });
+  });
+  
   // État local avec signals
   showDialog = signal(false);
   isEditing = signal(false);
@@ -119,5 +144,19 @@ export class PersonnesComponent implements OnInit {
 
   getInitials(member: Member): string {
     return (member.firstName.charAt(0) + member.name.charAt(0)).toUpperCase();
+  }
+  
+  onSearchChange(): void {
+    // La réactivité est automatique grâce aux signals
+  }
+  
+  clearSearch(field: 'name' | 'firstName' | 'email'): void {
+    if (field === 'name') {
+      this.searchName.set('');
+    } else if (field === 'firstName') {
+      this.searchFirstName.set('');
+    } else if (field === 'email') {
+      this.searchEmail.set('');
+    }
   }
 }
