@@ -1,53 +1,139 @@
-// Styles globaux pour la dialog de photos
-::ng-deep {
-  .photo-dialog {
-    .p-dialog {
-      background: linear-gradient(145deg, #1a2028 0%, #171c22 100%);
-      border: 1px solid #30363d;
-      box-shadow: 
-        0 25px 80px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(255, 255, 255, 0.05);
-      border-radius: 20px;
-      overflow: hidden;
-    }
-    
-    .p-dialog-header {
-      background: linear-gradient(180deg, rgba(42, 215, 131, 0.08) 0%, transparent 100%);
+// Styles pour le popup personnalisé
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-30px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.popup-dialog {
+  background: linear-gradient(145deg, #1a2028 0%, #171c22 100%);
+  padding: 0;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 900px;
+  position: relative;
+  box-shadow: 
+    0 25px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: slideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #2ad783, #22c55e, #2ad783);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.popup-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  color: #8b949e;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 2rem 1.5rem;
+  background: linear-gradient(180deg, rgba(42, 215, 131, 0.08) 0%, transparent 100%);
+
+  .header-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #2ad783 0%, #22c55e 100%);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #171c22;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(42, 215, 131, 0.3);
+  }
+
+  .header-text {
+    flex: 1;
+
+    h4 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
       color: #ffffff;
-      padding: 1.5rem 2rem;
-      border-bottom: 1px solid #30363d;
-      border-radius: 20px 20px 0 0;
-      
-      .p-dialog-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: -0.02em;
-      }
-      
-      .p-dialog-header-icon {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #8b949e;
-        border-radius: 10px;
-        width: 36px;
-        height: 36px;
-        transition: all 0.2s ease;
-        
-        &:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: #fff;
-        }
-      }
+      letter-spacing: -0.02em;
     }
-    
-    .p-dialog-content {
-      padding: 0;
-      background: #171c22;
-      border-radius: 0 0 20px 20px;
+
+    p {
+      margin: 0;
+      color: #8b949e;
+      font-size: 0.9rem;
+      line-height: 1.4;
     }
   }
 }
+
+.dialog-content {
+  background: #171c22;
+}
+
 
 @keyframes pulse {
   0%, 100% {
