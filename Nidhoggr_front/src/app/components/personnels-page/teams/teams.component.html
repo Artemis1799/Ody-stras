@@ -61,7 +61,7 @@
       @for (team of teams(); track team.uuid) {
         <div class="team-card">
           <div class="team-header">
-            <div class="team-number">{{ team.number || '#' }}</div>
+            <div class="team-number">{{ team.teamNumber || '#' }}</div>
             <div class="team-info">
               <div class="team-name">{{ team.teamName }}</div>
               <div class="team-members-count">{{ team.members.length }} membre(s)</div>
