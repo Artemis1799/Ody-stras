@@ -17,13 +17,13 @@ interface TeamWithMembers extends Team {
 }
 
 @Component({
-  selector: 'app-groupes',
+  selector: 'app-teams',
   standalone: true,
   imports: [CommonModule, FormsModule, TeamPopupComponent, DeletePopupComponent],
-  templateUrl: './groupes.component.html',
-  styleUrl: './groupes.component.scss'
+  templateUrl: './teams.component.html',
+  styleUrl: './teams.component.scss'
 })
-export class GroupesComponent implements OnInit {
+export class TeamsComponent implements OnInit {
   // Injection des services
   private teamService = inject(TeamService);
   private memberService = inject(MemberService);
@@ -127,8 +127,8 @@ export class GroupesComponent implements OnInit {
       // Update team
       this.teamService.update(uuid, team as Team).subscribe({
         next: () => {
-          this.toastService.showSuccess('Groupe modifié', `Le groupe "${team.teamName}" a été modifié avec succès`);
           this.updateTeamMembersAsync(uuid, members);
+          this.toastService.showSuccess('Groupe modifié', `Le groupe "${team.teamName}" a été modifié avec succès`);
         },
         error: () => {
           this.toastService.showError('Erreur', 'Impossible de modifier le groupe');
@@ -138,8 +138,8 @@ export class GroupesComponent implements OnInit {
       // Create team
       this.teamService.create(team as Team).subscribe({
         next: (newTeam) => {
-          this.toastService.showSuccess('Groupe créé', `Le groupe "${team.teamName}" a été créé avec succès`);
           this.addMembersToTeamAsync(newTeam.uuid, members);
+          this.toastService.showSuccess('Groupe créé', `Le groupe "${team.teamName}" a été créé avec succès`);
         },
         error: () => {
           this.toastService.showError('Erreur', 'Impossible de créer le groupe');
@@ -228,4 +228,3 @@ export class GroupesComponent implements OnInit {
     return `${members[0].firstName} ${members[0].name} et ${members.length - 1} autre(s)`;
   }
 }
-
