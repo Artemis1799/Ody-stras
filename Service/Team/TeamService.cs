@@ -51,6 +51,7 @@ public class TeamService : ITeamService
 		}
 
 		existing.TeamName = team.TeamName;
+		existing.TeamNumber = team.TeamNumber;
 
 		await _context.SaveChangesAsync();
 
