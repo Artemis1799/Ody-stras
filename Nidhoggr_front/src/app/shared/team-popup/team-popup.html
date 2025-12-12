@@ -36,11 +36,12 @@
           <input 
             type="number" 
             id="number" 
-            [(ngModel)]="team.number" 
+            [ngModel]="team.teamNumber || ''"
+            (ngModelChange)="team.teamNumber = parseNumber($event)"
             name="number"
             [min]="1"
             placeholder="1"
-            [class.has-value]="team.number"
+            [class.has-value]="team.teamNumber"
           />
         </div>
         
@@ -75,14 +76,67 @@
           </svg>
           Membres de l'équipe
         </label>
+        
+        <!-- Search filters -->
+        @if (allMembers.length > 0) {
+          <div class="search-filters">
+            <div class="search-field">
+              <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              <input 
+                type="text" 
+                class="search-input" 
+                placeholder="Rechercher par prénom..."
+                [value]="searchFirstName()"
+                (input)="searchFirstName.set($event.target.value)"
+              />
+              @if (searchFirstName()) {
+                <button class="clear-btn" (click)="searchFirstName.set('')" type="button">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              }
+            </div>
+            <div class="search-field">
+              <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              <input 
+                type="text" 
+                class="search-input" 
+                placeholder="Rechercher par nom..."
+                [value]="searchLastName()"
+                (input)="searchLastName.set($event.target.value)"
+              />
+              @if (searchLastName()) {
+                <button class="clear-btn" (click)="searchLastName.set('')" type="button">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              }
+            </div>
+          </div>
+        }
+        
         <div class="members-selector">
-          @if (sortedMembers.length === 0) {
+          @if (allMembers.length === 0) {
             <div class="no-members-message">
               Aucun membre disponible. Créez d'abord des personnes.
             </div>
+          } @else if (getFilteredMembers().length === 0) {
+            <div class="no-members-message">
+              Aucun membre ne correspond à votre recherche.
+            </div>
           } @else {
             <div class="members-list">
-              @for (member of sortedMembers; track member.uuid) {
+              @for (member of getFilteredMembers(); track member.uuid) {
                 <div 
                   class="member-item" 
                   [class.selected]="isMemberSelected(member)"

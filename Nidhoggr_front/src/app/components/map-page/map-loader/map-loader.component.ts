@@ -369,10 +369,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
    * Supprime toutes les géométries existantes de la carte
    */
   private clearExistingGeometries(): void {
-    // Supprimer les layers du groupe drawnItems
+    // Supprimer les layers du groupe drawnItems complètement
     if (this.drawnItems) {
       this.drawnItems.clearLayers();
     }
+
+    // Supprimer tous les layers de geometryLayers de la carte
+    this.geometryLayers.forEach((layer) => {
+      if (this.map && layer) {
+        this.map.removeLayer(layer);
+      }
+    });
 
     // Vider la map des géométries
     this.geometryLayers.clear();
@@ -850,6 +857,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Réinitialiser l'événement sélectionné
+    this.mapService.setSelectedEvent(null);
+
     // Nettoyer les subscriptions
     if (this.pointsSubscription) {
       this.pointsSubscription.unsubscribe();
@@ -872,8 +882,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     });
     this.markers.clear();
 
-    // Nettoyer les géométries
-    this.geometryLayers.clear();
+    // Nettoyer les géométries complètement
+    this.clearExistingGeometries();
 
     // Nettoyer le contrôle de dessin
     if (this.drawControl && this.map) {

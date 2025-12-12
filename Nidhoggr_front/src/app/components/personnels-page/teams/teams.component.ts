@@ -87,14 +87,18 @@ export class TeamsComponent implements OnInit {
 
   openCreateDialog(): void {
     this.isEditing.set(false);
-    this.currentTeam.set({ teamName: '', number: this.teams().length + 1 });
+    this.currentTeam.set({ teamName: '', teamNumber: this.teams().length + 1 });
     this.selectedMembers.set([]);
     this.showDialog.set(true);
   }
 
   openEditDialog(team: TeamWithMembers): void {
     this.isEditing.set(true);
-    this.currentTeam.set({ ...team });
+    // S'assurer que teamNumber est inclus dans la copie
+    this.currentTeam.set({ 
+      ...team,
+      teamNumber: team.teamNumber || undefined
+    });
     this.selectedMembers.set([...team.members]);
     this.showDialog.set(true);
   }
