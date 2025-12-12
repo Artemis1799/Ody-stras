@@ -10,23 +10,25 @@ import { TeamMember } from '../../../models/teamMemberModel';
 import { forkJoin } from 'rxjs';
 import { TeamPopupComponent, TeamFormData } from '../../../shared/team-popup/team-popup';
 import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
+import { ToastService } from '../../../services/ToastService';
 
 interface TeamWithMembers extends Team {
   members: Member[];
 }
 
 @Component({
-  selector: 'app-groupes',
+  selector: 'app-teams',
   standalone: true,
   imports: [CommonModule, FormsModule, TeamPopupComponent, DeletePopupComponent],
-  templateUrl: './groupes.component.html',
-  styleUrl: './groupes.component.scss'
+  templateUrl: './teams.component.html',
+  styleUrl: './teams.component.scss'
 })
-export class GroupesComponent implements OnInit {
+export class TeamsComponent implements OnInit {
   // Injection des services
   private teamService = inject(TeamService);
   private memberService = inject(MemberService);
   private teamMemberService = inject(TeamMemberService);
+  private toastService = inject(ToastService);
   
   // Signals calculés pour combiner les données
   readonly teams = computed<TeamWithMembers[]>(() => {
@@ -126,9 +128,10 @@ export class GroupesComponent implements OnInit {
       this.teamService.update(uuid, team as Team).subscribe({
         next: () => {
           this.updateTeamMembersAsync(uuid, members);
+          this.toastService.showSuccess('Groupe modifié', `Le groupe "${team.teamName}" a été modifié avec succès`);
         },
-        error: (error) => {
-          console.error('Erreur lors de la modification:', error);
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible de modifier le groupe');
         }
       });
     } else {
@@ -136,9 +139,10 @@ export class GroupesComponent implements OnInit {
       this.teamService.create(team as Team).subscribe({
         next: (newTeam) => {
           this.addMembersToTeamAsync(newTeam.uuid, members);
+          this.toastService.showSuccess('Groupe créé', `Le groupe "${team.teamName}" a été créé avec succès`);
         },
-        error: (error) => {
-          console.error('Erreur lors de la création:', error);
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible de créer le groupe');
         }
       });
     }
@@ -207,8 +211,11 @@ export class GroupesComponent implements OnInit {
     this.cancelDelete();
     
     this.teamService.delete(team.uuid).subscribe({
-      error: (error) => {
-        console.error('Erreur lors de la suppression:', error);
+      next: () => {
+        this.toastService.showSuccess('Groupe supprimé', `Le groupe "${team.teamName}" a été supprimé`);
+      },
+      error: () => {
+        this.toastService.showError('Erreur', 'Impossible de supprimer le groupe');
       }
     });
   }

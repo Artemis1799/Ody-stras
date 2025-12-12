@@ -9,7 +9,7 @@
   <ng-template #header class="drawer-header-template">
     <div class="drawer-header">
       <div class="header-content">
-        <h3>Point #{{ selectedPoint?.order || '?' }}</h3>
+        <h3>Point #{{ selectedPointIndex || selectedPoint?.order || '?' }}</h3>
         <span class="point-status" [class.valid]="editedIsValid" [class.invalid]="!editedIsValid">
           {{ editedIsValid ? 'Validé' : 'Non validé' }}
         </span>
@@ -167,6 +167,7 @@
         <button 
           type="button" 
           class="btn btn-primary"
+          [disabled]="!hasChanges()"
           (click)="saveChanges()"
         >
           <span class="pi pi-save"></span>
@@ -184,7 +185,7 @@
 @if (showDeleteConfirm && selectedPoint) {
   <app-delete-popup
     [title]="'Supprimer le point'"
-    [itemName]="'Point #' + selectedPoint.order"
+    [itemName]="'Point #' + (selectedPointIndex || selectedPoint.order)"
     [warningMessage]="'Cette action est irréversible. Le point et toutes ses photos seront supprimés.'"
     (confirm)="deletePoint()"
     (close)="cancelDeletePoint()"

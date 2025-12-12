@@ -1,4 +1,5 @@
 <aside class="sidebar">
+  <!--
   <div class="search-box">
     <input
       type="text"
@@ -8,6 +9,7 @@
       (keyup.enter)="searchResults.length > 0 && goToLocation(searchResults[0])"
     />
   </div>
+  -->
 
   <!-- Search results autocomplete -->
   <div class="search-results" *ngIf="searchResults.length > 0">
@@ -31,19 +33,75 @@
     />
   </div>
 
+  <!-- Points search -->
+  @if (allPoints.length > 0) {
+    <div class="points-search-container">
+      <input
+        type="text"
+        class="points-search-input"
+        placeholder="Rechercher un point..."
+        [(ngModel)]="pointsSearchQuery"
+        (ngModelChange)="onPointsSearchChange()"
+      />
+      @if (pointsSearchQuery) {
+        <button class="clear-points-search" (click)="pointsSearchQuery = ''; onPointsSearchChange()">✕</button>
+      }
+    </div>
+
+  }
+
   <!-- Points list component -->
-  <app-points-list
-    [points$]="points$"
-    [selectedPointUuid]="selectedPointUuid"
-    [isLoading]="isLoading"
-    [errorMessage]="errorMessage"
-    [emptyMessage]="emptyMessage"
-    (pointClick)="onPointClick($event)"
-  />
+  <div class="points-list-wrapper">
+    <app-points-list
+      [points]="paginatedPoints"
+      [startIndex]="(currentPage - 1) * itemsPerPage"
+      [selectedPointUuid]="selectedPointUuid"
+      [isLoading]="isLoading"
+      [errorMessage]="errorMessage"
+      [emptyMessage]="emptyMessage"
+      (pointClick)="onPointClick($event)"
+    />
+  </div>
 
   <div class="bottom-buttons">
+    @if (totalPages > 1) {
+      <div class="points-pagination">
+        <div class="pagination-buttons">
+          <button 
+            class="pagination-btn" 
+            [disabled]="currentPage === 1"
+            (click)="previousPointsPage()"
+          >
+            ◀
+          </button>
+          
+          @for (page of getPointsPageNumbers(); track page) {
+            <button 
+              class="pagination-btn page-number"
+              [class.active]="page === currentPage"
+              (click)="goToPointsPage(page)"
+            >
+              {{ page }}
+            </button>
+          }
+          
+          <button 
+            class="pagination-btn" 
+            [disabled]="currentPage === totalPages"
+            (click)="nextPointsPage()"
+          >
+            ▶
+          </button>
+        </div>
+        
+        <div class="pagination-info">
+          Page {{ currentPage }} / {{ totalPages }}
+        </div>
+      </div>
+    }
+    
     @if (selectedEvent) {
-    <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent">
+    <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent || allPoints.length === 0">
       📊 Planning d'installation
     </button>
     <button class="edit-event-btn" (click)="openEventEdit()">

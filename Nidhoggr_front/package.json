@@ -40,6 +40,7 @@
     "@angular/platform-server": "^20.3.0",
     "@angular/router": "^20.3.13",
     "@angular/ssr": "^20.3.9",
+    "@primeng/themes": "^21.0.1",
     "@worktile/gantt": "^20.0.0",
     "better-sqlite3": "^12.4.1",
     "express": "^5.1.0",

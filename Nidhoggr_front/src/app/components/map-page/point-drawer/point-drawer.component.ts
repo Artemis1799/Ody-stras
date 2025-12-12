@@ -14,6 +14,7 @@ import { Subscription } from 'rxjs';
 import { Equipment } from '../../../models/equipmentModel';
 import { PhotoViewer } from '../../../shared/photo-viewer/photo-viewer';
 import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
+import { ToastService } from '../../../services/ToastService';
 
 @Component({
   selector: 'app-point-drawer',
@@ -35,6 +36,7 @@ import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup'
 export class PointDrawerComponent implements OnInit, OnDestroy {
   visible = false;
   selectedPoint: Point | null = null;
+  selectedPointIndex: number | null = null;
   equipments: Equipment[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   equipmentOptions: any[] = []; // Inclut l'option "Aucun" + les équipements
@@ -54,6 +56,14 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   previousEquipmentId: string | null = null;
   previousEquipmentQuantity = 0;
 
+  // Valeurs initiales pour détecter les modifications
+  initialComment = '';
+  initialIsValid = false;
+  initialEquipmentId: string | null = null;
+  initialEquipmentQuantity = 0;
+  initialInstalledAt: string | null = null;
+  initialRemovedAt: string | null = null;
+
   // Gestion des photos
   showPhotoViewer = false;
 
@@ -61,13 +71,15 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   showDeleteConfirm = false;
 
   private selectedPointSubscription?: Subscription;
+  private selectedPointIndexSubscription?: Subscription;
   private equipmentsSubscription?: Subscription;
 
   constructor(
     private mapService: MapService,
     private pointService: PointService,
     private equipmentService: EquipmentService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -89,6 +101,12 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     });
     
+    // S'abonner aux changements de l'index du point sélectionné
+    this.selectedPointIndexSubscription = this.mapService.selectedPointIndex$.subscribe(index => {
+      this.selectedPointIndex = index;
+      this.cdr.detectChanges();
+    });
+    
     // S'abonner aux changements de point sélectionné
     this.selectedPointSubscription = this.mapService.selectedPoint$.subscribe(point => {
       if (point && point.uuid !== this.selectedPoint?.uuid) {
@@ -96,6 +114,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
       } else if (!point && this.visible) {
         this.visible = false;
         this.selectedPoint = null;
+        this.selectedPointIndex = null;
         this.selectedEquipment = null;
         this.showPhotoViewer = false;
       }
@@ -105,6 +124,9 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.selectedPointSubscription) {
       this.selectedPointSubscription.unsubscribe();
+    }
+    if (this.selectedPointIndexSubscription) {
+      this.selectedPointIndexSubscription.unsubscribe();
     }
     if (this.equipmentsSubscription) {
       this.equipmentsSubscription.unsubscribe();
@@ -140,6 +162,14 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     // Charger les dates de pose/dépose (format datetime-local)
     this.editedInstalledAt = point.installedAt ? this.formatDateForInput(point.installedAt) : null;
     this.editedRemovedAt = point.removedAt ? this.formatDateForInput(point.removedAt) : null;
+
+    // Sauvegarder les valeurs initiales pour détecter les modifications
+    this.initialComment = this.editedComment;
+    this.initialIsValid = this.editedIsValid;
+    this.initialEquipmentId = point.equipmentId;
+    this.initialEquipmentQuantity = this.editedEquipmentQuantity;
+    this.initialInstalledAt = this.editedInstalledAt;
+    this.initialRemovedAt = this.editedRemovedAt;
 
     // Charger l'équipement actuel si présent
     if (point.equipmentId) {
@@ -255,11 +285,23 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     // Vérifier que la quantité ne dépasse pas le stock disponible
     if (newQuantity > availableStock) {
       this.editedEquipmentQuantity = availableStock;
-      alert(`La quantité ne peut pas dépasser le stock disponible (${availableStock})`);
+      this.toastService.showWarning('Stock insuffisant', `La quantité ne peut pas dépasser le stock disponible (${availableStock})`);
       return;
     }
 
     this.editedEquipmentQuantity = newQuantity;
+  }
+
+  hasChanges(): boolean {
+    const currentEquipmentId = this.selectedEquipment?.uuid || null;
+    return (
+      this.editedComment !== this.initialComment ||
+      this.editedIsValid !== this.initialIsValid ||
+      currentEquipmentId !== this.initialEquipmentId ||
+      this.editedEquipmentQuantity !== this.initialEquipmentQuantity ||
+      this.editedInstalledAt !== this.initialInstalledAt ||
+      this.editedRemovedAt !== this.initialRemovedAt
+    );
   }
 
   saveChanges(): void {
@@ -310,13 +352,18 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
           currentPoints[index] = savedPoint;
           this.mapService.setPoints([...currentPoints]);
         }
+        
+        this.toastService.showSuccess('Point modifié', 'Le point a été modifié avec succès');
+        
+        // Fermer le drawer après sauvegarde
+        this.closeDrawer();
       },
-      error: (error) => {
-        console.error('Erreur lors de la mise à jour du point:', error);
+      error: () => {
         // En cas d'erreur, restaurer le stock
         if (this.selectedEquipment && this.selectedEquipment.remainingStock !== undefined) {
           this.selectedEquipment.remainingStock += stockDifference;
         }
+        this.toastService.showError('Erreur', 'Impossible de modifier le point');
       }
     });
   }
@@ -387,11 +434,10 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
         // Mettre à jour le MapService pour la réactivité de la sidebar et de la map
         const currentPoints = this.mapService['pointsSubject'].value;
         this.mapService.setPoints(currentPoints.filter((p: Point) => p.uuid !== pointToDelete.uuid));
+        this.toastService.showSuccess('Point supprimé', 'Le point a été supprimé avec succès');
       },
-      error: (error) => {
-        console.error('Erreur lors de la suppression du point:', error);
-        alert('Erreur lors de la suppression du point');
-        
+      error: () => {
+        this.toastService.showError('Erreur', 'Impossible de supprimer le point');
         // En cas d'erreur, restaurer le stock
         if (pointToDelete.equipmentId && pointToDelete.equipmentQuantity) {
           const equipment = this.equipments.find(e => e.uuid === pointToDelete.equipmentId);
@@ -432,3 +478,4 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     });
   }
 }
+

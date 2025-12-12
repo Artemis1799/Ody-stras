@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Event, EventStatus } from '../../models/eventModel';
 import { EventService } from '../../services/EventService';
 import { DeletePopupComponent } from '../delete-popup/delete-popup';
+import { ToastService } from '../../services/ToastService';
 
 @Component({
   selector: 'app-event-edit-popup',
@@ -29,7 +30,10 @@ export class EventEditPopup implements OnInit {
   errorMessage = '';
   showDeleteConfirm = false;
 
-  constructor(private eventService: EventService) {}
+  constructor(
+    private eventService: EventService,
+    private toastService: ToastService
+  ) {}
 
   ngOnInit(): void {
     if (this.event) {
@@ -64,13 +68,12 @@ export class EventEditPopup implements OnInit {
     this.eventService.update(this.event.uuid, updatedEvent).subscribe({
       next: (result) => {
         this.isSubmitting = false;
+        this.toastService.showSuccess('Événement modifié', `L'événement "${updatedEvent.name}" a été modifié avec succès`);
         this.eventUpdated.emit(result);
         this.close.emit();
       },
-      error: (error) => {
-        this.isSubmitting = false;
-        this.errorMessage = 'Erreur lors de la mise à jour de l\'événement';
-        console.error('Erreur lors de la mise à jour:', error);
+      error: () => {
+        this.toastService.showError('Erreur', 'Impossible de modifier l\'événement');
       }
     });
   }
@@ -87,13 +90,12 @@ export class EventEditPopup implements OnInit {
     this.eventService.delete(this.event.uuid).subscribe({
       next: () => {
         this.showDeleteConfirm = false;
+        this.toastService.showSuccess('Événement supprimé', `L'événement "${this.event.name}" a été supprimé`);
         this.eventDeleted.emit(this.event.uuid);
         this.close.emit();
       },
-      error: (error) => {
-        this.showDeleteConfirm = false;
-        this.errorMessage = 'Erreur lors de la suppression de l\'événement';
-        console.error('Erreur lors de la suppression:', error);
+      error: (eror) => {
+        this.toastService.showError('Erreur', 'Impossible de supprimer l\'événement');
       }
     });
   }

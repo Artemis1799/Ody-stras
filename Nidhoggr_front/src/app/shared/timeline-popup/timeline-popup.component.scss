@@ -309,9 +309,9 @@ $danger: #f87171;
 
 .timeline-item {
   display: flex;
-  gap: 20px;
+  gap: 0px;
   align-items: stretch;
-  height: 40px;
+  height: 2rem;
 
   .item-label {
     width: 220px;
@@ -338,7 +338,7 @@ $danger: #f87171;
     align-items: center;
     background: $bg-primary;
     border-radius: 6px;
-    height: 40px;
+    height: 1.5rem;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
     border: 1px solid $border-primary;
 
@@ -363,7 +363,7 @@ $danger: #f87171;
 
   .item-bar {
     position: absolute;
-    height: 30px;
+    height: 1.4rem;
     background: $accent-gradient;
     border-radius: 4px;
     display: flex;

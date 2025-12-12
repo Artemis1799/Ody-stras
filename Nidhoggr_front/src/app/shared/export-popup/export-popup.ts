@@ -4,6 +4,7 @@ import { PointService } from '../../services/PointService';
 import { PhotoService } from '../../services/PhotoService';
 import { ImagePointService } from '../../services/ImagePointsService';
 import { GeometryService } from '../../services/GeometryService';
+import { EquipmentService } from '../../services/EquipmentService';
 import { Event } from '../../models/eventModel';
 import { Point } from '../../models/pointModel';
 import { Geometry, GeoJSONGeometry } from '../../models/geometryModel';
@@ -29,6 +30,7 @@ export class ExportPopup implements OnInit, OnDestroy {
   private photoService = inject(PhotoService);
   private imagePointService = inject(ImagePointService);
   private geometryService = inject(GeometryService);
+  private equipmentService = inject(EquipmentService);
 
   // WebSocket export properties
   showQRCode = false;
@@ -140,16 +142,20 @@ export class ExportPopup implements OnInit, OnDestroy {
 
   /**
    * Récupère les données et les envoie au serveur pour transmission au téléphone
-   * Note: On envoie uniquement l'événement et les géométries, PAS les points ni les photos
+   * Note: On envoie l'événement, les géométries et les équipements, PAS les points ni les photos
    * Les points seront créés/modifiés sur le mobile puis renvoyés au PC
    */
   private fetchAndSendData(): void {
-    // Récupérer seulement les géométries de cet événement
-    this.geometryService.getByEventId(this.event.uuid).subscribe({
-      next: (geometries) => {
+    // Récupérer les géométries de cet événement et les équipements
+    forkJoin({
+      geometries: this.geometryService.getByEventId(this.event.uuid),
+      equipments: this.equipmentService.getAll()
+    }).subscribe({
+      next: ({ geometries, equipments }) => {
         console.log('✅ Données récupérées pour export vers mobile');
         console.log('   📋 Event:', this.event.name);
         console.log('   📐 Géométries:', geometries.length);
+        console.log('   🔧 Équipements:', equipments.length);
         console.log('   ⚠️ Points exclus de l\'export (seront créés sur mobile)');
         
         this.exportStatus = '📤 Envoi des données au téléphone...';
@@ -159,25 +165,29 @@ export class ExportPopup implements OnInit, OnDestroy {
           return;
         }
 
-        // On envoie SEULEMENT l'événement et les géométries
+        // On envoie l'événement, les géométries et les équipements
         // Les points ne sont PAS envoyés - ils seront créés sur le mobile
-        const message = JSON.stringify({
+        const message = {
           type: 'event_export',
           event: this.event,
           points: [], // Pas de points envoyés
           geometries: geometries,
+          equipments: equipments,
           metadata: {
             exportDate: new Date().toISOString(),
             totalGeometries: geometries.length,
+            totalEquipments: equipments.length,
             note: 'Export sans points - les points seront créés sur le mobile'
           }
-        });
+        };
 
-        this.ws.send(message);
-        console.log('✅ Données envoyées au serveur (event + géométries uniquement)');
+        console.log('📤 JSON envoyé au serveur WebSocket:', JSON.stringify(message, null, 2));
+
+        this.ws.send(JSON.stringify(message));
+        console.log('✅ Données envoyées au serveur (event + géométries + équipements)');
       },
       error: (error) => {
-        console.error('❌ Erreur récupération géométries:', error);
+        console.error('❌ Erreur récupération données:', error);
         this.exportStatus = '❌ Erreur lors de la récupération des données';
         this.isExporting = false;
       }
@@ -300,7 +310,7 @@ export class ExportPopup implements OnInit, OnDestroy {
       }
 
       // Charger la tuile de fond OpenStreetMap
-      const tileUrl = `https://tile.openstreetmap.org/${zoom}/${this.lonToTileX(centerLng, zoom)}/${this.latToTileY(centerLat, zoom)}.png`;
+      //const tileUrl = `https://tile.openstreetmap.org/${zoom}/${this.lonToTileX(centerLng, zoom)}/${this.latToTileY(centerLat, zoom)}.png`;
       
       // Créer l'image de fond avec plusieurs tuiles
       this.loadMapTiles(ctx, canvas, centerLat, centerLng, zoom, width, height).then(() => {

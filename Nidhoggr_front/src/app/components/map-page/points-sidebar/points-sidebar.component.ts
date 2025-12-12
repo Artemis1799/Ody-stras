@@ -69,6 +69,15 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   selectedEvent: Event | null = null;
   selectedEventName = '';
 
+  // Points search and pagination
+  pointsSearchQuery = '';
+  allPoints: Point[] = [];
+  filteredPoints: Point[] = [];
+  paginatedPoints: Point[] = [];
+  currentPage = 1;
+  itemsPerPage = 5;
+  totalPages = 1;
+
   constructor(
     private pointService: PointService,
     private eventService: EventService,
@@ -83,16 +92,18 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Initialiser les points à vide AVANT tout (aucun événement sélectionné)
-    this.mapService.setPoints([]);
-
     // Charger la liste des événements
     this.loadEvents();
 
     // S'abonner aux changements de points pour déclencher la détection de changements
-    this.pointsSubscription = this.points$.subscribe(() => {
+    this.pointsSubscription = this.points$.subscribe((points) => {
+      this.allPoints = points;
+      this.applyPointsFiltersAndPagination();
       this.cdr.markForCheck();
     });
+
+    // Initialiser les points à vide APRÈS la subscription (aucun événement sélectionné)
+    this.mapService.setPoints([]);
 
     // Setup debounced search (300ms)
     this.searchSubscription = this.searchSubject
@@ -300,8 +311,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   onPointClick(point: Point): void {
     this.selectedPointUuid = point.uuid;
 
+    // Trouver l'index du point dans la liste filtrée
+    const pointIndex = this.filteredPoints.findIndex((p) => p.uuid === point.uuid);
+
     // Sélectionner le point (ouvrira le drawer)
-    this.mapService.selectPoint(point);
+    this.mapService.selectPoint(point, pointIndex + 1);
 
     // Attendre que le drawer s'ouvre puis recentrer avec offset
     setTimeout(() => {
@@ -488,7 +502,6 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       },
     });
   }
-
   onTimelinePointHovered(pointId: string): void {
     const hoveredPoint = this.timelinePoints.find((p) => p.uuid === pointId);
     if (hoveredPoint) {
@@ -503,5 +516,110 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   closeTimeline(): void {
     this.showTimeline = false;
+  }
+  // Points search and pagination methods
+  onPointsSearchChange(): void {
+    this.currentPage = 1;
+    this.applyPointsFiltersAndPagination();
+  }
+
+  applyPointsFiltersAndPagination(): void {
+    // Filtrer les points selon la recherche
+    let filtered = this.filterPoints(this.allPoints, this.pointsSearchQuery);
+
+    // Trier les points par date d'installation
+    this.filteredPoints = this.sortPointsByInstalledDate(filtered);
+
+    // Calculer le nombre total de pages
+    this.totalPages = Math.ceil(this.filteredPoints.length / this.itemsPerPage);
+
+    // S'assurer qu'on a au moins 1 page si on a des points
+    if (this.totalPages === 0 && this.filteredPoints.length > 0) {
+      this.totalPages = 1;
+    }
+
+    // S'assurer que la page courante est valide
+    if (this.currentPage > this.totalPages && this.totalPages > 0) {
+      this.currentPage = this.totalPages;
+    }
+
+    // Appliquer la pagination
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedPoints = this.filteredPoints.slice(startIndex, endIndex);
+  }
+
+  sortPointsByInstalledDate(points: Point[]): Point[] {
+    return [...points].sort((a, b) => {
+      const dateA = a.installedAt ? new Date(a.installedAt).getTime() : Infinity;
+      const dateB = b.installedAt ? new Date(b.installedAt).getTime() : Infinity;
+      return dateA - dateB;
+    });
+  }
+
+  filterPoints(points: Point[], query: string): Point[] {
+    if (!query || query.trim() === '') {
+      return points;
+    }
+
+    const lowerQuery = query.toLowerCase().trim();
+    return points.filter((point) => {
+      // Recherche dans le commentaire (nom)
+      if (point.comment && point.comment.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+
+      // Recherche dans le numéro d'ordre
+      if (point.order && point.order.toString().includes(lowerQuery)) {
+        return true;
+      }
+
+      return false;
+    });
+  }
+
+  goToPointsPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.applyPointsFiltersAndPagination();
+    }
+  }
+
+  previousPointsPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.applyPointsFiltersAndPagination();
+    }
+  }
+
+  nextPointsPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.applyPointsFiltersAndPagination();
+    }
+  }
+
+  getPointsPageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxPagesToShow = 5;
+
+    if (this.totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let startPage = Math.max(1, this.currentPage - 2);
+      const endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
+
+      if (endPage - startPage < maxPagesToShow - 1) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+    }
+
+    return pages;
   }
 }
