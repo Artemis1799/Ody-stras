@@ -187,6 +187,22 @@ form {
     &.has-value {
       border-color: #484f58;
     }
+
+    &.invalid {
+      border-color: #f87171;
+      
+      &:focus {
+        border-color: #f87171;
+        box-shadow: 0 0 0 3px rgba(248, 113, 112, 0.15);
+      }
+    }
+  }
+
+  .error-message {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #f87171;
   }
 }
 

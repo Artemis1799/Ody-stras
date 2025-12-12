@@ -152,16 +152,6 @@ $danger: #f87171;
     display: block;
     animation: dropdownFadeIn 0.2s ease;
   }
-  
-  &:hover .dropdown-toggle {
-    background-color: $bg-hover;
-    color: $text-primary;
-    border-color: $border-primary;
-    
-    .pi:not(.pi-angle-down) {
-      color: $accent-primary;
-    }
-  }
 }
 
 .dropdown-toggle {
