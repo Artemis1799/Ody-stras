@@ -261,8 +261,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     const marker = this.markers.get(point.uuid);
     if (marker) {
       if (this.openedPoint && this.openedPoint.uuid !== point.uuid) {
-        const openedMarker = this.markers.get(this.openedPoint.uuid);
-        openedMarker.closePopup();
+        try {
+          const openedMarker = this.markers.get(this.openedPoint.uuid);
+          openedMarker.closePopup();
+        } catch {
+          this.openedPoint = null;
+        }
       }
       marker.openPopup();
       this.openedPoint = point;

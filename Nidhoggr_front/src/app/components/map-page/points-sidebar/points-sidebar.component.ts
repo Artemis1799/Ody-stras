@@ -459,10 +459,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
           console.warn('Aucun point à afficher dans la frise.');
           return;
         }
-        if (this.showTimeline == true) {
-          console.log('here');
-        }
-        console.log('here2');
+        /* if (this.showTimeline == true) {
+          this.showTimeline = false;
+          return;
+        }//do not work because fct is randomly called
+        console.log('here2');*/
         this.showTimeline = true;
 
         // Trier et préparer les items pour la frise

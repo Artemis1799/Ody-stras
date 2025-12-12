@@ -87,11 +87,7 @@
                 [style.width.%]="getDuration(item.start, item.end)"
                 [title]="'Du ' + formatDateTime(item.start) + ' au ' + formatDateTime(item.end)"
                 (mouseenter)="onPointHover(item.id)"
-              >
-                <span class="bar-label"
-                  >{{ formatDateTime(item.start) }} → {{ formatDateTime(item.end) }}</span
-                >
-              </div>
+              ></div>
 
               <!-- Cas : seulement une date de début -->
               <div
