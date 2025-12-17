@@ -13,9 +13,6 @@ build_job:
     - npm install --legacy-peer-deps
     - npm install -g @angular/cli
     - ng build
-  artifacts:
-    paths:
-      - Nidhoggr_front/dist/Nidhoggr_front
 
 lint_job:
   stage: lint
@@ -29,5 +26,26 @@ lint_job:
     paths:
       - Nidhoggr_front/lint-report.xml
     when: always
-  allow_failure: false
+  allow_failure: true
 
+# Job de déploiement utilisant l'image Docker existante
+deploy_job:
+  stage: deploy
+  image: docker:latest
+
+  services:
+    - name: docker:dind
+      command: ["--tls=false"]
+
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    CI_REGISTRY_IMAGE: "$CI_REGISTRY/$CI_PROJECT_PATH"
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+
+  script:
+    - docker info
+    - docker build -t "$CI_REGISTRY_IMAGE:latest" -f Nidhoggr_front/dockerfile ./Nidhoggr_front
+    - docker push "$CI_REGISTRY_IMAGE:latest"

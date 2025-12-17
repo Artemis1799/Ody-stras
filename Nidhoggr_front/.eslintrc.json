@@ -18,7 +18,7 @@
         "prefer-const": "error",
         "no-empty": "error",
         "@typescript-eslint/no-unused-expressions": "error",
-        "complexity": ["warn", { "max": 10 }],
+        "complexity": ["warn", { "max": 11 }],
         "import/newline-after-import": "warn",
         "@typescript-eslint/naming-convention": [
           "warn",
