@@ -47,7 +47,6 @@ public class PictureService : IPictureService
         }
 
         existing.PictureData = picture.PictureData;
-        existing.PictureName = picture.PictureName;
 
         await _context.SaveChangesAsync();
 

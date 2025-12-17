@@ -11,7 +11,7 @@ using t5_back.Data;
 namespace t5_back.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251217142405_InitialCreate")]
+    [Migration("20251217201831_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -166,12 +166,9 @@ namespace t5_back.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("PictureData")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PictureName")
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
+                    b.Property<byte[]>("PictureData")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
 
                     b.HasKey("UUID");
 
@@ -337,6 +334,9 @@ namespace t5_back.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("TeamNumber")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("UUID");
 

@@ -12,7 +12,6 @@ public class DatabaseService : IDatabaseService
     private readonly IEmployeeService _employeeService;
     private readonly ITeamEmployeeService _teamEmployeeService;
     private readonly IPictureService _pictureService;
-    private readonly IPicturePointService _picturePointService;
     private readonly IAreaService _areaService;
     private readonly IPathService _pathService;
     private readonly ISecurityZoneService _securityZoneService;
@@ -28,7 +27,6 @@ public class DatabaseService : IDatabaseService
         IEmployeeService employeeService,
         ITeamEmployeeService teamEmployeeService,
         IPictureService pictureService,
-        IPicturePointService picturePointService,
         IAreaService areaService,
         IPathService pathService,
         ISecurityZoneService securityZoneService,
@@ -43,7 +41,6 @@ public class DatabaseService : IDatabaseService
         _employeeService = employeeService;
         _teamEmployeeService = teamEmployeeService;
         _pictureService = pictureService;
-        _picturePointService = picturePointService;
         _areaService = areaService;
         _pathService = pathService;
         _securityZoneService = securityZoneService;
@@ -60,7 +57,6 @@ public class DatabaseService : IDatabaseService
         result["SecurityZones"] = await _securityZoneService.DeleteAllAsync();
         result["Paths"] = await _pathService.DeleteAllAsync();
         result["Areas"] = await _areaService.DeleteAllAsync();
-        result["PicturePoints"] = await _picturePointService.DeleteAllAsync();
         result["Pictures"] = await _pictureService.DeleteAllAsync();
         result["Points"] = await _pointService.DeleteAllAsync();
         result["TeamEmployees"] = await _teamEmployeeService.DeleteAllAsync();

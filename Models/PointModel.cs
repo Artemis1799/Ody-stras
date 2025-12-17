@@ -41,6 +41,6 @@ public class Point
     public Equipment? Equipment { get; set; }
     
     [JsonIgnore]
-    public ICollection<PicturePoint>? PicturePoints { get; set; }
+    public ICollection<Picture>? Pictures { get; set; }
 }
 

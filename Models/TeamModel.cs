@@ -16,6 +16,8 @@ public class Team
     [MaxLength(255)]
     public string TeamName { get; set; } = string.Empty;
     
+    public int? TeamNumber { get; set; }
+    
     [ForeignKey("EventId")]
     [JsonIgnore]
     public Event? Event { get; set; }

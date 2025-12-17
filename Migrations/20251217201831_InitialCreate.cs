@@ -61,8 +61,7 @@ namespace t5_back.Migrations
                 columns: table => new
                 {
                     UUID = table.Column<Guid>(type: "TEXT", nullable: false),
-                    PictureData = table.Column<string>(type: "TEXT", nullable: true),
-                    PictureName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true)
+                    PictureData = table.Column<byte[]>(type: "BLOB", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -193,7 +192,8 @@ namespace t5_back.Migrations
                 {
                     UUID = table.Column<Guid>(type: "TEXT", nullable: false),
                     EventId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    TeamName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false)
+                    TeamName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    TeamNumber = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {

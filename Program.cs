@@ -33,7 +33,6 @@ builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ITeamEmployeeService, TeamEmployeeService>();
 builder.Services.AddScoped<IPictureService, PictureService>();
-builder.Services.AddScoped<IPicturePointService, PicturePointService>();
 builder.Services.AddScoped<IAreaService, AreaService>();
 builder.Services.AddScoped<IPathService, PathService>();
 builder.Services.AddScoped<ISecurityZoneService, SecurityZoneService>();

@@ -13,7 +13,6 @@ public class AppDbContext : DbContext
     public DbSet<Event> Events { get; set; }
     public DbSet<Point> Points { get; set; }
     public DbSet<Picture> Pictures { get; set; }
-    public DbSet<PicturePoint> PicturePoints { get; set; }
     public DbSet<Equipment> Equipments { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Team> Teams { get; set; }
@@ -27,10 +26,6 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // PicturePoint composite key
-        modelBuilder.Entity<PicturePoint>()
-            .HasKey(pp => new { pp.PictureId, pp.PointId });
-
         // TeamEmployee composite key
         modelBuilder.Entity<TeamEmployee>()
             .HasKey(te => new { te.TeamId, te.EmployeeId });
@@ -50,18 +45,11 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
 
-        // PicturePoint -> Picture relationship
-        modelBuilder.Entity<PicturePoint>()
-            .HasOne(pp => pp.Picture)
-            .WithMany(p => p.PicturePoints)
-            .HasForeignKey(pp => pp.PictureId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // PicturePoint -> Point relationship
-        modelBuilder.Entity<PicturePoint>()
-            .HasOne(pp => pp.Point)
-            .WithMany(p => p.PicturePoints)
-            .HasForeignKey(pp => pp.PointId)
+        // Picture -> Point relationship
+        modelBuilder.Entity<Picture>()
+            .HasOne(p => p.Point)
+            .WithMany(pt => pt.Pictures)
+            .HasForeignKey(p => p.PointId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Team -> Event relationship
