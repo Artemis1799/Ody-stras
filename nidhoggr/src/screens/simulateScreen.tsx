@@ -14,8 +14,15 @@ import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { EventScreenNavigationProp, Point, Evenement } from "../../types/types";
 import { getAllWhere, update } from "../../database/queries";
+import { Strings } from "../../types/strings";
+import { Header } from "../components/header";
+import { useTheme } from "../utils/ThemeContext";
+import { getStyles } from "../utils/theme";
 
 export default function SimulateScreen() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
+
   const navigation = useNavigation<EventScreenNavigationProp>();
   const route = useRoute();
   const { eventUUID } = route.params as { eventUUID: string };
@@ -69,7 +76,7 @@ export default function SimulateScreen() {
       }
     } catch (err) {
       console.error(err);
-      Alert.alert("Erreur", "Impossible de charger les points.");
+      Alert.alert("Erreur", Strings.errors.fetchPointsMessage);
     }
   };
 
@@ -96,8 +103,12 @@ export default function SimulateScreen() {
 
   // Effet pour gérer l'intervalle de simulation
   useEffect(() => {
-    console.log('useEffect simulation', { isRunning, currentIndex, hasMovedRef: hasMovedRef.current });
-    
+    console.log("useEffect simulation", {
+      isRunning,
+      currentIndex,
+      hasMovedRef: hasMovedRef.current,
+    });
+
     if (!isRunning || currentIndex >= points.length) {
       if (simulationInterval.current) {
         clearInterval(simulationInterval.current);
@@ -106,45 +117,47 @@ export default function SimulateScreen() {
       return;
     }
 
-    console.log('Démarrage de l\'intervalle de simulation');
-    simulationInterval.current = Number(setInterval(() => {
-      setCurrentPosition((prevPos) => {
-        if (!prevPos || currentIndex >= points.length) return prevPos;
+    console.log("Démarrage de l'intervalle de simulation");
+    simulationInterval.current = Number(
+      setInterval(() => {
+        setCurrentPosition((prevPos) => {
+          if (!prevPos || currentIndex >= points.length) return prevPos;
 
-        const targetPoint = points[currentIndex];
-        const dist = calculateDistance(
-          prevPos.latitude,
-          prevPos.longitude,
-          targetPoint.Latitude,
-          targetPoint.Longitude
-        );
+          const targetPoint = points[currentIndex];
+          const dist = calculateDistance(
+            prevPos.latitude,
+            prevPos.longitude,
+            targetPoint.Latitude,
+            targetPoint.Longitude
+          );
 
-        setDistance(dist);
+          setDistance(dist);
 
-        // Vérifier si on est arrivé au point (seulement après avoir bougé)
-        if (dist < ARRIVAL_THRESHOLD && hasMovedRef.current) {
-          handleArrival();
-          return prevPos;
-        }
+          // Vérifier si on est arrivé au point (seulement après avoir bougé)
+          if (dist < ARRIVAL_THRESHOLD && hasMovedRef.current) {
+            handleArrival();
+            return prevPos;
+          }
 
-        // Déplacer vers le point cible
-        const latDiff = targetPoint.Latitude - prevPos.latitude;
-        const lonDiff = targetPoint.Longitude - prevPos.longitude;
-        const ratio = Math.min(SIMULATION_SPEED / (dist / 111000), 1);
+          // Déplacer vers le point cible
+          const latDiff = targetPoint.Latitude - prevPos.latitude;
+          const lonDiff = targetPoint.Longitude - prevPos.longitude;
+          const ratio = Math.min(SIMULATION_SPEED / (dist / 111000), 1);
 
-        const newPos = {
-          latitude: prevPos.latitude + latDiff * ratio,
-          longitude: prevPos.longitude + lonDiff * ratio,
-        };
+          const newPos = {
+            latitude: prevPos.latitude + latDiff * ratio,
+            longitude: prevPos.longitude + lonDiff * ratio,
+          };
 
-        // Marquer qu'on a bougé
-        if (!hasMovedRef.current) {
-          hasMovedRef.current = true;
-        }
+          // Marquer qu'on a bougé
+          if (!hasMovedRef.current) {
+            hasMovedRef.current = true;
+          }
 
-        return newPos;
-      });
-    }, 100));
+          return newPos;
+        });
+      }, 100)
+    );
 
     return () => {
       if (simulationInterval.current) {
@@ -156,22 +169,25 @@ export default function SimulateScreen() {
   // Démarrer/reprendre la simulation
   const startSimulation = () => {
     if (points.length === 0) {
-      Alert.alert("Info", "Aucun point à visiter.");
+      Alert.alert("Info", Strings.buttons.simulateRoute);
       return;
     }
-    console.log('Démarrage/reprise simulation', {
+    console.log("Démarrage/reprise simulation", {
       currentIndex,
       isRunning,
       hasMovedRef: hasMovedRef.current,
-      completedPoints
+      completedPoints,
     });
-    
+
     // Si le point actuel est déjà complété, passer au suivant
-    if (completedPoints.includes(currentIndex) && currentIndex < points.length - 1) {
+    if (
+      completedPoints.includes(currentIndex) &&
+      currentIndex < points.length - 1
+    ) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
       hasMovedRef.current = false;
-      
+
       // Centrer la carte sur le nouveau point
       if (mapRef.current && points[nextIndex]) {
         mapRef.current.animateToRegion({
@@ -182,7 +198,7 @@ export default function SimulateScreen() {
         });
       }
     }
-    
+
     setIsRunning(true);
   };
 
@@ -206,37 +222,39 @@ export default function SimulateScreen() {
     if (completedPoints.includes(currentIndex)) {
       return;
     }
-    
+
     // Marquer qu'on attend entre les points
     setIsWaitingBetweenPoints(true);
     setIsRunning(false);
     hasMovedRef.current = false;
-    
+
     const newCompletedPoints = [...completedPoints, currentIndex];
     setCompletedPoints(newCompletedPoints);
-    
+
     console.log(`Point ${currentIndex + 1} complété!`, newCompletedPoints);
 
     if (currentIndex < points.length - 1) {
       // Attendre 3 secondes avant de passer au point suivant
-      waitingTimeout.current = Number(setTimeout(() => {
-        const nextIndex = currentIndex + 1;
-        setCurrentIndex(nextIndex);
-        
-        // Centrer la carte sur le nouveau point
-        if (mapRef.current) {
-          mapRef.current.animateToRegion({
-            latitude: points[nextIndex].Latitude,
-            longitude: points[nextIndex].Longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          });
-        }
-        
-        // Reprendre automatiquement
-        setIsWaitingBetweenPoints(false);
-        setIsRunning(true);
-      }, 3000));
+      waitingTimeout.current = Number(
+        setTimeout(() => {
+          const nextIndex = currentIndex + 1;
+          setCurrentIndex(nextIndex);
+
+          // Centrer la carte sur le nouveau point
+          if (mapRef.current) {
+            mapRef.current.animateToRegion({
+              latitude: points[nextIndex].Latitude,
+              longitude: points[nextIndex].Longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            });
+          }
+
+          // Reprendre automatiquement
+          setIsWaitingBetweenPoints(false);
+          setIsRunning(true);
+        }, 3000)
+      );
     } else {
       // Tous les points sont complétés, mettre à jour le statut de l'événement
       try {
@@ -288,18 +306,9 @@ export default function SimulateScreen() {
   if (points.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back-outline" size={28} color="white" />
-          </TouchableOpacity>
-          <Image
-            source={require("../../ressources/header.png")}
-            style={styles.headerImage}
-          />
-          <View style={{ width: 28 }} />
-        </View>
+        <Header />
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Aucun point à simuler</Text>
+          <Text style={styles.emptyText}>{Strings.map.noEquipment}</Text>
         </View>
       </SafeAreaView>
     );
@@ -453,10 +462,15 @@ export default function SimulateScreen() {
             <Text style={styles.buttonText}>Recommencer le parcours</Text>
           </TouchableOpacity>
         ) : !isRunning && !isWaitingBetweenPoints ? (
-          <TouchableOpacity style={styles.startButton} onPress={startSimulation}>
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={startSimulation}
+          >
             <Ionicons name="play" size={24} color="white" />
             <Text style={styles.buttonText}>
-              {completedPoints.length > 0 ? "Reprendre" : "Démarrer le parcours"}
+              {completedPoints.length > 0
+                ? "Reprendre"
+                : "Démarrer le parcours"}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -469,199 +483,3 @@ export default function SimulateScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f8fc",
-  },
-  header: {
-    backgroundColor: "#9EC54D",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 30,
-    paddingBottom: 10,
-    paddingLeft: 14,
-    paddingRight: 14,
-  },
-  headerImage: {
-    width: "40%",
-    height: 30,
-    alignSelf: "center",
-  },
-  map: {
-    flex: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emptyText: {
-    fontSize: 18,
-    color: "#666",
-  },
-  currentPositionMarker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(30, 144, 255, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  currentPositionDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#1E90FF",
-    borderWidth: 2,
-    borderColor: "white",
-  },
-  pointMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#E5E0FF",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#6B5EFF",
-  },
-  completedMarker: {
-    backgroundColor: "#C8E6C9",
-    borderColor: "#4CAF50",
-  },
-  currentMarker: {
-    backgroundColor: "#A6CE39",
-    borderColor: "#8FB34E",
-    transform: [{ scale: 1.2 }],
-  },
-  nextMarker: {
-    backgroundColor: "#FFE0B2",
-    borderColor: "#FF9800",
-  },
-  markerText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#6B5EFF",
-  },
-  completedMarkerText: {
-    color: "#4CAF50",
-  },
-  infoPanel: {
-    backgroundColor: "white",
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 3,
-    marginBottom: 10,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#A6CE39",
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  currentPointInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  pointDetails: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  pointLabel: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 2,
-  },
-  pointName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
-  distanceInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-    paddingLeft: 4,
-  },
-  distanceText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#666",
-    marginLeft: 8,
-  },
-  nextPointInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
-  },
-  nextLabel: {
-    fontSize: 12,
-    color: "#999",
-    marginBottom: 2,
-  },
-  nextName: {
-    fontSize: 14,
-    color: "#666",
-  },
-  controls: {
-    padding: 20,
-    backgroundColor: "white",
-  },
-  startButton: {
-    backgroundColor: "#A6CE39",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  stopButton: {
-    backgroundColor: "#FF6B6B",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  waitingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: "#F0F0F0",
-  },
-  waitingText: {
-    color: "#666",
-    fontSize: 18,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-});

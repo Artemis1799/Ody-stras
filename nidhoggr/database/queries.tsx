@@ -70,6 +70,26 @@ export async function insert<T>(
   }
 }
 
+export async function insertOrReplace<T>(
+  db: SQLiteDatabase,
+  table: string,
+  data: Partial<T>
+): Promise<void> {
+  try {
+    const keys = Object.keys(data);
+    const placeholders = keys.map(() => "?").join(",");
+
+    const query = `INSERT OR REPLACE INTO ${table} (${keys.join(
+      ","
+    )}) VALUES (${placeholders})`;
+    const values: any[] = Object.values(data);
+
+    await db.runAsync(query, values);
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 export async function update<T>(
   db: SQLiteDatabase,
   table: string,
@@ -134,5 +154,20 @@ export async function deleteWhere(
   } catch (error) {
     console.error("Error in deleteWhere:", error);
     return 0;
+  }
+}
+
+export async function flushDatabase(db: SQLiteDatabase): Promise<void> {
+  try {
+    console.log("Flushing database...");
+    await db.runAsync("DELETE FROM Image_Point");
+    await db.runAsync("DELETE FROM Photo");
+    await db.runAsync("DELETE FROM Point");
+    await db.runAsync("DELETE FROM EventGeometries");
+    await db.runAsync("DELETE FROM Evenement");
+    await db.runAsync("DELETE FROM Equipement");
+    console.log("Database flushed successfully.");
+  } catch (error) {
+    console.error("Error flushing database:", error);
   }
 }

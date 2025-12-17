@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -16,12 +16,18 @@ import { deleteDatabase } from "../../database/database";
 import { Ionicons } from "@expo/vector-icons";
 import { Evenement, EventScreenNavigationProp } from "../../types/types";
 import { getAll } from "../../database/queries";
+import { Strings } from "../../types/strings";
+import { useTheme } from "../utils/ThemeContext";
+import { getStyles } from "../utils/theme";
+import { Header } from "../components/header";
 
 export function EventListScreen() {
   const navigation = useNavigation<EventScreenNavigationProp>();
   const db = useSQLiteContext();
   const [events, setEvents] = useState<Evenement[]>([]);
   const [loading, setLoading] = useState(true);
+  const { theme, toggleTheme, colors } = useTheme();
+  const styles = getStyles(theme);
 
   const resetDatabase = async () => {
     try {
@@ -41,7 +47,10 @@ export function EventListScreen() {
           setEvents(data);
         } catch (err) {
           console.error(err);
-          Alert.alert("Erreur DB", "Impossible de récupérer les events.");
+          Alert.alert(
+            Strings.errors.dbError,
+            Strings.errors.fetchEventsMessage
+          );
         } finally {
           setLoading(false);
         }
@@ -53,38 +62,31 @@ export function EventListScreen() {
   const renderItem = ({ item }: { item: Evenement }) => (
     <TouchableOpacity
       style={styles.eventItem}
-      onPress={() => {
+      onPress={() =>
         navigation.navigate("Event", {
           UUID: item.UUID,
           Nom: item.Nom,
-          Description: item.Description || "",
+          Description: item.Description,
           Date_debut: item.Date_debut,
           Status: item.Status,
-        });
-      }}
+        })
+      }
     >
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>
-          {item.Nom && item.Nom.length > 0 ? item.Nom[0].toUpperCase() : "?"}
+          {item.Nom?.[0]?.toUpperCase() ?? "?"}
         </Text>
       </View>
+
       <Text style={styles.eventName}>{item.Nom}</Text>
-      <Ionicons name="chevron-forward-outline" size={20} color="#000" />
+
+      <Ionicons name="chevron-forward-outline" size={20} />
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Image
-          source={require("../../ressources/header.png")}
-          style={styles.headerImage}
-        />
-        <Ionicons name="person-circle-outline" size={28} color="white" />
-        <TouchableOpacity onPress={resetDatabase}>
-          <Text>Reset DB</Text>
-        </TouchableOpacity>
-      </View>
+      <Header showBack={false} />
 
       <FlatList
         data={events}
@@ -92,87 +94,25 @@ export function EventListScreen() {
         keyExtractor={(item) => item.UUID}
         contentContainerStyle={styles.listContainer}
       />
-
-      <TouchableOpacity
+      {/*      <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate("AddEvent")}
       >
         <Ionicons name="add" size={30} color="white" />
+  </TouchableOpacity>*/}
+      <TouchableOpacity style={styles.fab} onPress={toggleTheme}>
+        <Ionicons
+          name={theme === "light" ? "moon" : "sunny"}
+          size={30}
+          color={theme === "light" ? "white" : "black"}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.fab, { bottom: 100 }]}
+        onPress={() => navigation.navigate("ImportEvent")}
+      >
+        <Ionicons name="download-outline" size={30} color="white" />
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  headerImage: {
-    width: "40%",
-    height: 30,
-    alignSelf: "center",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f8fc",
-  },
-  header: {
-    backgroundColor: "#9EC54D",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 30,
-    paddingBottom: 10,
-    paddingLeft: 30,
-    paddingRight: 14,
-  },
-  headerText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 18,
-  },
-  listContainer: {
-    padding: 20,
-  },
-  eventItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#E5E0FF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  avatarText: {
-    fontWeight: "bold",
-    color: "#6B5EFF",
-  },
-  eventName: {
-    flex: 1,
-    fontSize: 16,
-  },
-  fab: {
-    position: "absolute",
-    bottom: 25,
-    right: 25,
-    backgroundColor: "#A6CE39",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-});

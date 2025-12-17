@@ -39,3 +39,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# test coverage
+coverage/
+# jest test results
+test-results.json
+
+#test-report
+test-reports/

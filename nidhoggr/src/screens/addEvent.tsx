@@ -15,8 +15,13 @@ import uuid from "react-native-uuid";
 import { useNavigation } from "@react-navigation/native";
 import { insert } from "../../database/queries";
 import { Evenement } from "../../types/types";
+import { Header } from "../components/header";
+import { useTheme } from "../utils/ThemeContext";
+import { getStyles } from "../utils/theme";
 
 export function CreateEventScreen() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const navigation = useNavigation();
   const [nom, setNom] = useState("");
   const [description, setDescription] = useState("");
@@ -42,16 +47,7 @@ export function CreateEventScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="white" />
-        </TouchableOpacity>
-        <Image
-          source={require("../../ressources/header.png")}
-          style={styles.headerImage}
-        />
-        <Ionicons name="person-circle-outline" size={28} color="white" />
-      </View>
+      <Header />
 
       <View style={styles.form}>
         <Text style={styles.label}>Nom d’événement</Text>
@@ -93,72 +89,9 @@ export function CreateEventScreen() {
         )}
 
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>Valider</Text>
+          <Text style={styles.buttonTextBlack}>Valider</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  headerImage: {
-    width: "40%",
-    height: 30,
-    alignSelf: "center",
-  },
-  header: {
-    backgroundColor: "#9EC54D",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 30,
-    paddingBottom: 10,
-    paddingLeft: 30,
-    paddingRight: 14,
-  },
-  headerText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 18,
-  },
-  form: {
-    padding: 20,
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 6,
-    marginTop: 10,
-    fontWeight: "500",
-  },
-  input: {
-    backgroundColor: "#f2f2f2",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  dateInput: {
-    backgroundColor: "#f2f2f2",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  button: {
-    backgroundColor: "#A6CE39",
-    borderRadius: 20,
-    alignItems: "center",
-    paddingVertical: 14,
-    marginTop: 25,
-  },
-  buttonText: {
-    color: "black",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-});

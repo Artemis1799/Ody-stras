@@ -26,11 +26,21 @@ import {
   UserLocation,
   createPointParams,
 } from "../../types/types";
-import { getAll, getAllWhere, insert, update, deleteWhere } from "../../database/queries";
-
+import {
+  getAll,
+  getAllWhere,
+  insert,
+  update,
+  deleteWhere,
+} from "../../database/queries";
+import { Strings } from "../../types/strings";
+import { Header } from "../components/header";
+import { useTheme } from "../utils/ThemeContext";
+import { getStyles } from "../utils/theme";
 export function CreatePointScreen() {
   const db = useSQLiteContext();
-
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [open, setOpen] = useState(false);
   const navigation = useNavigation<EventScreenNavigationProp>();
   const [comment, setComment] = useState("");
@@ -41,7 +51,9 @@ export function CreatePointScreen() {
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [isEditingLocation, setIsEditingLocation] = useState(false);
-  const [markerPosition, setMarkerPosition] = useState<UserLocation | null>(null);
+  const [markerPosition, setMarkerPosition] = useState<UserLocation | null>(
+    null
+  );
   const route = useRoute();
   const { eventId, pointIdParam } = route.params as createPointParams;
 
@@ -65,7 +77,10 @@ export function CreatePointScreen() {
           await update<Point>(
             db,
             "Point",
-            { Latitude: markerPosition.latitude, Longitude: markerPosition.longitude },
+            {
+              Latitude: markerPosition.latitude,
+              Longitude: markerPosition.longitude,
+            },
             "UUID = ?",
             [pointId]
           );
@@ -90,15 +105,15 @@ export function CreatePointScreen() {
   const validate = async () => {
     try {
       if (!comment) {
-        alert("Veuillez ajouter un commentaire");
+        alert(Strings.createPoint.addComment);
         return;
       }
       if (!equipment) {
-        alert("Veuillez sélectionner un type d'équipement");
+        alert(Strings.createPoint.selectEquipment);
         return;
       }
       if (!qty || Number(qty) < 1) {
-        alert("Veuillez entrer une quantité supérieure à 0");
+        alert(Strings.createPoint.enterQuantity);
         return;
       }
 
@@ -207,16 +222,8 @@ export function CreatePointScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleGoBack}>
-          <Ionicons name="arrow-back" size={28} color="white" />
-        </TouchableOpacity>
-        <Image
-          source={require("../../ressources/header.png")}
-          style={styles.headerImage}
-        />
-        <Ionicons name="person-circle-outline" size={28} color="white" />
-      </View>
+      <Header onBack={handleGoBack} />
+
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1 }}>
           <View style={styles.mapContainer}>
@@ -262,11 +269,13 @@ export function CreatePointScreen() {
             <Ionicons
               name={isEditingLocation ? "checkmark-circle" : "location"}
               size={20}
-              color="#8DC63F"
+              color={theme === "light" ? "#8DC63F" : "#2ad783"}
               style={{ marginRight: 8 }}
             />
             <Text style={styles.editLocationButtonText}>
-              {isEditingLocation ? "Valider la position" : "Modifier le repère"}
+              {isEditingLocation
+                ? Strings.createPoint.validatePosition
+                : Strings.createPoint.editMarker}
             </Text>
           </TouchableOpacity>
 
@@ -294,119 +303,25 @@ export function CreatePointScreen() {
             setOpen={setOpen}
             setValue={setEquipment}
             setItems={setEquipmentList}
-            placeholder="Sélectionnez un équipement"
+            placeholder={Strings.createPoint.selectEquipmentPlaceholder}
             listMode="SCROLLVIEW"
             style={styles.dropdown}
           />
           <TextInput
             placeholder="Quantité"
-            style={styles.input}
+            style={styles.inputCreatePoint}
             keyboardType="numeric"
             value={qty}
             onChangeText={setQty}
           />
 
           <TouchableOpacity style={styles.validateButton} onPress={validate}>
-            <Text style={styles.validateButtonText}>Valider</Text>
+            <Text style={styles.validateButtonText}>
+              {Strings.createPoint.validate}
+            </Text>
           </TouchableOpacity>
         </View>
       </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  dropdown: {
-    margin: 15,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: "#fff",
-    overflow: "hidden",
-    width: "92%",
-    alignSelf: "center",
-  },
-
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#8FB34E",
-  },
-  headerImage: {
-    width: 120,
-    height: 30,
-    resizeMode: "contain",
-  },
-  mapContainer: {
-    height: 250,
-    width: "100%",
-    position: "relative",
-  },
-  map: {
-    height: "100%",
-    width: "100%"
-  },
-  centerMarker: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    marginLeft: -24,
-    marginTop: -48,
-    zIndex: 1000,
-  },
-  editLocationButton: {
-    backgroundColor: "#fff",
-    marginHorizontal: 15,
-    marginTop: 10,
-    marginBottom: 10,
-    padding: 12,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#8DC63F",
-  },
-  editLocationButtonText: {
-    color: "#8DC63F",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  inputComment: {
-    backgroundColor: "#fff",
-    margin: 15,
-    padding: 15,
-    height: 120,
-    textAlignVertical: "top",
-    borderRadius: 12,
-  },
-  inputFake: {
-    backgroundColor: "#fff",
-    marginHorizontal: 15,
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  input: {
-    backgroundColor: "#fff",
-    marginHorizontal: 15,
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  validateButton: {
-    backgroundColor: "#8DC63F",
-    margin: 15,
-    padding: 15,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  validateButtonText: { color: "#fff", fontSize: 18 },
-});

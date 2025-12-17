@@ -11,17 +11,32 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
-import { Evenement, EventScreenNavigationProp } from "../../types/types";
+import {
+  Evenement,
+  EventScreenNavigationProp,
+  Geometries,
+} from "../../types/types";
 import { getAllWhere } from "../../database/queries";
+import { Strings } from "../../types/strings";
+import { Header } from "../components/header";
+import { useTheme } from "../utils/ThemeContext";
+import { getStyles } from "../utils/theme";
+import RenderGeometries from "../utils/RenderGeometry";
 
 export default function EventScreen() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const route = useRoute();
   const db = useSQLiteContext();
   const params = route.params as Evenement;
   const eventUUID = params.UUID;
-
+  const [geometries, setGeometries] = useState<string[]>([]);
   const [eventData, setEventData] = useState<Evenement>(params);
 
   const mapRef = useRef<MapView>(null);
@@ -70,6 +85,15 @@ export default function EventScreen() {
           if (events.length > 0) {
             setEventData(events[0]);
           }
+          //Récupération des géométries
+          const geoms = await getAllWhere<Geometries>(
+            db,
+            "EventGeometries",
+            ["EventID"],
+            [eventUUID]
+          );
+          const geojsonList = geoms.map((g) => g.GeoJSON);
+          setGeometries(geojsonList);
         } catch (err) {
           console.error("Erreur lors du chargement de l'événement:", err);
         }
@@ -82,17 +106,7 @@ export default function EventScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="white" />
-        </TouchableOpacity>
-        <Image
-          source={require("../../ressources/header.png")}
-          style={styles.headerImage}
-        />
-        <Ionicons name="person-circle-outline" size={28} color="white" />
-      </View>
-
+      <Header />
       <ScrollView style={styles.content}>
         {/* Event Title */}
         <View style={styles.titleContainer}>
@@ -112,25 +126,29 @@ export default function EventScreen() {
             }}
             showsUserLocation={true}
             showsMyLocationButton={true}
-          ></MapView>
+          >
+            <RenderGeometries geometries={geometries} />
+          </MapView>
         </View>
 
         {/* Event Details */}
         <View style={styles.detailsContainer}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Description :</Text>
+            <Text style={styles.detailLabel}>
+              {Strings.event.descriptionLabel}
+            </Text>
             <Text style={styles.detailValue}>{eventData.Description}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date :</Text>
+            <Text style={styles.detailLabel}>{Strings.event.dateLabel}</Text>
             <Text style={styles.detailValue}>
               {new Date(eventData.Date_debut).toLocaleDateString("fr-FR")}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Statut :</Text>
+            <Text style={styles.detailLabel}>{Strings.event.statusLabel}</Text>
             <Text style={styles.detailValue}>{eventData.Status}</Text>
           </View>
         </View>
@@ -143,132 +161,25 @@ export default function EventScreen() {
               navigation.navigate("Map", { eventId: eventUUID });
             }}
           >
-            <Text style={styles.buttonText}>Ajouter des points</Text>
+            <Text style={styles.buttonText}>{Strings.event.addPoints}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.pointsButton}
             onPress={() => navigation.navigate("Points", { eventUUID })}
           >
-            <Text style={styles.buttonText}>Gestion des points</Text>
+            <Text style={styles.buttonText}>{Strings.event.managePoints}</Text>
           </TouchableOpacity>
         </View>
         <View>
-          <TouchableOpacity style={styles.exportButton} onPress={() => navigation.navigate("ExportEvent", { eventUUID })}>
-            <Text style={styles.buttonText}>Exporter l'événement</Text>
+          <TouchableOpacity
+            style={styles.exportButton}
+            onPress={() => navigation.navigate("ExportEvent", { eventUUID })}
+          >
+            <Text style={styles.buttonText}>{Strings.event.exportEvent}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F5F5F5",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#8FB34E",
-  },
-  headerImage: {
-    width: 120,
-    height: 30,
-    resizeMode: "contain",
-  },
-  content: {
-    flex: 1,
-  },
-  titleContainer: {
-    backgroundColor: "#F0F0F0",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  eventTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
-  mapContainer: {
-    height: 250,
-    backgroundColor: "#E8F5E9",
-    position: "relative",
-  },
-  mapImage: {
-    width: "100%",
-    height: "100%",
-  },
-  detailsContainer: {
-    backgroundColor: "white",
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    marginTop: 10,
-  },
-  detailRow: {
-    marginBottom: 16,
-  },
-  detailLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
-  },
-  detailValue: {
-    fontSize: 14,
-    color: "#666",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 12,
-  },
-  pointsButton: {
-    flex: 1,
-    backgroundColor: "#8FB34E",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  exportButton: {
-    backgroundColor: "#8FB34E",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    marginLeft: 20,
-    marginRight: 20,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-});
