@@ -11,7 +11,7 @@ using t5_back.Data;
 namespace t5_back.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251217132740_InitialCreate")]
+    [Migration("20251217142405_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -89,7 +89,7 @@ namespace t5_back.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
-                        .HasMaxLength(255)
+                        .HasMaxLength(60)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FirstName")

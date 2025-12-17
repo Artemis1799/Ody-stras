@@ -18,7 +18,7 @@ namespace t5_back.Migrations
                     UUID = table.Column<Guid>(type: "TEXT", nullable: false),
                     LastName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     FirstName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
-                    Email = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 60, nullable: true),
                     Phone = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true)
                 },
                 constraints: table =>

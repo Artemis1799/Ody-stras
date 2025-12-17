@@ -18,7 +18,7 @@ public class Employee
     [MaxLength(255)]
     public string FirstName { get; set; } = string.Empty;
     
-    [MaxLength(255)]
+    [MaxLength(60)]
     public string? Email { get; set; }
     
     [MaxLength(50)]
