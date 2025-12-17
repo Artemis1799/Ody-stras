@@ -100,15 +100,8 @@ export function EventListScreen() {
       >
         <Ionicons name="add" size={30} color="white" />
   </TouchableOpacity>*/}
-      <TouchableOpacity style={styles.fab} onPress={toggleTheme}>
-        <Ionicons
-          name={theme === "light" ? "moon" : "sunny"}
-          size={30}
-          color={theme === "light" ? "white" : "black"}
-        />
-      </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.fab, { bottom: 100 }]}
+        style={[styles.fab]}
         onPress={() => navigation.navigate("ImportEvent")}
       >
         <Ionicons name="download-outline" size={30} color="white" />
