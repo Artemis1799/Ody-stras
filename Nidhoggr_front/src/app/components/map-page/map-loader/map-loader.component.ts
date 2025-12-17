@@ -68,7 +68,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         center, 
         zoom: 13,
         minZoom: 13,  
-        maxZoom: 17,    
+        maxZoom: 18,    
         maxBounds: bounds,           
         maxBoundsViscosity: 1.0      
       });
@@ -117,7 +117,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         if (!this.map) return;
         let tileLayer = L.tileLayer(chosen, { 
           minZoom: 13,
-          maxZoom: 17,  
+          maxZoom: 18,  
           attribution: '&copy; Local tiles' 
         }).addTo(this.map);
         const input = document.getElementById('tileUrlInput') as HTMLInputElement | null;
@@ -254,7 +254,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     
     // Zoomer et centrer sur le point
     if (this.map && point.latitude && point.longitude) {
-      this.map.setView([point.latitude, point.longitude], 17, {
+      this.map.setView([point.latitude, point.longitude], 18, {
         animate: true,
         duration: 0.5
       });

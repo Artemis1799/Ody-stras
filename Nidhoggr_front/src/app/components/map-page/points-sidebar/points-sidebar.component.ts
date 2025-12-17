@@ -245,7 +245,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       padding: [50, 50],
       paddingTopLeft: [350, 50], // Compenser la sidebar
       paddingBottomRight: [50, 50],
-      maxZoom: 17,
+      maxZoom: 18,
       animate: true,
       duration: 0.5
     });
@@ -321,7 +321,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         point2D.x += offsetX;
         const targetLatLng = map.containerPointToLatLng(point2D);
 
-        map.setView(targetLatLng, 17, {
+        map.setView(targetLatLng, 18, {
           animate: true,
           duration: 0.5,
         });
@@ -504,7 +504,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   applyPointsFiltersAndPagination(): void {
     // Filtrer les points selon la recherche
-    let filtered = this.filterPoints(this.allPoints, this.pointsSearchQuery);
+    const filtered = this.filterPoints(this.allPoints, this.pointsSearchQuery);
     
     // Trier les points par date d'installation
     this.filteredPoints = this.sortPointsByInstalledDate(filtered);

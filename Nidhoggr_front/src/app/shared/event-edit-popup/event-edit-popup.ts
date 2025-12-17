@@ -94,7 +94,7 @@ export class EventEditPopup implements OnInit {
         this.eventDeleted.emit(this.event.uuid);
         this.close.emit();
       },
-      error: (eror) => {
+      error: () => {
         this.toastService.showError('Erreur', 'Impossible de supprimer l\'événement');
       }
     });
