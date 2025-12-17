@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Strings } from "../../types/strings";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
+import { NO_EQUIPMENT_ID } from "../constants/constants";
 
 // Interfaces pour le nouveau format JSON
 interface ImportedPhoto {
@@ -190,7 +191,7 @@ export default function ImportEventScreen() {
             Commentaire: point.comment,
             Ordre: point.order,
             Valide: point.isValid ? 1 : 0,
-            Equipement_ID: point.equipmentId,
+            Equipement_ID: point.equipmentId === null ? NO_EQUIPMENT_ID : point.equipmentId,
             Equipement_quantite: point.equipmentQuantity,
         };
         await insertOrReplace(db, "Point", pointData);
