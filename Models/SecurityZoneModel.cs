@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace t5_back.Models;
 
-public class Point
+public class SecurityZone
 {
     [Key]
     public Guid UUID { get; set; }
@@ -15,32 +15,29 @@ public class Point
     public Guid EventId { get; set; }
     
     [Required]
-    [MaxLength(255)]
-    public string Name { get; set; } = string.Empty;
+    public Guid EquipmentId { get; set; }
     
     [Required]
-    public float Latitude { get; set; }
+    public int Quantity { get; set; }
     
     [Required]
-    public float Longitude { get; set; }
+    public DateTime InstallationDate { get; set; }
     
-    public string? Comment { get; set; }
+    [Required]
+    public DateTime RemovalDate { get; set; }
     
-    public int? Order { get; set; }
-    
-    public bool Validated { get; set; } = false;
-    
-    public Guid? EquipmentId { get; set; }
+    [Required]
+    [Column(TypeName = "TEXT")]
+    public string GeoJson { get; set; } = string.Empty;
     
     [ForeignKey("EventId")]
     [JsonIgnore]
     public Event? Event { get; set; }
-
+    
     [ForeignKey("EquipmentId")]
     [JsonIgnore]
     public Equipment? Equipment { get; set; }
     
     [JsonIgnore]
-    public ICollection<PicturePoint>? PicturePoints { get; set; }
+    public ICollection<Action>? Actions { get; set; }
 }
-
