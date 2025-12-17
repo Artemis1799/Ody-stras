@@ -13,6 +13,8 @@ export interface Point {
   created: Date;
   modified: Date;
   equipmentQuantity: number;
-  event?: any; // Vous pouvez typer Event si vous avez le modèle
+  installedAt?: Date | null;
+  removedAt?: Date | null;
+  event?: Event; 
   equipment?: Equipment;
 }

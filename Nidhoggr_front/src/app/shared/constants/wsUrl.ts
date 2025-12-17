@@ -1,1 +1,1 @@
-export const WS_URL = 'ws://192.168.1.87:8765';
+export const WS_URL = 'ws://172.20.10.6:8765';

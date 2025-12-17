@@ -1,0 +1,89 @@
+<div class="timeline-overlay" (click)="close()">
+  <div class="timeline-dialog" (click)="$event.stopPropagation()">
+    <button class="timeline-close" (click)="close()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+
+    <div class="dialog-header">
+      <div class="header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+          <line x1="8" y1="14" x2="8" y2="18"></line>
+          <line x1="12" y1="14" x2="12" y2="18"></line>
+          <line x1="16" y1="14" x2="16" y2="18"></line>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h4>Planning d'Installation</h4>
+        <p>{{ getTimelineLabel() }}</p>
+      </div>
+    </div>
+
+    <div class="timeline-content">
+      <div class="timeline-wrapper" *ngIf="timelineItems.length > 0; else noData">
+        <!-- Axe temporel de référence -->
+        <div class="timeline-axis">
+          <div class="axis-start">{{ formatDate(minDate) }}</div>
+          <div class="axis-end">{{ formatDate(maxDate) }}</div>
+        </div>
+
+        <!-- Barres de la frise -->
+        <div class="timeline-items">
+          <div class="timeline-item" *ngFor="let item of timelineItems">
+            <div class="item-label">
+              <span class="item-title">{{ item.title }}</span>
+            </div>
+
+            <div class="item-bar-container">
+              <div class="item-bar-background"></div>
+
+              <!-- Barre de période d'installation -->
+              <div
+                *ngIf="item.start && item.end"
+                class="item-bar"
+                [style.left.%]="getDatePosition(item.start)"
+                [style.width.%]="getDuration(item.start, item.end)"
+                [title]="'Du ' + formatDateTime(item.start) + ' au ' + formatDateTime(item.end)"
+              >
+                <span class="bar-label">{{ formatDateTime(item.start) }} → {{ formatDateTime(item.end) }}</span>
+              </div>
+
+              <!-- Cas : seulement une date de début -->
+              <div
+                *ngIf="item.start && !item.end"
+                class="item-bar item-bar-start-only"
+                [style.left.%]="getDatePosition(item.start)"
+                [title]="'Démarrage : ' + formatDateTime(item.start)"
+              >
+                <span class="bar-label">📌 À partir du {{ formatDateTime(item.start) }}</span>
+              </div>
+
+              <!-- Cas : pas de dates -->
+              <div *ngIf="!item.start && !item.end" class="item-bar-empty">
+                <span class="bar-label">ℹ️ Aucune date disponible</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noData>
+        <div class="no-data">
+          <p>Aucun point avec dates d'installation disponible.</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="timeline-actions">
+      <button type="button" class="cancel-btn" (click)="close()">
+        Fermer
+      </button>
+    </div>
+  </div>
+</div>

@@ -56,14 +56,59 @@ let sessionData = {
 };
 
 wsServer.on('connection', (ws) => {
+  console.log('👤 Nouveau client connecté');
+  
+  // Marquer ce client comme étant en attente de savoir son rôle
+  ws.clientRole = null; // 'web' ou 'phone'
+  
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message.toString());
       
       console.log('🔍 Clés du message:', Object.keys(data));
       
+      // Le web s'enregistre et attend un téléphone
+      if (data.type === 'web_waiting') {
+        console.log('🌐 Client web en attente, eventUuid:', data.eventUuid);
+        ws.clientRole = 'web';
+        ws.eventUuid = data.eventUuid;
+      }
+      // Le téléphone demande les données (import_request)
+      else if (data.type === 'import_request') {
+        console.log('📱 Téléphone connecté et demande les données');
+        ws.clientRole = 'phone';
+        
+        // Chercher un client web en attente
+        const webClient = Array.from(wsServer.clients).find(
+          client => client !== ws && client.clientRole === 'web' && client.readyState === WebSocket.OPEN
+        );
+        
+        if (webClient) {
+          console.log('🌐 Client web trouvé, on lui demande d\'envoyer les données');
+          // Notifier le web qu'un téléphone est connecté
+          webClient.send(JSON.stringify({
+            type: 'phone_requesting',
+            message: 'Un téléphone demande les données'
+          }));
+        } else {
+          console.log('⚠️ Aucun client web en attente');
+          ws.send(JSON.stringify({
+            type: 'no_data',
+            message: 'Aucun ordinateur en attente d\'export',
+            timestamp: new Date().toISOString()
+          }));
+        }
+      }
+      // Le web envoie les données de l'événement
+      else if (data.type === 'event_export') {
+        console.log('📦 Données reçues du web, envoi au téléphone...');
+        ws.clientRole = 'web';
+        
+        // Envoyer directement aux téléphones connectés
+        handleEventExport(data, ws);
+      }
       // Le mobile envoie tout en un seul message avec un tableau "points"
-      if (data.points && Array.isArray(data.points)) {
+      else if (data.points && Array.isArray(data.points)) {
         console.log('📦 Données complètes reçues avec', data.points.length, 'points');
         handleBulkData(data, ws);
       } 
@@ -305,4 +350,105 @@ function handleEnd(data, ws) {
     photos: new Map(),
     eventUuid: null
   };
+}
+
+/**
+ * Gère l'export complet d'un événement vers le téléphone
+ */
+function handleEventExport(data, ws) {
+  console.log('📤 Export d\'événement vers le téléphone');
+  console.log('   Événement:', data.event?.name || 'Sans nom');
+  console.log('   Points:', data.points?.length || 0);
+  console.log('   Géométries:', data.geometries?.length || 0);
+  console.log('   Équipements:', data.equipments?.length || 0);
+
+  let clientsSent = 0;
+
+  // Compter les clients téléphones
+  wsServer.clients.forEach(client => {
+    if (client !== ws && client.clientRole === 'phone' && client.readyState === WebSocket.OPEN) {
+      clientsSent++;
+    }
+  });
+
+  // Envoyer les données au format attendu par le mobile (event_data)
+  const eventDataMessage = {
+    type: 'event_data',
+    event: {
+      uuid: data.event.uuid,
+      name: data.event.name,
+      description: data.event.description,
+      startDate: data.event.startDate,
+      endDate: data.event.endDate || null,
+      status: data.event.status,
+      responsable: data.event.responsable || ''
+    },
+    points: data.points.map(point => ({
+      uuid: point.uuid,
+      eventId: point.eventId,
+      equipmentId: point.equipmentId,
+      latitude: point.latitude,
+      longitude: point.longitude,
+      comment: point.comment,
+      imageId: null,
+      order: point.order,
+      isValid: point.isValid,
+      equipmentQuantity: point.equipmentQuantity,
+      created: point.created,
+      modified: point.modified,
+      equipment: point.equipment ? {
+        uuid: point.equipment.uuid,
+        type: point.equipment.type,
+        description: point.equipment.description,
+        unit: point.equipment.unit,
+        totalStock: point.equipment.totalStock || 0,
+        remainingStock: point.equipment.remainingStock || 0
+      } : null,
+      photos: (point.photos || []).map(photo => ({
+        uuid: photo.uuid,
+        pictureName: photo.pictureName,
+        picture: photo.picture
+      }))
+    })),
+    geometries: (data.geometries || []).map(geom => ({
+      uuid: geom.uuid,
+      eventId: geom.eventId,
+      type: geom.type,
+      geoJson: geom.geoJson,
+      properties: geom.properties
+    })),
+    equipments: (data.equipments || []).map(equip => ({
+      uuid: equip.uuid,
+      type: equip.type,
+      description: equip.description,
+      unit: equip.unit,
+      totalStock: equip.totalStock || 0,
+      remainingStock: equip.remainingStock || 0
+    })),
+    metadata: {
+      exportDate: new Date().toISOString(),
+      version: '1.0'
+    }
+  };
+
+  // Envoyer uniquement aux téléphones
+  wsServer.clients.forEach(client => {
+    if (client !== ws && client.clientRole === 'phone' && client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(eventDataMessage));
+    }
+  });
+
+  console.log(`📦 Données event_data envoyées à ${clientsSent} téléphone(s)`);
+  
+  // Confirmer à l'expéditeur (web)
+  ws.send(JSON.stringify({
+    type: 'export_confirmed',
+    message: `Données envoyées à ${clientsSent} téléphone(s)`,
+    summary: {
+      points: data.points?.length || 0,
+      photos: data.points?.reduce((sum, p) => sum + (p.photos?.length || 0), 0) || 0,
+      geometries: data.geometries?.length || 0,
+      equipments: data.equipments?.length || 0
+    }
+  }));
 }

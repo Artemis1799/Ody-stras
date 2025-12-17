@@ -1,0 +1,193 @@
+<p-drawer 
+  [(visible)]="visible"
+  position="right" 
+  [modal]="false" 
+  [closeOnEscape]="false" 
+  [dismissible]="false"
+  [closable]="false"
+>
+  <ng-template #header class="drawer-header-template">
+    <div class="drawer-header">
+      <div class="header-content">
+        <h3>Point #{{ selectedPointIndex || selectedPoint?.order || '?' }}</h3>
+        <span class="point-status" [class.valid]="editedIsValid" [class.invalid]="!editedIsValid">
+          {{ editedIsValid ? 'Validé' : 'Non validé' }}
+        </span>
+      </div>
+      <button 
+        type="button" 
+        class="close-button"
+        (click)="closeDrawer()"
+        title="Fermer"
+      >✕</button>
+    </div>
+  </ng-template>
+
+  <ng-container *ngIf="selectedPoint" class="drawer-content">
+    <div class="unified-section">
+      <!-- Informations de position -->
+      <div class="info-row">
+        <div class="info-item">
+          <span class="info-label">Position</span>
+          <span class="info-value" *ngIf="selectedPoint.latitude && selectedPoint.longitude">
+            {{ selectedPoint.latitude.toFixed(6) }}, {{ selectedPoint.longitude.toFixed(6) }}
+          </span>
+          <span class="info-value empty" *ngIf="!selectedPoint.latitude || !selectedPoint.longitude">
+            Non définie
+          </span>
+        </div>
+      </div>
+
+      <!-- Validation -->
+      <div class="form-row">
+        <div class="checkbox-field">
+          <p-checkbox 
+            inputId="isValid" 
+            [(ngModel)]="editedIsValid"
+            [binary]="true"
+          ></p-checkbox>
+          <label for="isValid">Marquer ce point comme validé</label>
+        </div>
+      </div>
+
+      <!-- Commentaire -->
+      <div class="form-row">
+        <label for="comment">Commentaire</label>
+        <input 
+          id="comment" 
+          type="text" 
+          pInputText 
+          [(ngModel)]="editedComment"
+          placeholder="Ajouter un commentaire..."
+          class="w-full input-comment"
+        />
+      </div>
+
+      <!-- Équipement -->
+      <div class="form-row equipment-selector">
+        <label for="equipment">Équipement</label>
+        <p-autoComplete
+          inputId="equipment"
+          [(ngModel)]="selectedEquipmentName"
+          [suggestions]="filteredEquipments"
+          (completeMethod)="filterEquipments($event)"
+          (onSelect)="onEquipmentSelect($event)"
+          placeholder="Sélectionner un équipement..."
+          [dropdown]="true"
+          [forceSelection]="true"
+          [showEmptyMessage]="true"
+          emptyMessage="Aucun équipement trouvé"
+          class="w-full"
+        />
+      </div>
+
+      <!-- Quantité (conditionnel) -->
+      <div class="form-row" *ngIf="selectedEquipment && selectedEquipment.uuid">
+        <label for="quantity">Quantité</label>
+        <p-inputnumber
+          inputId="quantity"
+          [(ngModel)]="editedEquipmentQuantity"
+          [min]="0"
+          [max]="getAvailableStock()"
+          (ngModelChange)="onQuantityChange($event)"
+          [showButtons]="true"
+          class="w-full"
+        ></p-inputnumber>
+        <small class="help-text">
+          <span class="pi pi-info-circle"></span>
+          Stock disponible: {{ getAvailableStock() }}
+        </small>
+      </div>
+
+      <!-- Dates de pose et dépose -->
+      <div class="form-row dates-section">
+        <div class="date-field">
+          <label for="installedAt">
+            <span class="pi pi-download"></span> Date de pose
+          </label>
+          <input 
+            id="installedAt" 
+            type="datetime-local" 
+            [(ngModel)]="editedInstalledAt"
+            class="w-full date-input"
+          />
+          <button 
+            type="button" 
+            class="clear-date-btn" 
+            *ngIf="editedInstalledAt"
+            (click)="editedInstalledAt = null"
+            title="Effacer la date"
+          >
+            <span class="pi pi-times"></span>
+          </button>
+        </div>
+        <div class="date-field">
+          <label for="removedAt">
+            <span class="pi pi-upload"></span> Date de dépose
+          </label>
+          <input 
+            id="removedAt" 
+            type="datetime-local" 
+            [(ngModel)]="editedRemovedAt"
+            class="w-full date-input"
+          />
+          <button 
+            type="button" 
+            class="clear-date-btn" 
+            *ngIf="editedRemovedAt"
+            (click)="editedRemovedAt = null"
+            title="Effacer la date"
+          >
+            <span class="pi pi-times"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #footer>
+    <div class="drawer-footer">
+      <button 
+        type="button" 
+        class="btn btn-secondary"
+        (click)="openPhotoViewer()"
+      >
+        <span class="pi pi-image"></span>
+        Photos
+      </button>
+      <div class="main-actions">
+        <button 
+          type="button" 
+          class="btn btn-danger"
+          (click)="confirmDeletePoint()"
+        >
+          <span class="pi pi-trash"></span>
+          Supprimer
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary"
+          [disabled]="!hasChanges()"
+          (click)="saveChanges()"
+        >
+          <span class="pi pi-save"></span>
+          Enregistrer
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</p-drawer>
+
+@if (showPhotoViewer && selectedPoint) {
+  <app-photo-viewer [pointId]="selectedPoint.uuid" (close)="closePhotoViewer()"></app-photo-viewer>
+}
+
+@if (showDeleteConfirm && selectedPoint) {
+  <app-delete-popup
+    [title]="'Supprimer le point'"
+    [itemName]="'Point #' + (selectedPointIndex || selectedPoint.order)"
+    [warningMessage]="'Cette action est irréversible. Le point et toutes ses photos seront supprimés.'"
+    (confirm)="deletePoint()"
+    (close)="cancelDeletePoint()"
+  ></app-delete-popup>
+}

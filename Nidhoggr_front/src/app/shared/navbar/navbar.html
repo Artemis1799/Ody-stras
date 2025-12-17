@@ -1,0 +1,57 @@
+<nav class="navbar">
+  <div class="navbar-content">
+    <div class="navbar-logo">
+      <a routerLink="/" (click)="onDropdownItemClick()">
+        <img src="assets/icons/logo-eurometropole.png" alt="Eurométropole" />
+      </a>
+    </div>
+    <div class="navbar-menu">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-link" (click)="onDropdownItemClick()">
+        <span class="pi pi-home"></span>
+        Accueil
+      </a>
+      <a routerLink="/evenements" routerLinkActive="active" class="nav-link" (click)="onDropdownItemClick()">
+        <span class="pi pi-calendar"></span>
+        Évènements
+      </a>
+      <a routerLink="/equipments" routerLinkActive="active" class="nav-link" (click)="onDropdownItemClick()">
+        <span class="pi pi-wrench"></span>
+        Équipements
+      </a>
+      <div class="nav-dropdown">
+        <button class="nav-link dropdown-toggle" [class.active]="isPersonnelsActive" (click)="onToggleDropdown()">
+          <span class="pi pi-users"></span>
+          Personnels
+          <span class="pi pi-angle-down"></span>
+        </button>
+        <div class="dropdown-menu" [class.show]="showDropdown" (mouseenter)="onMouseEnter()" (mouseleave)="onMouseLeave()">
+          <a routerLink="/personnels/personnes" routerLinkActive="active" class="dropdown-item" (click)="onDropdownItemClick()">
+            <span class="pi pi-user"></span>
+            Personnes
+          </a>
+          <a routerLink="/personnels/teams" routerLinkActive="active" class="dropdown-item" (click)="onDropdownItemClick()">
+            <span class="pi pi-users"></span>
+            Équipes  
+          </a>
+        </div>
+      </div>
+      <div class="nav-dropdown account-dropdown">
+        <button class="nav-link dropdown-toggle" (click)="onToggleAccountDropdown()">
+          <span class="pi pi-user"></span>
+          Compte
+          <span class="pi pi-angle-down"></span>
+        </button>
+        <div class="dropdown-menu" [class.show]="showAccountDropdown" (mouseenter)="onMouseEnterAccount()" (mouseleave)="onMouseLeaveAccount()">
+          <button class="dropdown-item" (click)="resetPassword()">
+            <span class="pi pi-refresh"></span>
+            Réinitialiser le mot de passe
+          </button>
+          <button class="dropdown-item logout-item" (click)="logout()">
+            <span class="pi pi-sign-out"></span>
+            Déconnexion
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

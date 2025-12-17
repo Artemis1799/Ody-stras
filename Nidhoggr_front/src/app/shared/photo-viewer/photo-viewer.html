@@ -1,66 +1,78 @@
 @if (showPhotoDialog) {
-  <p-dialog 
-    [(visible)]="showPhotoDialog" 
-    [modal]="true"
-    [closable]="true"
-    [dismissableMask]="true"
-    [draggable]="false"
-    [resizable]="false"
-    [style]="{width: '90vw', maxWidth: '900px'}"
-    styleClass="photo-dialog"
-    header="Photos du point"
-    (onHide)="closeModal()"
-  >
-    <!-- État de chargement -->
-    <div *ngIf="loadingPhotos" class="loading-state">
-      <div class="loading-spinner">
-        <span class="pi pi-spin pi-spinner"></span>
-      </div>
-      <p class="loading-text">Chargement des photos...</p>
-    </div>
-
-    <!-- Affichage des photos -->
-    <div class="photo-viewer" *ngIf="!loadingPhotos && currentPhoto">
-      <div class="photo-container">
-        <img 
-          [src]="getPhotoSrc(currentPhoto)" 
-          [alt]="currentPhoto.pictureName"
-          class="photo-image"
-        />
+  <div class="popup-overlay">
+    <div class="popup-dialog">
+      <button class="popup-close" (click)="closeModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      
+      <div class="dialog-header">
+        <div class="header-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h4>Photo(s) du point</h4>
+        </div>
       </div>
       
-      <div class="photo-navigation">
-        <button 
-          type="button"
-          class="nav-button nav-prev"
-          (click)="previousPhoto()"
-          [disabled]="currentPhotoIndex === 0"
-          title="Photo précédente"
-        >
-          ←
-        </button>
+      <div class="dialog-content">
+        <!-- État de chargement -->
+        <div *ngIf="loadingPhotos" class="loading-state">
+          <div class="loading-spinner">
+            <span class="pi pi-spin pi-spinner"></span>
+          </div>
+          <p class="loading-text">Chargement des photos...</p>
+        </div>
+        <!-- Affichage des photos -->
+        <div class="photo-viewer" *ngIf="!loadingPhotos && currentPhoto">
+          <div class="photo-container">
+            <img 
+              [src]="getPhotoSrc(currentPhoto)" 
+              [alt]="currentPhoto.pictureName"
+              class="photo-image"
+            />
+          </div>
+          
+          <div class="photo-navigation">
+            <button 
+              type="button"
+              class="nav-button nav-prev"
+              (click)="previousPhoto()"
+              [disabled]="currentPhotoIndex === 0"
+              title="Photo précédente"
+            >
+              ←
+            </button>
+            
+            <span class="photo-counter">{{ photoCountText }}</span>
+            
+            <button 
+              type="button"
+              class="nav-button nav-next"
+              (click)="nextPhoto()"
+              [disabled]="currentPhotoIndex === photos.length - 1"
+              title="Photo suivante"
+            >
+              →
+            </button>
+          </div>
+        </div>
         
-        <span class="photo-counter">{{ photoCountText }}</span>
-        
-        <button 
-          type="button"
-          class="nav-button nav-next"
-          (click)="nextPhoto()"
-          [disabled]="currentPhotoIndex === photos.length - 1"
-          title="Photo suivante"
-        >
-          →
-        </button>
+        <!-- Aucune photo -->
+        <div *ngIf="!loadingPhotos && !currentPhoto" class="no-photos">
+          <div class="no-photos-icon">
+            <span class="pi pi-image"></span>
+          </div>
+          <h3 class="no-photos-title">Aucune photo disponible</h3>
+          <p class="no-photos-text">Ce point ne contient pas encore de photos.</p>
+        </div>
       </div>
     </div>
-    
-    <!-- Aucune photo -->
-    <div *ngIf="!loadingPhotos && !currentPhoto" class="no-photos">
-      <div class="no-photos-icon">
-        <span class="pi pi-image"></span>
-      </div>
-      <h3 class="no-photos-title">Aucune photo disponible</h3>
-      <p class="no-photos-text">Ce point ne contient pas encore de photos.</p>
-    </div>
-  </p-dialog>
+  </div>
 }
