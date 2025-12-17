@@ -3,8 +3,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
-import { useSQLiteContext } from "expo-sqlite";
-import { deleteDatabase } from "../../database/database";
+import { useState } from "react";
+import { SettingsModal } from "./SettingsModal";
 
 type HeaderProps = {
   onBack?: () => void; // optionnel : fonction perso
@@ -16,34 +16,11 @@ export function Header({ onBack, showBack = true, rightIcon }: HeaderProps) {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const styles = getStyles(theme);
-  const db = useSQLiteContext();
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   const handleBack = () => {
     if (onBack) return onBack(); // si custom → utiliser la fonction fournie
     navigation.goBack(); // sinon → goBack par défaut
-  };
-
-  const handleResetDatabase = () => {
-    Alert.alert(
-      "Réinitialiser la base",
-      "Êtes-vous sûr de vouloir supprimer toutes les données ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteDatabase(db, "base.db");
-              Alert.alert("Succès", "Base de données supprimée. Redémarrez l'application.");
-            } catch (e) {
-              console.error(e);
-              Alert.alert("Erreur", "Impossible de supprimer la base de données.");
-            }
-          },
-        },
-      ]
-    );
   };
 
   return (
@@ -53,9 +30,8 @@ export function Header({ onBack, showBack = true, rightIcon }: HeaderProps) {
           <Ionicons name="arrow-back" size={28} color="white" />
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity onPress={handleResetDatabase}>
-          <Ionicons name="trash-outline" size={28} color="white" />
-        </TouchableOpacity>
+        // Rien sur le côté gauche quand showBack est false
+        <View style={{ width: 28 }} /> // Placeholder pour maintenir l'alignement
       )}
 
       <Image
@@ -67,9 +43,17 @@ export function Header({ onBack, showBack = true, rightIcon }: HeaderProps) {
         style={styles.headerImage}
       />
 
-      {rightIcon ?? ( // si tu passes rien → icône default
-        <Ionicons name="person-circle-outline" size={28} color="white" />
+      {/* Always show settings icon on the right, or the custom rightIcon if provided */}
+      {rightIcon ?? (
+        <TouchableOpacity onPress={() => setSettingsVisible(true)}>
+          <Ionicons name="settings-outline" size={28} color="white" />
+        </TouchableOpacity>
       )}
+
+      <SettingsModal
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+      />
     </View>
   );
 }

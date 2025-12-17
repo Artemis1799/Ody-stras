@@ -4,13 +4,17 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import { useNavigation } from "@react-navigation/native";
 import { EventScreenNavigationProp } from "../../types/types";
 import { Strings } from "../../types/strings";
+import { useTheme } from "../utils/ThemeContext";
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<EventScreenNavigationProp>();
+  const { skipVideo } = useTheme(); // Use the skipVideo setting
   const [animationFinished, setAnimationFinished] = useState(false);
   const player = useVideoPlayer(require("../../assets/Strasbourg.mp4"), (p) => {
     p.loop = true;
     p.play();
+    p.volume = 0; // Mute the video
+    p.muted = true;
   });
 
   const blackScreenOpacity = React.useRef(new Animated.Value(1)).current;
@@ -23,6 +27,12 @@ export default function WelcomeScreen() {
   const animationSequence = React.useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
+    // If skipVideo is true, immediately navigate to Events
+    if (skipVideo) {
+      navigation.replace("Events");
+      return; // Stop further execution of this useEffect
+    }
+
     if (typeof player.play === "function") {
       try {
         player.play();
@@ -76,7 +86,7 @@ export default function WelcomeScreen() {
     return () => {
       animationSequence.current?.stop();
     };
-  }, []);
+  }, [skipVideo, navigation, player]); // Added skipVideo and navigation to dependencies
 
   const skipAnimation = () => {
     animationSequence.current?.stop();
