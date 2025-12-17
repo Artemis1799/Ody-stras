@@ -37,6 +37,8 @@ import { Strings } from "../../types/strings";
 import { Header } from "../components/header";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
+import { NO_EQUIPMENT_ID } from "../constants/constants";
+
 export function CreatePointScreen() {
   const db = useSQLiteContext();
   const { theme } = useTheme();
@@ -177,7 +179,7 @@ export function CreatePointScreen() {
             Event_ID: eventId,
             Latitude: coords.latitude,
             Longitude: coords.longitude,
-            Equipement_ID: "f50252ce-31bb-4c8b-a70c-51b7bb630bc3",
+            Equipement_ID: NO_EQUIPMENT_ID,
             Equipement_quantite: 0,
             Ordre: nextOrdre,
           });
@@ -208,12 +210,13 @@ export function CreatePointScreen() {
         }
 
         const equipments = await getAll<Equipement>(db, "Equipement");
-        setEquipmentList(
-          equipments.map((e) => ({
-            label: e.Type,
-            value: e.UUID,
-          }))
-        );
+        setEquipmentList([
+            { label: "Aucun équipement", value: NO_EQUIPMENT_ID },
+            ...equipments.map((e) => ({
+              label: e.Type,
+              value: e.UUID,
+            })),
+          ]);
       } catch (e) {
         console.log(e);
       }
