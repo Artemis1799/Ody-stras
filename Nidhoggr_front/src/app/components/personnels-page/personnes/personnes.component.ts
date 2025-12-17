@@ -32,6 +32,10 @@ export class PersonnesComponent implements OnInit {
   searchFirstName = signal('');
   searchEmail = signal('');
   
+  // Pagination
+  currentPage = signal(1);
+  readonly itemsPerPage = 24
+  
   // Signal calculé pour les membres filtrés
   filteredMembers = computed(() => {
     const members = this.members();
@@ -50,6 +54,19 @@ export class PersonnesComponent implements OnInit {
       
       return matchesName && matchesFirstName && matchesEmail;
     });
+  });
+  
+  // Signal calculé pour les membres paginés
+  paginatedMembers = computed(() => {
+    const filtered = this.filteredMembers();
+    const start = (this.currentPage() - 1) * this.itemsPerPage;
+    const end = start + this.itemsPerPage;
+    return filtered.slice(start, end);
+  });
+  
+  // Nombre total de pages
+  totalPages = computed(() => {
+    return Math.ceil(this.filteredMembers().length / this.itemsPerPage);
   });
   
   // État local avec signals
@@ -147,7 +164,8 @@ export class PersonnesComponent implements OnInit {
   }
   
   onSearchChange(): void {
-    // La réactivité est automatique grâce aux signals
+    // Réinitialiser à la première page lors d'une recherche
+    this.currentPage.set(1);
   }
   
   clearSearch(field: 'name' | 'firstName' | 'email'): void {
@@ -158,5 +176,56 @@ export class PersonnesComponent implements OnInit {
     } else if (field === 'email') {
       this.searchEmail.set('');
     }
+    this.currentPage.set(1);
+  }
+  
+  // Navigation de pagination
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+    }
+  }
+  
+  previousPage(): void {
+    if (this.currentPage() > 1) {
+      this.currentPage.update(p => p - 1);
+    }
+  }
+  
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.update(p => p + 1);
+    }
+  }
+  
+  // Génère les numéros de page à afficher
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (current <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i);
+        pages.push(-1); // ellipsis
+        pages.push(total);
+      } else if (current >= total - 3) {
+        pages.push(1);
+        pages.push(-1);
+        for (let i = total - 4; i <= total; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push(-1);
+        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+        pages.push(-1);
+        pages.push(total);
+      }
+    }
+    
+    return pages;
   }
 }
