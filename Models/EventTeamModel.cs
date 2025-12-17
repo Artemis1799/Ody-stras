@@ -4,21 +4,22 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace t5_back.Models;
-public class ImagePoint
+
+public class EventTeam
 {
     [Required]
-    public Guid ImageId { get; set; }
+    public Guid EventId { get; set; }
     
     [Required]
-    public Guid PointId { get; set; }
+    public Guid TeamId { get; set; }
     
-    [ForeignKey("ImageId")]
+    [ForeignKey("EventId")]
     [NotMapped]
     [JsonIgnore]
-    public Photo? Photo { get; set; }
+    public Event? Event { get; set; }
     
-    [ForeignKey("PointId")]
+    [ForeignKey("TeamId")]
     [NotMapped]
     [JsonIgnore]
-    public Point? Point { get; set; }
+    public Team? Team { get; set; }
 }

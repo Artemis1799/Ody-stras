@@ -30,6 +30,13 @@ public class PointController : ControllerBase
         return Ok(point);
     }
 
+    [HttpGet("event/{eventId}")]
+    public async Task<ActionResult<IEnumerable<Point>>> GetByEventId(Guid eventId)
+    {
+        var points = await _pointService.GetByEventIdAsync(eventId);
+        return Ok(points);
+    }
+
     [HttpPost]
     public async Task<ActionResult<Point>> Create(Point point)
     {

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using t5_back.Data;
 
@@ -10,9 +11,11 @@ using t5_back.Data;
 namespace t5_back.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251126124722_AddUserTeamMemberModels")]
+    partial class AddUserTeamMemberModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -60,70 +63,23 @@ namespace t5_back.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ResponsibleId")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("UUID");
-
-                    b.ToTable("Events");
-                });
-
-            modelBuilder.Entity("t5_back.Models.EventTeam", b =>
-                {
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("TeamId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("EventId", "TeamId");
 
                     b.HasIndex("TeamId");
 
-                    b.ToTable("EventTeams");
-                });
-
-            modelBuilder.Entity("t5_back.Models.Geometry", b =>
-                {
-                    b.Property<Guid>("UUID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("uuid");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("created");
-
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("eventId");
-
-                    b.Property<string>("GeoJsonString")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("Modified")
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("modified");
-
-                    b.Property<string>("PropertiesString")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("type");
-
-                    b.HasKey("UUID");
-
-                    b.HasIndex("EventId");
-
-                    b.ToTable("Geometries");
+                    b.ToTable("Events");
                 });
 
             modelBuilder.Entity("t5_back.Models.ImagePoint", b =>
@@ -147,10 +103,6 @@ namespace t5_back.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -159,10 +111,6 @@ namespace t5_back.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.HasKey("UUID");
@@ -211,13 +159,7 @@ namespace t5_back.Migrations
                     b.Property<Guid>("EventId")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("EventUUID")
-                        .HasColumnType("TEXT");
-
                     b.Property<Guid?>("ImageId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("InstalledAt")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsValid")
@@ -235,16 +177,11 @@ namespace t5_back.Migrations
                     b.Property<int?>("Order")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime?>("RemovedAt")
-                        .HasColumnType("TEXT");
-
                     b.HasKey("UUID");
 
                     b.HasIndex("EquipmentId");
 
                     b.HasIndex("EventId");
-
-                    b.HasIndex("EventUUID");
 
                     b.ToTable("Points");
                 });
@@ -260,27 +197,29 @@ namespace t5_back.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("TeamNumber")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("UUID");
 
                     b.ToTable("Teams");
                 });
 
-            modelBuilder.Entity("t5_back.Models.TeamMember", b =>
+            modelBuilder.Entity("t5_back.Models.TeamUser", b =>
                 {
                     b.Property<Guid>("TeamId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("MemberId")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("TeamId", "MemberId");
+                    b.HasKey("TeamId", "UserId", "MemberId");
 
                     b.HasIndex("MemberId");
 
-                    b.ToTable("TeamMembers");
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TeamUsers");
                 });
 
             modelBuilder.Entity("t5_back.Models.User", b =>
@@ -299,40 +238,17 @@ namespace t5_back.Migrations
 
                     b.HasKey("UUID");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
-
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("t5_back.Models.EventTeam", b =>
+            modelBuilder.Entity("t5_back.Models.Event", b =>
                 {
-                    b.HasOne("t5_back.Models.Event", "Event")
-                        .WithMany("EventTeams")
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("t5_back.Models.Team", "Team")
-                        .WithMany("EventTeams")
+                        .WithMany("Events")
                         .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Team");
-                });
-
-            modelBuilder.Entity("t5_back.Models.Geometry", b =>
-                {
-                    b.HasOne("t5_back.Models.Event", "Event")
-                        .WithMany()
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
                 });
 
             modelBuilder.Entity("t5_back.Models.ImagePoint", b =>
@@ -362,37 +278,41 @@ namespace t5_back.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("t5_back.Models.Event", "Event")
-                        .WithMany()
+                        .WithMany("Points")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("t5_back.Models.Event", null)
-                        .WithMany("Points")
-                        .HasForeignKey("EventUUID");
 
                     b.Navigation("Equipment");
 
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("t5_back.Models.TeamMember", b =>
+            modelBuilder.Entity("t5_back.Models.TeamUser", b =>
                 {
                     b.HasOne("t5_back.Models.Member", "Member")
-                        .WithMany("TeamMembers")
+                        .WithMany("TeamUsers")
                         .HasForeignKey("MemberId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("t5_back.Models.Team", "Team")
-                        .WithMany("TeamMembers")
+                        .WithMany("TeamUsers")
                         .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("t5_back.Models.User", "User")
+                        .WithMany("TeamUsers")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Member");
 
                     b.Navigation("Team");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("t5_back.Models.Equipment", b =>
@@ -402,14 +322,12 @@ namespace t5_back.Migrations
 
             modelBuilder.Entity("t5_back.Models.Event", b =>
                 {
-                    b.Navigation("EventTeams");
-
                     b.Navigation("Points");
                 });
 
             modelBuilder.Entity("t5_back.Models.Member", b =>
                 {
-                    b.Navigation("TeamMembers");
+                    b.Navigation("TeamUsers");
                 });
 
             modelBuilder.Entity("t5_back.Models.Photo", b =>
@@ -424,9 +342,14 @@ namespace t5_back.Migrations
 
             modelBuilder.Entity("t5_back.Models.Team", b =>
                 {
-                    b.Navigation("EventTeams");
+                    b.Navigation("Events");
 
-                    b.Navigation("TeamMembers");
+                    b.Navigation("TeamUsers");
+                });
+
+            modelBuilder.Entity("t5_back.Models.User", b =>
+                {
+                    b.Navigation("TeamUsers");
                 });
 #pragma warning restore 612, 618
         }

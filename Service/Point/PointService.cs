@@ -30,6 +30,16 @@ public class PointService : IPointService
             .FirstOrDefaultAsync(p => p.UUID == id);
     }
 
+    public async Task<IEnumerable<Point>> GetByEventIdAsync(Guid eventId)
+    {
+        return await _context.Points
+            .Where(p => p.EventId == eventId)
+            .Include(p => p.ImagePoints)
+            .Include(p => p.Equipment)
+            .OrderBy(p => p.Order)
+            .ToListAsync();
+    }
+
     public async Task<Point> CreateAsync(Point point)
     {
         // If caller didn't provide a UUID, generate one
@@ -67,6 +77,8 @@ public class PointService : IPointService
         existing.EquipmentQuantity = point.EquipmentQuantity;
         existing.EquipmentId = point.EquipmentId;
         existing.EventId = point.EventId;
+        existing.InstalledAt = point.InstalledAt;
+        existing.RemovedAt = point.RemovedAt;
 
         await _context.SaveChangesAsync();
         return existing;
