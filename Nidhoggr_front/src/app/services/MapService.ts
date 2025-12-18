@@ -5,7 +5,7 @@ import { Event } from '../models/eventModel';
 import { Geometry } from '../models/geometryModel';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class MapService {
   private pointsSubject = new BehaviorSubject<Point[]>([]);
@@ -17,7 +17,7 @@ export class MapService {
   private selectedEventSubject = new BehaviorSubject<Event | null>(null);
   private reloadEventSubject = new Subject<void>();
   private geometriesSubject = new BehaviorSubject<Geometry[]>([]); // Géométries de l'event sélectionné
-  private focusPointSubject = new Subject<Point>();
+  private focusPointSubject = new Subject<Point>(); // Pour le focus sur un point depuis la timeline
 
   points$: Observable<Point[]> = this.pointsSubject.asObservable();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +28,7 @@ export class MapService {
   selectedEvent$: Observable<Event | null> = this.selectedEventSubject.asObservable();
   reloadEvent$: Observable<void> = this.reloadEventSubject.asObservable();
   geometries$: Observable<Geometry[]> = this.geometriesSubject.asObservable(); // Observable pour les géométries
-  focusPoint$: Observable<Point> = this.focusPointSubject.asObservable();
+  focusPoint$: Observable<Point> = this.focusPointSubject.asObservable(); // Observable pour le focus sur un point
 
   setPoints(points: Point[]): void {
     this.pointsSubject.next(points);
@@ -52,7 +52,7 @@ export class MapService {
   getMapInstance(): any {
     return this.mapInstanceSubject.value;
   }
-
+  
   triggerReloadPoints(): void {
     this.reloadPointsSubject.next();
   }
@@ -92,7 +92,7 @@ export class MapService {
    */
   removeGeometry(geometryUuid: string): void {
     const currentGeometries = this.geometriesSubject.value;
-    this.geometriesSubject.next(currentGeometries.filter((g) => g.uuid !== geometryUuid));
+    this.geometriesSubject.next(currentGeometries.filter(g => g.uuid !== geometryUuid));
   }
 
   /**
@@ -100,7 +100,7 @@ export class MapService {
    */
   updateGeometry(geometry: Geometry): void {
     const currentGeometries = this.geometriesSubject.value;
-    const index = currentGeometries.findIndex((g) => g.uuid === geometry.uuid);
+    const index = currentGeometries.findIndex(g => g.uuid === geometry.uuid);
     if (index !== -1) {
       const updated = [...currentGeometries];
       updated[index] = geometry;
@@ -123,7 +123,7 @@ export class MapService {
   }
 
   /**
-   * Centre la carte sur un point spécifique
+   * Focus sur un point (depuis la timeline par exemple)
    */
   focusOnPoint(point: Point): void {
     this.focusPointSubject.next(point);

@@ -22,6 +22,75 @@
     </button>
   </div>
 
+  <!-- Search filters -->
+  @if (!isLoading() && members().length > 0) {
+    <div class="search-filters">
+      <div class="search-field">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Rechercher par nom..."
+          [value]="searchName()"
+          (input)="searchName.set($event.target.value); onSearchChange()"
+        />
+        @if (searchName()) {
+          <button class="clear-btn" (click)="clearSearch('name')" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        }
+      </div>
+      <div class="search-field">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Rechercher par prénom..."
+          [value]="searchFirstName()"
+          (input)="searchFirstName.set($event.target.value); onSearchChange()"
+        />
+        @if (searchFirstName()) {
+          <button class="clear-btn" (click)="clearSearch('firstName')" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        }
+      </div>
+      <div class="search-field">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Rechercher par email..."
+          [value]="searchEmail()"
+          (input)="searchEmail.set($event.target.value); onSearchChange()"
+        />
+        @if (searchEmail()) {
+          <button class="clear-btn" (click)="clearSearch('email')" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        }
+      </div>
+    </div>
+  }
+
   <!-- Loading state -->
   @if (isLoading()) {
     <div class="loading-state">
@@ -53,8 +122,16 @@
 
   <!-- Members grid -->
   @if (!isLoading() && members().length > 0) {
+    <!-- Info pagination -->
+    <div class="pagination-info">
+      <span>{{ filteredMembers().length }} personne(s) trouvée(s)</span>
+      @if (totalPages() > 1) {
+        <span>- Page {{ currentPage() }} sur {{ totalPages() }}</span>
+      }
+    </div>
+    
     <div class="persons-grid">
-      @for (member of members(); track member.uuid) {
+      @for (member of paginatedMembers(); track member.uuid) {
         <div class="person-card">
           <div class="person-avatar">{{ getInitials(member) }}</div>
           <div class="person-info">
@@ -100,6 +177,44 @@
         </div>
       }
     </div>
+    
+    <!-- Pagination controls -->
+    @if (totalPages() > 1) {
+      <div class="pagination-controls">
+        <button 
+          class="pagination-btn" 
+          (click)="previousPage()" 
+          [disabled]="currentPage() === 1"
+          title="Page précédente">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        
+        @for (page of getPageNumbers(); track $index) {
+          @if (page === -1) {
+            <span class="pagination-ellipsis">…</span>
+          } @else {
+            <button 
+              class="pagination-btn pagination-number" 
+              [class.active]="page === currentPage()"
+              (click)="goToPage(page)">
+              {{ page }}
+            </button>
+          }
+        }
+        
+        <button 
+          class="pagination-btn" 
+          (click)="nextPage()" 
+          [disabled]="currentPage() === totalPages()"
+          title="Page suivante">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    }
   }
 </div>
 

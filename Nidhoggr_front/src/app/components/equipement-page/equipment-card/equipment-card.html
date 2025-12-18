@@ -2,8 +2,8 @@
   <div *ngIf="!isEditing" class="equipment-view">
     <div class="equipment-header">
       <div class="equipment-info">
-        <h3>{{ equipment.description }}</h3>
-        <p class="type">{{ equipment.type }}<span *ngIf="equipment.unit"> • {{ equipment.unit }}</span></p>
+        <h3>{{ equipment.type }}</h3>
+        <p class="type">{{ equipment.description }}<span *ngIf="equipment.unit"> • {{ equipment.unit }}</span></p>
       </div>
       <div class="stock-info">
         <span class="stock-value">{{ equipment.remainingStock || 0 }} / {{ equipment.totalStock || 0 }}</span>

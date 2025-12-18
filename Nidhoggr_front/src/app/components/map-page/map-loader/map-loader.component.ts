@@ -71,10 +71,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       this.map = L.map('map', {
         center,
         zoom: 13,
-        minZoom: 13,
-        maxZoom: 17,
-        maxBounds: bounds,
-        maxBoundsViscosity: 1.0,
+        minZoom: 13,  
+        maxZoom: 18,    
+        maxBounds: bounds,           
+        maxBoundsViscosity: 1.0      
       });
 
       // Partager l'instance de map avec le service
@@ -128,8 +128,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         if (!this.map) return;
         let tileLayer = L.tileLayer(chosen, {
           minZoom: 13,
-          maxZoom: 17,
-          attribution: '&copy; Local tiles',
+          maxZoom: 18,  
+          attribution: '&copy; Local tiles' 
         }).addTo(this.map);
         const input = document.getElementById('tileUrlInput') as HTMLInputElement | null;
         const btn = document.getElementById('tileTestBtn') as HTMLButtonElement | null;
@@ -295,7 +295,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Zoomer et centrer sur le point
     if (this.map && point.latitude && point.longitude) {
-      this.map.setView([point.latitude, point.longitude], 17, {
+      this.map.setView([point.latitude, point.longitude], 18, {
         animate: true,
         duration: 0.5,
       });
@@ -410,10 +410,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
    * Supprime toutes les géométries existantes de la carte
    */
   private clearExistingGeometries(): void {
-    // Supprimer les layers du groupe drawnItems
+    // Supprimer les layers du groupe drawnItems complètement
     if (this.drawnItems) {
       this.drawnItems.clearLayers();
     }
+
+    // Supprimer tous les layers de geometryLayers de la carte
+    this.geometryLayers.forEach((layer) => {
+      if (this.map && layer) {
+        this.map.removeLayer(layer);
+      }
+    });
 
     // Vider la map des géométries
     this.geometryLayers.clear();
@@ -899,6 +906,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Réinitialiser l'événement sélectionné
+    this.mapService.setSelectedEvent(null);
+
     // Nettoyer les subscriptions
     if (this.pointsSubscription) {
       this.pointsSubscription.unsubscribe();
@@ -924,8 +934,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     });
     this.markers.clear();
 
-    // Nettoyer les géométries
-    this.geometryLayers.clear();
+    // Nettoyer les géométries complètement
+    this.clearExistingGeometries();
 
     // Nettoyer le contrôle de dessin
     if (this.drawControl && this.map) {
