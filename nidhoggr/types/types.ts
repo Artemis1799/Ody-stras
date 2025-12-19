@@ -75,6 +75,7 @@ export interface PointOnMap {
   Longitude: Float;
   EquipType: string;
   Equipement_quantite: number;
+  Equipement_ID: string;
 }
 export interface UserLocation {
   latitude: number;
