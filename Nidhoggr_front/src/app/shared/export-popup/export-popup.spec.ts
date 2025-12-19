@@ -1,4 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { ExportPopup } from './export-popup';
 
@@ -8,13 +11,13 @@ describe('ExportPopup', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ExportPopup]
+      imports: [ExportPopup],
+      providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
     })
     .compileComponents();
 
     fixture = TestBed.createComponent(ExportPopup);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {

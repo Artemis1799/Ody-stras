@@ -224,18 +224,47 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     const query = event.query.toLowerCase();
     const equipmentNames = this.equipments.map(e => this.getEquipmentDisplayName(e));
     
+    // Ajouter l'option "Aucun" en premier
+    const aucunOption = 'Aucun';
+    
     if (query) {
-      this.filteredEquipments = equipmentNames.filter(name => 
+      const filtered = equipmentNames.filter(name => 
         name.toLowerCase().includes(query)
       );
+      // Ajouter "Aucun" si la recherche correspond
+      if (aucunOption.toLowerCase().includes(query)) {
+        this.filteredEquipments = [aucunOption, ...filtered];
+      } else {
+        this.filteredEquipments = filtered;
+      }
     } else {
-      this.filteredEquipments = [...equipmentNames];
+      this.filteredEquipments = [aucunOption, ...equipmentNames];
     }
   }
 
   // Méthode appelée lors de la sélection d'un équipement (AutoComplete)
   onEquipmentSelect(event: AutoCompleteSelectEvent): void {
     const selectedName = event.value;
+    
+    // Si "Aucun" est sélectionné, on met l'équipement à null
+    if (selectedName === 'Aucun') {
+      // Remettre le stock de l'équipement précédent
+      if (this.previousEquipmentId && this.previousEquipmentQuantity > 0) {
+        const previousEquipment = this.equipments.find(e => e.uuid === this.previousEquipmentId);
+        if (previousEquipment && previousEquipment.remainingStock !== undefined) {
+          previousEquipment.remainingStock += this.previousEquipmentQuantity;
+          this.updateEquipmentStock(previousEquipment);
+        }
+      }
+      
+      this.selectedEquipment = null;
+      this.selectedEquipmentName = 'Aucun';
+      this.editedEquipmentQuantity = 0;
+      this.previousEquipmentId = null;
+      this.previousEquipmentQuantity = 0;
+      return;
+    }
+    
     const newEquipment = this.equipments.find(e => this.getEquipmentDisplayName(e) === selectedName) || null;
     
     // Si on avait un équipement précédent, on remet sa quantité dans le stock

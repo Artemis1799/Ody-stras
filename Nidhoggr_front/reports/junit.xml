@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<testsuite name="Chrome Headless 143.0.0.0 (Windows 10)" package="" timestamp="2025-12-19T09:47:20" id="0" hostname="lucaval" tests="20" errors="0" failures="0" time="0.238">
+  <properties>
+    <property name="browser.fullName" value="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36"/>
+  </properties>
+  <testcase name="ExportPopup should create" time="0.055" classname="ExportPopup"/>
+  <testcase name="PersonnesComponent should sort members alphabetically by firstName" time="0.079" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should return all members when no filter is applied" time="0.006" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should open edit dialog with member data" time="0.008" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should filter members by name" time="0.008" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should open create dialog" time="0.008" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should create" time="0.005" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should filter members by firstName" time="0.005" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should confirm delete and show confirmation" time="0.006" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should filter members by email" time="0.004" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should close dialog" time="0.004" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should display members list" time="0.004" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should reset page on search change" time="0.004" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should cancel delete" time="0.004" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should generate correct initials" time="0.004" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should navigate to next page" time="0.004" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should clear search field" time="0.004" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should not go below page 1" time="0.003" classname="PersonnesComponent"/>
+  <testcase name="PersonnesComponent should navigate to previous page" time="0.003" classname="PersonnesComponent"/>
+  <testcase name="ImportPopup should create" time="0.02" classname="ImportPopup"/>
+  <system-out>
+    <![CDATA[
+]]>
+  </system-out>
+  <system-err/>
+</testsuite>

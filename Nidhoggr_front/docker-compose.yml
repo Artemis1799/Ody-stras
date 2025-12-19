@@ -2,6 +2,32 @@ version: '3.8'
 
 services:
   # ============================================
+  # Backend .NET API
+  # ============================================
+  nidhoggr-back:
+    build:
+      context: ../../t5-back
+      dockerfile: Dockerfile
+    container_name: nidhoggr-back
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: "Data Source=/data/database.db"
+    volumes:
+      - nidhoggr-data:/data
+    restart: unless-stopped
+    networks:
+      - nidhoggr-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5000/api/Event"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ============================================
   # Application Angular SSR + WebSocket
   # ============================================
   nidhoggr-front:
@@ -16,9 +42,13 @@ services:
       NODE_ENV: production
       PORT: 4000
       WS_PORT: 3001
+      API_URL: http://nidhoggr-back:5000
     restart: unless-stopped
     depends_on:
-      - nominatim
+      nidhoggr-back:
+        condition: service_healthy
+      nominatim:
+        condition: service_started
     networks:
       - nidhoggr-network
     healthcheck:
@@ -56,3 +86,4 @@ networks:
 
 volumes:
   nominatim-data:
+  nidhoggr-data:
