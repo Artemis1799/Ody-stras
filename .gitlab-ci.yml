@@ -2,12 +2,13 @@ image: node:22
 
 stages:
   - build
-  - lint
   - test
   - deploy
 
 build_job:
   stage: build
+  tags: 
+    - zizou
   script:
     - cd Nidhoggr_front
     - npm ci --legacy-peer-deps
@@ -15,7 +16,7 @@ build_job:
     - ng build
 
 lint_job:
-  stage: lint
+  stage: test
   needs:
     - build_job
   script:
@@ -30,11 +31,48 @@ lint_job:
     when: always
   allow_failure: true
 
+test_job:
+  stage: test
+  image: trion/ng-cli-karma
+  needs:
+    - build_job
+  tags: 
+    - zizou
+  script:
+    - cd Nidhoggr_front
+    - npm ci --legacy-peer-deps
+    - ng test --no-watch &
+    - TEST_PID=$!
+    - |
+      for i in $(seq 1 60); do
+        if [ -f reports/junit.xml ]; then
+          sleep 2
+          kill $TEST_PID 2>/dev/null || true
+          if grep -q 'failures="0"' reports/junit.xml && grep -q 'errors="0"' reports/junit.xml; then
+            echo "All tests passed!"
+            exit 0
+          else
+            echo "Some tests failed!"
+            exit 1
+          fi
+        fi
+        sleep 2
+      done
+      echo "Timeout waiting for test results"
+      kill $TEST_PID 2>/dev/null || true
+      exit 1
+  artifacts:
+    when: always
+    reports:
+      junit: Nidhoggr_front/reports/junit.xml
+  allow_failure: false
+
 deploy_job:
   stage: deploy
   needs:
     - build_job
     - lint_job
+    - test_job
   image: docker:latest
 
   services:
@@ -49,6 +87,9 @@ deploy_job:
 
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  
+  tags: 
+    - zizou
 
   script:
     - docker info
