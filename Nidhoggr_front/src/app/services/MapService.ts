@@ -18,6 +18,7 @@ export class MapService {
   private reloadEventSubject = new Subject<void>();
   private geometriesSubject = new BehaviorSubject<Geometry[]>([]); // Géométries de l'event sélectionné
   private focusPointSubject = new Subject<Point>(); // Pour le focus sur un point depuis la timeline
+  private timelineVisibleSubject = new BehaviorSubject<boolean>(false); // Visibilité de la timeline
 
   points$: Observable<Point[]> = this.pointsSubject.asObservable();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,6 +30,7 @@ export class MapService {
   reloadEvent$: Observable<void> = this.reloadEventSubject.asObservable();
   geometries$: Observable<Geometry[]> = this.geometriesSubject.asObservable(); // Observable pour les géométries
   focusPoint$: Observable<Point> = this.focusPointSubject.asObservable(); // Observable pour le focus sur un point
+  timelineVisible$: Observable<boolean> = this.timelineVisibleSubject.asObservable(); // Observable pour la visibilité de la timeline
 
   setPoints(points: Point[]): void {
     this.pointsSubject.next(points);
@@ -40,6 +42,10 @@ export class MapService {
   }
 
   selectPoint(point: Point | null, index?: number): void {
+    // Fermer la timeline si on sélectionne un point
+    if (point) {
+      this.timelineVisibleSubject.next(false);
+    }
     this.selectedPointSubject.next(point);
     this.selectedPointIndexSubject.next(index ?? null);
   }
@@ -127,5 +133,29 @@ export class MapService {
    */
   focusOnPoint(point: Point): void {
     this.focusPointSubject.next(point);
+  }
+
+  /**
+   * Ouvre la timeline (ferme le point drawer)
+   */
+  openTimeline(): void {
+    // Fermer le point drawer avant d'ouvrir la timeline
+    this.selectedPointSubject.next(null);
+    this.selectedPointIndexSubject.next(null);
+    this.timelineVisibleSubject.next(true);
+  }
+
+  /**
+   * Ferme la timeline
+   */
+  closeTimeline(): void {
+    this.timelineVisibleSubject.next(false);
+  }
+
+  /**
+   * Vérifie si la timeline est visible
+   */
+  isTimelineVisible(): boolean {
+    return this.timelineVisibleSubject.value;
   }
 }

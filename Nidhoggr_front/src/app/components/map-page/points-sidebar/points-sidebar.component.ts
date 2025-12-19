@@ -17,7 +17,7 @@ import { ImportPopup } from '../../../shared/import-popup/import-popup';
 import { EventCreatePopup } from '../../../shared/event-create-popup/event-create-popup';
 import { EventEditPopup } from '../../../shared/event-edit-popup/event-edit-popup';
 import { PointsListComponent } from './points-list/points-list.component';
-import { TimelinePopupComponent } from '../../../shared/timeline-popup/timeline-popup.component';
+import { TimelineDrawerComponent } from '../../../shared/timeline-drawer/timeline-drawer.component';
 
 @Component({
   selector: 'app-points-sidebar',
@@ -31,7 +31,7 @@ import { TimelinePopupComponent } from '../../../shared/timeline-popup/timeline-
     EventCreatePopup,
     EventEditPopup,
     PointsListComponent,
-    TimelinePopupComponent,
+    TimelineDrawerComponent,
   ],
   templateUrl: './points-sidebar.component.html',
   styleUrls: ['./points-sidebar.component.scss'],
@@ -48,7 +48,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   // Timeline properties
   timelineItems: Array<{ id: string; title: string; start?: Date; end?: Date }> = [];
-  showTimeline = false;
+  showTimeline$!: Observable<boolean>;
   timelinePoints: Point[] = [];
 
   // Search properties
@@ -89,6 +89,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   ) {
     // Initialiser points$ après l'injection de mapService
     this.points$ = this.mapService.points$;
+    // Initialiser showTimeline$
+    this.showTimeline$ = this.mapService.timelineVisible$;
   }
 
   ngOnInit(): void {
@@ -473,29 +475,32 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
           console.warn('Aucun point à afficher dans la frise.');
           return;
         }
-        /* if (this.showTimeline == true) {
-          this.showTimeline = false;
+        // Filtrer uniquement les points avec les deux dates (installedAt ET removedAt)
+        const pointsWithBothDates = points.filter((p) => p.installedAt && p.removedAt);
+
+        if (pointsWithBothDates.length === 0) {
+          console.warn('Aucun point avec date de pose ET de dépose.');
           return;
-        }//do not work because fct is randomly called
-        console.log('here2');*/
-        this.showTimeline = true;
+        }
 
-        // Trier et préparer les items pour la frise
-        const withOrder = points
-          .filter((p) => p.order !== undefined && p.order !== null)
-          .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-        const withoutOrder = points.filter((p) => p.order === undefined || p.order === null);
-        const sortedPoints = [...withOrder, ...withoutOrder];
+        // Trier par date d'installation
+        const sortedPoints = [...pointsWithBothDates].sort((a, b) => {
+          const dateA = a.installedAt ? new Date(a.installedAt).getTime() : 0;
+          const dateB = b.installedAt ? new Date(b.installedAt).getTime() : 0;
+          return dateA - dateB;
+        });
 
         this.timelineItems = sortedPoints.map((p) => ({
           id: p.uuid,
           title: p.comment || `Point ${p.uuid}`,
-          start: p.installedAt ? new Date(p.installedAt) : undefined,
-          end: p.removedAt ? new Date(p.removedAt) : undefined,
+          start: new Date(p.installedAt!),
+          end: new Date(p.removedAt!),
         }));
 
         this.timelinePoints = sortedPoints;
+        
+        // Ouvrir la timeline via le service (ferme automatiquement le point drawer)
+        this.mapService.openTimeline();
       },
       error: (err) => {
         console.error('Erreur lors du chargement des points pour la frise :', err);
@@ -515,7 +520,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   closeTimeline(): void {
-    this.showTimeline = false;
+    this.mapService.closeTimeline();
   }
   // Points search and pagination methods
   onPointsSearchChange(): void {

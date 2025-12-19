@@ -85,25 +85,29 @@
                 class="item-bar"
                 [style.left.%]="getDatePosition(item.start)"
                 [style.width.%]="getDuration(item.start, item.end)"
-                [title]="'Du ' + formatDateTime(item.start) + ' au ' + formatDateTime(item.end)"
-                (mouseenter)="onPointHover(item.id)"
+                (mouseenter)="onPointHover(item.id, $event)"
+                (mousemove)="onPointMouseMove($event)"
               ></div>
+            </div>
+          </div>
+        </div>
 
-              <!-- Cas : seulement une date de début -->
-              <div
-                *ngIf="item.start && !item.end"
-                class="item-bar item-bar-start-only"
-                [style.left.%]="getDatePosition(item.start)"
-                [title]="'Démarrage : ' + formatDateTime(item.start)"
-                (mouseenter)="onPointHover(item.id)"
-              >
-                <span class="bar-label">📌 À partir du {{ formatDateTime(item.start) }}</span>
-              </div>
-
-              <!-- Cas : pas de dates -->
-              <div *ngIf="!item.start && !item.end" class="item-bar-empty">
-                <span class="bar-label">ℹ️ Aucune date disponible</span>
-              </div>
+        <!-- Tooltip dynamique -->
+        <div
+          class="dynamic-tooltip"
+          *ngIf="tooltipVisible && tooltipItem"
+          [style.left.px]="tooltipX"
+          [style.top.px]="tooltipY"
+        >
+          <div class="tooltip-title">{{ tooltipItem.title }}</div>
+          <div class="tooltip-dates">
+            <div class="tooltip-date">
+              <span class="date-label">📌 Posé:</span>
+              <span class="date-value">{{ formatDateTime(tooltipItem.start) }}</span>
+            </div>
+            <div class="tooltip-date">
+              <span class="date-label">🗑️ Déposé:</span>
+              <span class="date-value">{{ formatDateTime(tooltipItem.end) }}</span>
             </div>
           </div>
         </div>
@@ -111,7 +115,7 @@
 
       <ng-template #noData>
         <div class="no-data">
-          <p>Aucun point avec dates d'installation disponible.</p>
+          <p>Aucun point avec dates d'installation et de dépose disponible.</p>
         </div>
       </ng-template>
     </div>

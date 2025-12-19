@@ -10,13 +10,13 @@ interface TimelineItem {
 }
 
 @Component({
-  selector: 'app-timeline-popup',
+  selector: 'app-timeline-drawer',
   standalone: true,
   imports: [CommonModule, MatButtonModule],
-  templateUrl: './timeline-popup.component.html',
-  styleUrls: ['./timeline-popup.component.scss'],
+  templateUrl: './timeline-drawer.component.html',
+  styleUrls: ['./timeline-drawer.component.scss'],
 })
-export class TimelinePopupComponent {
+export class TimelineDrawerComponent {
   @Input() timelineItems: TimelineItem[] = [];
   @Input() isVisible = false;
 
@@ -29,18 +29,45 @@ export class TimelinePopupComponent {
   totalDays = 0;
   graduations: Array<{ label: string; position: number }> = [];
 
+  // Drawer dynamique
+  tooltipVisible = false;
+  tooltipX = 0;
+  tooltipY = 0;
+  tooltipItem: TimelineItem | null = null;
+
   ngOnChanges(): void {
     if (this.timelineItems.length > 0) {
       this.processTimeline();
     }
   }
 
-  onPointHover(pointId: string): void {
+  onPointHover(pointId: string, event: MouseEvent): void {
     this.pointHovered.emit(pointId);
+    
+    // Afficher le tooltip dynamique
+    this.tooltipItem = this.timelineItems.find(item => item.id === pointId) || null;
+    if (this.tooltipItem) {
+      this.tooltipVisible = true;
+      this.updateTooltipPosition(event);
+    }
+  }
+
+  onPointMouseMove(event: MouseEvent): void {
+    if (this.tooltipVisible) {
+      this.updateTooltipPosition(event);
+    }
+  }
+
+  private updateTooltipPosition(event: MouseEvent): void {
+    // Positionner le tooltip au-dessus du curseur avec un décalage
+    this.tooltipX = event.clientX;
+    this.tooltipY = event.clientY - 10;
   }
 
   onPointHoverEnd(): void {
     this.pointHoverEnd.emit();
+    this.tooltipVisible = false;
+    this.tooltipItem = null;
   }
 
   close(): void {
@@ -52,20 +79,27 @@ export class TimelinePopupComponent {
       return;
     }
 
+    // Convertir les dates string en objets Date si nécessaire
+    this.timelineItems = this.timelineItems.map(item => ({
+      ...item,
+      start: item.start ? new Date(item.start) : undefined,
+      end: item.end ? new Date(item.end) : undefined,
+    }));
+
     // Calculer la plage de dates
     const dates: Date[] = [];
     this.timelineItems.forEach((item) => {
-      if (item.start instanceof Date) dates.push(item.start);
-      if (item.end instanceof Date) dates.push(item.end);
+      if (item.start && !isNaN(item.start.getTime())) dates.push(item.start);
+      if (item.end && !isNaN(item.end.getTime())) dates.push(item.end);
     });
 
     if (dates.length > 0) {
       const minDateRaw = new Date(Math.min(...dates.map((d) => d.getTime())));
       const maxDateRaw = new Date(Math.max(...dates.map((d) => d.getTime())));
 
-      // Ajouter une marge de 10% avant et après
+      // Ajouter une marge de 2% avant et après
       const diffMs = maxDateRaw.getTime() - minDateRaw.getTime();
-      const marginMs = Math.ceil(diffMs * 0.02); // 10% de marge
+      const marginMs = Math.ceil(diffMs * 0.02);
 
       this.minDate = new Date(minDateRaw.getTime() - marginMs);
       this.maxDate = new Date(maxDateRaw.getTime() + marginMs);
@@ -89,7 +123,6 @@ export class TimelinePopupComponent {
     }
 
     this.graduations = [];
-    const diffMs = this.maxDate.getTime() - this.minDate.getTime();
 
     // Déterminer l'intervalle approprié en fonction de la plage totale
     let stepMs: number;
@@ -151,12 +184,19 @@ export class TimelinePopupComponent {
   /**
    * Calcule la position en pourcentage d'une date sur la timeline
    */
-  getDatePosition(date: Date): number {
-    if (!this.minDate || !this.maxDate || this.totalDays === 0) {
+  getDatePosition(date: Date | string | undefined): number {
+    if (!date || !this.minDate || !this.maxDate || this.totalDays === 0) {
       return 0;
     }
-    const diff = date.getTime() - this.minDate.getTime();
-    return (diff / (this.maxDate.getTime() - this.minDate.getTime())) * 100;
+    // Convertir en Date si c'est une string
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) {
+      return 0;
+    }
+    const diff = dateObj.getTime() - this.minDate.getTime();
+    const position = (diff / (this.maxDate.getTime() - this.minDate.getTime())) * 100;
+    // Limiter entre 0 et 100 pour éviter les débordements
+    return Math.max(0, Math.min(100, position));
   }
 
   /**
@@ -168,7 +208,9 @@ export class TimelinePopupComponent {
     }
     const startPos = this.getDatePosition(start);
     const endPos = this.getDatePosition(end);
-    return Math.max(endPos - startPos, 2); // Minimum 2% pour la visibilité
+    const duration = endPos - startPos;
+    // Minimum 2% pour la visibilité, maximum pour ne pas dépasser le conteneur
+    return Math.max(Math.min(duration, 100 - startPos), 2);
   }
 
   /**
