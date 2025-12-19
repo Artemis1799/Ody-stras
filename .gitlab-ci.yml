@@ -7,7 +7,7 @@ stages:
   - install
   - lint
   - test
-  - build
+  - deploy
 
 install_job:
   stage: install
@@ -51,18 +51,14 @@ test_job:
   allow_failure: true
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
 
-build_job:
-  stage: build
+deploy_job:
+  stage: deploy
   needs:
     - install_job
     - test_job
   script:
     - npm install -g eas-cli
     - eas build -p android --profile preview --non-interactive
-  artifacts:
-    paths:
-      - dist/
-    expire_in: 1 week
   rules:
     - if: $CI_COMMIT_BRANCH == "main" 
 
