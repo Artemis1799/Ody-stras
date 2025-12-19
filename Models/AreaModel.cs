@@ -1,10 +1,11 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace t5_back.Models;
 
-public class Team
+public class Area
 {
     [Key]
     public Guid UUID { get; set; }
@@ -12,20 +13,18 @@ public class Team
     [Required]
     public Guid EventId { get; set; }
     
-    [Required]
     [MaxLength(255)]
-    public string TeamName { get; set; } = string.Empty;
+    public string? Name { get; set; }
     
-    public int? TeamNumber { get; set; }
+    [Required]
+    [MaxLength(20)]
+    public string ColorHex { get; set; } = "#000000";
+    
+    [Required]
+    [Column(TypeName = "TEXT")]
+    public string GeoJson { get; set; } = string.Empty;
     
     [ForeignKey("EventId")]
     [JsonIgnore]
     public Event? Event { get; set; }
-    
-    [JsonIgnore]
-    public ICollection<TeamEmployee>? TeamEmployees { get; set; }
-    
-    [JsonIgnore]
-    public Planning? Planning { get; set; }
 }
-
