@@ -18,7 +18,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularDev", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins(
+                "http://localhost:4200",
+                "http://localhost:4000",
+                "http://nidhoggr-front:4000"
+              )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
