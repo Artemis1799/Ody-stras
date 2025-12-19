@@ -2,9 +2,8 @@ namespace t5_back.Models;
 
 public enum EventStatus
 {
-    ToOrganize,
-    InProgress,
-    Installation,
-    Uninstallation,
-    Completed
+    Uninstalling,
+    Finished,
+    Installing,
+    ToOrganize
 }

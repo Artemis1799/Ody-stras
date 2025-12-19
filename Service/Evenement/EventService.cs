@@ -3,7 +3,6 @@ using t5_back.Data;
 using t5_back.Models;
 
 namespace t5_back.Services;
-
 public class EventService : IEventService
 {
     private readonly AppDbContext _context;
@@ -15,21 +14,26 @@ public class EventService : IEventService
 
     public async Task<IEnumerable<Event>> GetAllAsync()
     {
-        return await _context.Events.ToListAsync();
+        return await _context.Events
+            .Include(eventItem => eventItem.EventTeams)
+            .ToListAsync();
     }
 
     public async Task<Event?> GetByIdAsync(Guid id)
     {
         return await _context.Events
-            .FirstOrDefaultAsync(e => e.UUID == id);
+            .Include(eventItem => eventItem.EventTeams)
+            .FirstOrDefaultAsync(eventItem => eventItem.UUID == id);
     }
 
-    public async Task<Event> CreateAsync(Event eventModel)
+    public async Task<Event> CreateAsync(Event evenement)
     {
-        if (eventModel.UUID == Guid.Empty)
+        if (evenement.UUID == Guid.Empty)
         {
-            eventModel.UUID = Guid.NewGuid();
+            evenement.UUID = Guid.NewGuid();
         }
+
+        var eventModel = evenement;
 
         _context.Events.Add(eventModel);
         await _context.SaveChangesAsync();
@@ -46,10 +50,11 @@ public class EventService : IEventService
             return null;
         }
 
-        existingEvent.Title = eventModel.Title;
+        existingEvent.Name = eventModel.Name;
+        existingEvent.Description = eventModel.Description;
         existingEvent.StartDate = eventModel.StartDate;
-        existingEvent.EndDate = eventModel.EndDate;
         existingEvent.Status = eventModel.Status;
+        existingEvent.EventTeams = eventModel.EventTeams;
 
         await _context.SaveChangesAsync();
 

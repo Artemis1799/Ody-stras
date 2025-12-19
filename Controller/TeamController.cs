@@ -8,72 +8,64 @@ namespace t5_back.Controllers;
 [Route("api/[controller]")]
 public class TeamController : ControllerBase
 {
-    private readonly ITeamService _teamService;
+	private readonly ITeamService _teamService;
 
-    public TeamController(ITeamService teamService)
-    {
-        _teamService = teamService;
-    }
+	public TeamController(ITeamService teamService)
+	{
+		_teamService = teamService;
+	}
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Team>>> GetAll()
-    {
-        var teams = await _teamService.GetAllAsync();
-        return Ok(teams);
-    }
+	[HttpGet]
+	public async Task<ActionResult<IEnumerable<Team>>> GetAll()
+	{
+		var teams = await _teamService.GetAllAsync();
+		return Ok(teams);
+	}
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Team>> GetById(Guid id)
-    {
-        var team = await _teamService.GetByIdAsync(id);
+	[HttpGet("{id}")]
+	public async Task<ActionResult<Team>> GetById(Guid id)
+	{
+		var team = await _teamService.GetByIdAsync(id);
 
-        if (team == null)
-            return NotFound();
+		if (team == null)
+			return NotFound();
 
-        return Ok(team);
-    }
+		return Ok(team);
+	}
 
-    [HttpGet("event/{eventId}")]
-    public async Task<ActionResult<IEnumerable<Team>>> GetByEventId(Guid eventId)
-    {
-        var teams = await _teamService.GetByEventIdAsync(eventId);
-        return Ok(teams);
-    }
+	[HttpPost]
+	public async Task<ActionResult<Team>> Create(Team team)
+	{
+		var created = await _teamService.CreateAsync(team);
+		return CreatedAtAction(nameof(GetById), new { id = created.UUID }, created);
+	}
 
-    [HttpPost]
-    public async Task<ActionResult<Team>> Create(Team team)
-    {
-        var created = await _teamService.CreateAsync(team);
-        return CreatedAtAction(nameof(GetById), new { id = created.UUID }, created);
-    }
+	[HttpPut("{id}")]
+	public async Task<ActionResult<Team>> Update(Guid id, Team team)
+	{
+		var updated = await _teamService.UpdateAsync(id, team);
 
-    [HttpPut("{id}")]
-    public async Task<ActionResult<Team>> Update(Guid id, Team team)
-    {
-        var updated = await _teamService.UpdateAsync(id, team);
+		if (updated == null)
+			return NotFound();
 
-        if (updated == null)
-            return NotFound();
+		return Ok(updated);
+	}
 
-        return Ok(updated);
-    }
+	[HttpDelete("{id}")]
+	public async Task<ActionResult> Delete(Guid id)
+	{
+		var removed = await _teamService.DeleteAsync(id);
 
-    [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(Guid id)
-    {
-        var removed = await _teamService.DeleteAsync(id);
+		if (!removed)
+			return NotFound();
 
-        if (!removed)
-            return NotFound();
+		return NoContent();
+	}
 
-        return NoContent();
-    }
-
-    [HttpDelete]
-    public async Task<ActionResult<int>> DeleteAll()
-    {
-        var count = await _teamService.DeleteAllAsync();
-        return Ok(new { deletedCount = count });
-    }
+	[HttpDelete]
+	public async Task<ActionResult<int>> DeleteAll()
+	{
+		var count = await _teamService.DeleteAllAsync();
+		return Ok(new { deletedCount = count });
+	}
 }
-
