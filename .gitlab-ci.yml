@@ -55,6 +55,7 @@ build_job:
   stage: build
   needs:
     - install_job
+    - test_job
   script:
     - npm install -g eas-cli
     - eas build -p android --profile preview --non-interactive
