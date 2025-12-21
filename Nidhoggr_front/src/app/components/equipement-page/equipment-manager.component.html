@@ -42,21 +42,10 @@
       </div>
 
       <div class="form-field">
-        <label for="new-unit">Unité</label>
-        <input 
-          id="new-unit"
-          type="text"
-          pInputText
-          [(ngModel)]="newEquipment.unit"
-          placeholder="ex: pièces, mètres, kg"
-        />
-      </div>
-
-      <div class="form-field">
-        <label for="new-stock">Stock total</label>
+        <label for="new-length">Longueur</label>
         <p-inputnumber
-          inputId="new-stock"
-          [(ngModel)]="newEquipment.totalStock"
+          inputId="new-length"
+          [(ngModel)]="newEquipment.length"
           [min]="0"
           [showButtons]="true"
         ></p-inputnumber>

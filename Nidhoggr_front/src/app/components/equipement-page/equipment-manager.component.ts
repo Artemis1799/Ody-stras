@@ -33,9 +33,8 @@ export class EquipmentManagerComponent implements OnInit {
   newEquipment: Partial<Equipment> = {
     type: '',
     description: '',
-    unit: '',
-    totalStock: 0,
-    remainingStock: 0
+    length: 0,
+    storageType: 0
   };
   showAddForm = false;
 
@@ -77,20 +76,6 @@ export class EquipmentManagerComponent implements OnInit {
 
   saveEquipment(equipment: Equipment): void {
     if (!this.editingEquipment) return;
-
-    const oldTotalStock = equipment.totalStock || 0;
-    const newTotalStock = this.editingEquipment.totalStock || 0;
-    const stockDifference = newTotalStock - oldTotalStock;
-
-    // Mettre à jour le remaining stock proportionnellement
-    if (stockDifference !== 0 && equipment.remainingStock !== undefined) {
-      this.editingEquipment.remainingStock = (equipment.remainingStock || 0) + stockDifference;
-      
-      // S'assurer que le remaining stock ne dépasse pas le total stock
-      if (this.editingEquipment.remainingStock > newTotalStock) {
-        this.editingEquipment.remainingStock = newTotalStock;
-      }
-    }
 
     const editedEquipmentName = this.editingEquipment.description || this.editingEquipment.type;
 
@@ -151,9 +136,8 @@ export class EquipmentManagerComponent implements OnInit {
       this.newEquipment = {
         type: '',
         description: '',
-        unit: '',
-        totalStock: 0,
-        remainingStock: 0
+        length: 0,
+        storageType: 0
       };
     }
   }
@@ -164,9 +148,6 @@ export class EquipmentManagerComponent implements OnInit {
       return;
     }
 
-    // S'assurer que remainingStock = totalStock pour un nouvel équipement
-    this.newEquipment.remainingStock = this.newEquipment.totalStock;
-
     this.equipmentService.create(this.newEquipment as Equipment).subscribe({
       next: () => {
         this.toastService.showSuccess('Équipement créé', `L'équipement "${this.newEquipment.description || this.newEquipment.type}" a été créé avec succès`);
@@ -174,9 +155,8 @@ export class EquipmentManagerComponent implements OnInit {
         this.newEquipment = {
           type: '',
           description: '',
-          unit: '',
-          totalStock: 0,
-          remainingStock: 0
+          length: 0,
+          storageType: 0
         };
       },
       error: () => {

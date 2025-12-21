@@ -1,11 +1,13 @@
 import { AfterViewInit, Component, OnDestroy } from '@angular/core';
 import { MapService } from '../../../services/MapService';
-import { GeometryService } from '../../../services/GeometryService';
+import { AreaService } from '../../../services/AreaService';
+import { PathService } from '../../../services/PathService';
 import { PointService } from '../../../services/PointService';
 import { Point } from '../../../models/pointModel';
 import { Event } from '../../../models/eventModel';
-import { Geometry, GeometryProperties } from '../../../models/geometryModel';
-import { Subscription } from 'rxjs';
+import { Area } from '../../../models/areaModel';
+import { RoutePath } from '../../../models/routePathModel';
+import { Subscription, forkJoin } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, inject } from '@angular/core';
 
@@ -22,11 +24,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private markers: Map<string, any> = new Map();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private geometryLayers: Map<string, any> = new Map(); // Map pour stocker les layers des géométries
+  private geometryLayers: Map<string, any> = new Map(); // Map pour stocker les layers des areas/paths
   private pointsSubscription?: Subscription;
   private selectedPointSubscription?: Subscription;
   private selectedEventSubscription?: Subscription;
-  private geometriesSubscription?: Subscription;
+  private shapesSubscription?: Subscription;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private drawnItems: any = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,7 +42,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
   constructor(
     private mapService: MapService,
-    private geometryService: GeometryService,
+    private areaService: AreaService,
+    private pathService: PathService,
     private pointService: PointService
   ) {}
 
@@ -203,7 +206,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           title: this.getPointDisplayName(point),
           icon: L.divIcon({
             className: 'custom-marker',
-            html: `<div class="marker-pin ${point.isValid ? 'valid' : 'invalid'}">
+            html: `<div class="marker-pin ${point.validated ? 'valid' : 'invalid'}">
                      <span class="marker-number">${point.order || index + 1}</span>
                    </div>`,
             iconSize: [30, 42],
@@ -217,7 +220,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           <div class="point-popup">
             <strong>${this.getPointDisplayName(point)}</strong><br>
             <small>Ordre: ${point.order || index + 1}</small><br>
-            <small>Statut: ${point.isValid ? 'Valide ✓' : 'Invalide ✗'}</small>
+            <small>Statut: ${point.validated ? 'Valide ✓' : 'Invalide ✗'}</small>
           </div>
         `;
         marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
@@ -384,115 +387,124 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     // Vider la map des géométries
     this.geometryLayers.clear();
     
-    // Vider la liste des géométries dans le service
-    this.mapService.clearGeometries();
+    // Vider la liste des areas/paths dans le service
+    this.mapService.clearAllShapes();
   }
 
   /**
-   * Charge et affiche les géométries d'un événement sur la carte
+   * Charge et affiche les areas et paths d'un événement sur la carte
    */
   private loadEventGeometries(event: Event): void {
-    // Charger les géométries depuis l'API
-    this.geometryService.getByEventId(event.uuid).subscribe({
-      next: (geometries) => {
-        // Mettre à jour le MapService avec les géométries chargées
-        this.mapService.setGeometries(geometries);
+    // Charger les areas et paths en parallèle
+    forkJoin({
+      areas: this.areaService.getByEventId(event.uuid),
+      paths: this.pathService.getByEventId(event.uuid)
+    }).subscribe({
+      next: ({ areas, paths }) => {
+        // Mettre à jour le MapService
+        this.mapService.setAreas(areas);
+        this.mapService.setPaths(paths);
         
-        // Afficher les géométries sur la carte
-        geometries.forEach(geometry => {
-          this.addGeometryToMap(geometry);
+        // Afficher les areas sur la carte
+        areas.forEach(area => {
+          this.addAreaToMap(area);
+        });
+        
+        // Afficher les paths sur la carte
+        paths.forEach(path => {
+          this.addPathToMap(path);
         });
       },
       error: (error) => {
-        console.error('Erreur lors du chargement des géométries:', error);
-        this.mapService.setGeometries([]);
+        console.error('Erreur lors du chargement des areas/paths:', error);
+        this.mapService.setAreas([]);
+        this.mapService.setPaths([]);
       }
     });
   }
 
   /**
-   * Ajoute une géométrie à la carte
+   * Ajoute une Area (polygon) à la carte
    */
-  private addGeometryToMap(geometry: Geometry): void {
+  private addAreaToMap(area: Area): void {
     if (!this.map || !this.drawnItems || typeof window === 'undefined') return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const L: any = (window as any).L;
-    const geoJson = geometry.geoJson;
-
-    if (!geoJson || !geoJson.type) {
-      console.warn('GeoJSON invalide pour la géométrie:', geometry.uuid);
-      return;
-    }
-
+    
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let layer: any = null;
-      // Couleurs standardisées: lignes en rouge, zones en bleu
-      const LINE_COLOR = '#a91a1a';  // Rouge pour les lignes
-      const ZONE_COLOR = '#3388ff';  // Bleu pour les zones
-
-      switch (geoJson.type) {
-        case 'Point': {
-          const coords = geoJson.coordinates as [number, number];
-          layer = L.marker([coords[1], coords[0]], {
-            icon: L.divIcon({
-              className: 'custom-marker',
-              html: `<div class="marker-pin newly-created"></div>`,
-              iconSize: [30, 42],
-              iconAnchor: [15, 42],
-              popupAnchor: [0, -42]
-            })
-          });
-          break;
-        }
-
-        case 'LineString': {
-          const lineCoords = (geoJson.coordinates as [number, number][]).map(c => [c[1], c[0]]);
-          layer = L.polyline(lineCoords, {
-            color: LINE_COLOR,
-            weight: 4
-          });
-          break;
-        }
-
-        case 'Polygon': {
-          const polygonCoords = (geoJson.coordinates as [number, number][][])[0].map(c => [c[1], c[0]]);
-          layer = L.polygon(polygonCoords, {
-            color: ZONE_COLOR,
-            fillOpacity: 0.2,
-            weight: 3
-          });
-          break;
-        }
-
-        default:
-          // Pour les autres types, utiliser geoJSON de Leaflet avec couleur bleue par défaut
-          layer = L.geoJSON(geoJson, {
-            style: {
-              color: ZONE_COLOR,
-              fillOpacity: 0.2,
-              weight: 3
-            }
-          });
-          break;
+      const geoJson = typeof area.geoJson === 'string' ? JSON.parse(area.geoJson) : area.geoJson;
+      
+      if (!geoJson || !geoJson.coordinates) {
+        console.warn('GeoJSON invalide pour l\'area:', area.uuid);
+        return;
       }
 
-      if (layer) {
-        // Associer l'UUID à la couche
-        layer.geometryUuid = geometry.uuid;
+      // Convertir les coordonnées [lng, lat] en [lat, lng] pour Leaflet
+      const polygonCoords = geoJson.coordinates[0].map((c: [number, number]) => [c[1], c[0]]);
+      
+      const layer = L.polygon(polygonCoords, {
+        color: area.colorHex || '#3388ff',
+        fillOpacity: 0.2,
+        weight: 3
+      });
 
-        // Ajouter au groupe drawnItems
-        this.drawnItems.addLayer(layer);
+      // Associer l'UUID à la couche
+      layer.areaUuid = area.uuid;
+      layer.shapeType = 'area';
 
-        // Stocker dans la map
-        this.geometryLayers.set(geometry.uuid, layer);
+      // Ajouter au groupe drawnItems
+      this.drawnItems.addLayer(layer);
 
-        // Rendre interactive
-        this.makeLayerInteractive(layer);
-      }
+      // Stocker dans la map
+      this.geometryLayers.set(area.uuid, layer);
+
+      // Rendre interactive
+      this.makeLayerInteractive(layer);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de la géométrie à la carte:', error);
+      console.error('Erreur lors de l\'ajout de l\'area à la carte:', error);
+    }
+  }
+
+  /**
+   * Ajoute un Path (polyline) à la carte
+   */
+  private addPathToMap(path: RoutePath): void {
+    if (!this.map || !this.drawnItems || typeof window === 'undefined') return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+    
+    try {
+      const geoJson = typeof path.geoJson === 'string' ? JSON.parse(path.geoJson) : path.geoJson;
+      
+      if (!geoJson || !geoJson.coordinates) {
+        console.warn('GeoJSON invalide pour le path:', path.uuid);
+        return;
+      }
+
+      // Convertir les coordonnées [lng, lat] en [lat, lng] pour Leaflet
+      const lineCoords = geoJson.coordinates.map((c: [number, number]) => [c[1], c[0]]);
+      
+      const layer = L.polyline(lineCoords, {
+        color: path.colorHex || '#a91a1a',
+        weight: 4
+      });
+
+      // Associer l'UUID à la couche
+      layer.pathUuid = path.uuid;
+      layer.shapeType = 'path';
+
+      // Ajouter au groupe drawnItems
+      this.drawnItems.addLayer(layer);
+
+      // Stocker dans la map
+      this.geometryLayers.set(path.uuid, layer);
+
+      // Rendre interactive
+      this.makeLayerInteractive(layer);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du path à la carte:', error);
     }
   }
 
@@ -549,11 +561,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     
     const pointData: Partial<Point> = {
       eventId: this.selectedEvent!.uuid,
+      name: `Point ${currentPoints + 1}`,
       latitude: latlng.lat,
       longitude: latlng.lng,
       order: currentPoints + 1,
-      isValid: false,
-      comment: ' '
+      validated: false,
+      comment: ''
     };
 
     this.pointService.create(pointData).subscribe({
@@ -582,51 +595,83 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Sauvegarde une forme Leaflet comme Geometry dans la base de données
+   * Sauvegarde une forme Leaflet comme Area ou Path dans la base de données
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private saveLayerAsGeometry(layer: any, type: string): void {
     // Ajouter la forme au groupe
     this.drawnItems.addLayer(layer);
 
-    // Préparer les propriétés
-    const properties: GeometryProperties = {
-      name: `${type} - ${new Date().toLocaleString()}`,
-      color: this.getLayerColor(layer),
-      created: new Date(),
-      modified: new Date()
-    };
+    // Convertir en GeoJSON
+    const geoJson = this.leafletToGeoJSON(layer);
+    if (!geoJson) {
+      this.makeLayerInteractive(layer);
+      return;
+    }
 
-    // Sauvegarder dans le service avec l'UUID de l'événement sélectionné
-    const saveObservable = this.geometryService.saveFromLeafletLayer(
-      layer,
-      this.selectedEvent!.uuid,
-      properties
-    );
+    const geoJsonString = JSON.stringify(geoJson);
+    const colorHex = this.getLayerColor(layer);
 
-    if (saveObservable) {
-      saveObservable.subscribe({
-        next: (geometry) => {
-          // Associer l'UUID à la couche pour les modifications futures
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (layer as any).geometryUuid = geometry.uuid;
-          
-          // Ajouter la géométrie à la liste locale
-          this.mapService.addGeometry(geometry);
-          
-          // Rendre la forme sélectionnable après la sauvegarde
+    // Si c'est un polygon -> Area, sinon (polyline) -> Path
+    if (type === 'polygon' || type === 'rectangle' || type === 'circle') {
+      const areaData = {
+        eventId: this.selectedEvent!.uuid,
+        name: `Zone ${new Date().toLocaleString()}`,
+        colorHex: colorHex,
+        geoJson: geoJsonString
+      };
+
+      this.areaService.create(areaData).subscribe({
+        next: (createdArea) => {
+          layer.areaUuid = createdArea.uuid;
+          layer.shapeType = 'area';
+          this.geometryLayers.set(createdArea.uuid, layer);
+          this.mapService.addArea(createdArea);
           this.makeLayerInteractive(layer);
         },
         error: (error) => {
-          console.error('Erreur lors de la sauvegarde de la géométrie:', error);
-          // Rendre quand même la forme interactive même en cas d'erreur
+          console.error('Erreur lors de la sauvegarde de l\'area:', error);
           this.makeLayerInteractive(layer);
         }
       });
     } else {
-      // Si pas de sauvegarde, rendre quand même interactive
-      this.makeLayerInteractive(layer);
+      // polyline
+      const pathData = {
+        eventId: this.selectedEvent!.uuid,
+        name: `Chemin ${new Date().toLocaleString()}`,
+        colorHex: colorHex,
+        startDate: new Date(),
+        fastestEstimatedSpeed: 5, // Valeurs par défaut
+        slowestEstimatedSpeed: 3,
+        geoJson: geoJsonString
+      };
+
+      this.pathService.create(pathData).subscribe({
+        next: (createdPath) => {
+          layer.pathUuid = createdPath.uuid;
+          layer.shapeType = 'path';
+          this.geometryLayers.set(createdPath.uuid, layer);
+          this.mapService.addPath(createdPath);
+          this.makeLayerInteractive(layer);
+        },
+        error: (error) => {
+          console.error('Erreur lors de la sauvegarde du path:', error);
+          this.makeLayerInteractive(layer);
+        }
+      });
     }
+  }
+
+  /**
+   * Convertit un layer Leaflet en GeoJSON
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private leafletToGeoJSON(layer: any): any {
+    if (!layer || typeof layer.toGeoJSON !== 'function') {
+      return null;
+    }
+    const geoJSON = layer.toGeoJSON();
+    return geoJSON.geometry;
   }
 
   /**
@@ -649,7 +694,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Gère la modification de géométries existantes
+   * Gère la modification d'areas/paths existants
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private onGeometriesEdited(e: any): void {
@@ -657,24 +702,38 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     layers.eachLayer((layer: any) => {
-      if (layer.geometryUuid) {
-        const geoJson = this.geometryService.leafletToGeoJSON(layer);
-        
-        if (geoJson) {
-          const properties: GeometryProperties = {
-            color: this.getLayerColor(layer),
-            modified: new Date()
-          };
+      const geoJson = this.leafletToGeoJSON(layer);
+      if (!geoJson) return;
+      
+      const geoJsonString = JSON.stringify(geoJson);
+      const colorHex = this.getLayerColor(layer);
 
-          this.geometryService.update(layer.geometryUuid, {
-            geoJson,
-            properties,
-            modified: new Date()
-          }).subscribe({
-            next: () => {},  // Modification réussie
-            error: (error) => {
-              console.error('Erreur lors de la modification:', error);
-            }
+      if (layer.areaUuid) {
+        // C'est une Area
+        const currentArea = this.mapService.getAreas().find(a => a.uuid === layer.areaUuid);
+        if (currentArea) {
+          const updatedArea: Area = {
+            ...currentArea,
+            geoJson: geoJsonString,
+            colorHex: colorHex
+          };
+          this.areaService.update(layer.areaUuid, updatedArea).subscribe({
+            next: (updated) => this.mapService.updateArea(updated),
+            error: (error) => console.error('Erreur lors de la modification de l\'area:', error)
+          });
+        }
+      } else if (layer.pathUuid) {
+        // C'est un Path
+        const currentPath = this.mapService.getPaths().find(p => p.uuid === layer.pathUuid);
+        if (currentPath) {
+          const updatedPath: RoutePath = {
+            ...currentPath,
+            geoJson: geoJsonString,
+            colorHex: colorHex
+          };
+          this.pathService.update(layer.pathUuid, updatedPath).subscribe({
+            next: (updated) => this.mapService.updatePath(updated),
+            error: (error) => console.error('Erreur lors de la modification du path:', error)
           });
         }
       }
@@ -682,7 +741,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Gère la suppression de géométries
+   * Gère la suppression d'areas/paths
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private onGeometriesDeleted(e: any): void {
@@ -690,16 +749,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     layers.eachLayer((layer: any) => {
-      if (layer.geometryUuid) {
-        const geometryUuid = layer.geometryUuid;
-        this.geometryService.delete(geometryUuid).subscribe({
-          next: () => {
-            // Retirer la géométrie de la liste locale
-            this.mapService.removeGeometry(geometryUuid);
-          },
-          error: (error) => {
-            console.error('Erreur lors de la suppression:', error);
-          }
+      if (layer.areaUuid) {
+        const areaUuid = layer.areaUuid;
+        this.areaService.delete(areaUuid).subscribe({
+          next: () => this.mapService.removeArea(areaUuid),
+          error: (error) => console.error('Erreur lors de la suppression de l\'area:', error)
+        });
+      } else if (layer.pathUuid) {
+        const pathUuid = layer.pathUuid;
+        this.pathService.delete(pathUuid).subscribe({
+          next: () => this.mapService.removePath(pathUuid),
+          error: (error) => console.error('Erreur lors de la suppression du path:', error)
         });
       }
     });
@@ -808,13 +868,13 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Supprime une géométrie
+   * Supprime une area ou un path
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private deleteGeometry(layer: any): void {
     if (!layer) return;
     
-    const confirmed = confirm('Voulez-vous vraiment supprimer cet élément géométrique ?');
+    const confirmed = confirm('Voulez-vous vraiment supprimer cet élément ?');
     
     if (confirmed) {
       // Fermer le popup
@@ -828,15 +888,15 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       }
       
       // Supprimer de la base de données si sauvegardé
-      if (layer.geometryUuid) {
-        this.geometryService.delete(layer.geometryUuid).subscribe({
-          next: () => {
-            // Retirer la géométrie de la liste locale
-            this.mapService.removeGeometry(layer.geometryUuid);
-          },
-          error: (error) => {
-            console.error('Erreur lors de la suppression:', error);
-          }
+      if (layer.areaUuid) {
+        this.areaService.delete(layer.areaUuid).subscribe({
+          next: () => this.mapService.removeArea(layer.areaUuid),
+          error: (error) => console.error('Erreur lors de la suppression de l\'area:', error)
+        });
+      } else if (layer.pathUuid) {
+        this.pathService.delete(layer.pathUuid).subscribe({
+          next: () => this.mapService.removePath(layer.pathUuid),
+          error: (error) => console.error('Erreur lors de la suppression du path:', error)
         });
       }
       
@@ -870,8 +930,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     if (this.selectedEventSubscription) {
       this.selectedEventSubscription.unsubscribe();
     }
-    if (this.geometriesSubscription) {
-      this.geometriesSubscription.unsubscribe();
+    if (this.shapesSubscription) {
+      this.shapesSubscription.unsubscribe();
     }
 
     // Nettoyer les markers
@@ -882,7 +942,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     });
     this.markers.clear();
 
-    // Nettoyer les géométries complètement
+    // Nettoyer les areas/paths
     this.clearExistingGeometries();
 
     // Nettoyer le contrôle de dessin

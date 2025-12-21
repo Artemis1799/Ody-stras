@@ -275,6 +275,15 @@ $danger-bg: rgba(248, 113, 113, 0.15);
       white-space: nowrap;
     }
     
+    .team-event {
+      font-size: 0.75rem;
+      color: $accent-primary;
+      margin-bottom: 0.25rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
     .team-members-count {
       font-size: 0.8125rem;
       color: $text-muted;

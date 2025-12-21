@@ -10,8 +10,8 @@
     <div class="drawer-header">
       <div class="header-content">
         <h3>Point #{{ selectedPointIndex || selectedPoint?.order || '?' }}</h3>
-        <span class="point-status" [class.valid]="editedIsValid" [class.invalid]="!editedIsValid">
-          {{ editedIsValid ? 'Validé' : 'Non validé' }}
+        <span class="point-status" [class.valid]="editedValidated" [class.invalid]="!editedValidated">
+          {{ editedValidated ? 'Validé' : 'Non validé' }}
         </span>
       </div>
       <button 
@@ -42,11 +42,11 @@
       <div class="form-row">
         <div class="checkbox-field">
           <p-checkbox 
-            inputId="isValid" 
-            [(ngModel)]="editedIsValid"
+            inputId="validated" 
+            [(ngModel)]="editedValidated"
             [binary]="true"
           ></p-checkbox>
-          <label for="isValid">Marquer ce point comme validé</label>
+          <label for="validated">Marquer ce point comme validé</label>
         </div>
       </div>
 
@@ -79,68 +79,6 @@
           emptyMessage="Aucun équipement trouvé"
           class="w-full"
         />
-      </div>
-
-      <!-- Quantité (conditionnel) -->
-      <div class="form-row" *ngIf="selectedEquipment && selectedEquipment.uuid">
-        <label for="quantity">Quantité</label>
-        <p-inputnumber
-          inputId="quantity"
-          [(ngModel)]="editedEquipmentQuantity"
-          [min]="0"
-          [max]="getAvailableStock()"
-          (ngModelChange)="onQuantityChange($event)"
-          [showButtons]="true"
-          class="w-full"
-        ></p-inputnumber>
-        <small class="help-text">
-          <span class="pi pi-info-circle"></span>
-          Stock disponible: {{ getAvailableStock() }}
-        </small>
-      </div>
-
-      <!-- Dates de pose et dépose -->
-      <div class="form-row dates-section">
-        <div class="date-field">
-          <label for="installedAt">
-            <span class="pi pi-download"></span> Date de pose
-          </label>
-          <input 
-            id="installedAt" 
-            type="datetime-local" 
-            [(ngModel)]="editedInstalledAt"
-            class="w-full date-input"
-          />
-          <button 
-            type="button" 
-            class="clear-date-btn" 
-            *ngIf="editedInstalledAt"
-            (click)="editedInstalledAt = null"
-            title="Effacer la date"
-          >
-            <span class="pi pi-times"></span>
-          </button>
-        </div>
-        <div class="date-field">
-          <label for="removedAt">
-            <span class="pi pi-upload"></span> Date de dépose
-          </label>
-          <input 
-            id="removedAt" 
-            type="datetime-local" 
-            [(ngModel)]="editedRemovedAt"
-            class="w-full date-input"
-          />
-          <button 
-            type="button" 
-            class="clear-date-btn" 
-            *ngIf="editedRemovedAt"
-            (click)="editedRemovedAt = null"
-            title="Effacer la date"
-          >
-            <span class="pi pi-times"></span>
-          </button>
-        </div>
       </div>
     </div>
   </ng-container>

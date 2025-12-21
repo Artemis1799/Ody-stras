@@ -5,11 +5,14 @@ import { Router } from '@angular/router';
 import { AutoComplete } from 'primeng/autocomplete';
 import { PointService } from '../../../services/PointService';
 import { EventService } from '../../../services/EventService';
-import { GeometryService } from '../../../services/GeometryService';
+import { AreaService } from '../../../services/AreaService';
+import { PathService } from '../../../services/PathService';
 import { MapService } from '../../../services/MapService';
 import { NominatimService, NominatimResult } from '../../../services/NominatimService';
 import { Point } from '../../../models/pointModel';
 import { Event } from '../../../models/eventModel';
+import { Area } from '../../../models/areaModel';
+import { RoutePath } from '../../../models/routePathModel';
 import { Subscription, Subject, Observable, forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ExportPopup } from '../../../shared/export-popup/export-popup';
@@ -76,7 +79,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   constructor(
     private pointService: PointService,
     private eventService: EventService,
-    private geometryService: GeometryService,
+    private areaService: AreaService,
+    private pathService: PathService,
     private mapService: MapService,
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -148,19 +152,19 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     const query = event.query.toLowerCase();
     const filtered = this.events
       .filter(
-        (e) => e.name.toLowerCase().includes(query) || e.description?.toLowerCase().includes(query)
+        (e) => e.title.toLowerCase().includes(query)
       )
-      .map((e) => e.name);
+      .map((e) => e.title);
     // Supprimer les doublons de noms
     this.filteredEvents = [...new Set(filtered)];
   }
 
   onEventSelect(event: { value: string }): void {
     const eventName = event.value;
-    const selectedEventObj = this.events.find((e) => e.name === eventName);
+    const selectedEventObj = this.events.find((e) => e.title === eventName);
     if (selectedEventObj?.uuid) {
       this.selectedEvent = selectedEventObj;
-      this.selectedEventName = selectedEventObj.name;
+      this.selectedEventName = selectedEventObj.title;
       // Émettre l'événement sélectionné dans le service pour les autres composants
       this.mapService.setSelectedEvent(selectedEventObj);
       this.loadPointsAndCenterMap(selectedEventObj.uuid);
@@ -168,18 +172,19 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Charge les points et géométries de l'événement et centre la carte
+   * Charge les points, areas et paths de l'événement et centre la carte
    */
   loadPointsAndCenterMap(eventId: string): void {
     this.isLoading = true;
     this.errorMessage = '';
 
-    // Charger les points et géométries en parallèle
+    // Charger les points, areas et paths en parallèle
     forkJoin({
       points: this.pointService.getByEventId(eventId),
-      geometries: this.geometryService.getByEventId(eventId)
+      areas: this.areaService.getByEventId(eventId),
+      paths: this.pathService.getByEventId(eventId)
     }).subscribe({
-      next: ({ points, geometries }) => {
+      next: ({ points, areas, paths }) => {
         // Trier les points
         const withOrder = points
           .filter((p) => p.order !== undefined && p.order !== null)
@@ -189,10 +194,12 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         const sortedPoints = [...withOrder, ...withoutOrder];
         // Utiliser le MapService pour la réactivité avec le map-loader
         this.mapService.setPoints(sortedPoints);
+        this.mapService.setAreas(areas);
+        this.mapService.setPaths(paths);
         this.emptyMessage = 'Aucun point pour cet événement';
 
-        // Centrer la carte sur les points et géométries
-        this.centerMapOnEventData(sortedPoints, geometries);
+        // Centrer la carte sur les points, areas et paths
+        this.centerMapOnEventData(sortedPoints, areas, paths);
 
         this.isLoading = false;
         this.cdr.markForCheck();
@@ -208,9 +215,9 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Centre la carte sur les bounds des points et géométries
+   * Centre la carte sur les bounds des points, areas et paths
    */
-  private centerMapOnEventData(points: Point[], geometries: import('../../../models/geometryModel').Geometry[]): void {
+  private centerMapOnEventData(points: Point[], areas: Area[], paths: RoutePath[]): void {
     const map = this.mapService.getMapInstance();
     if (!map) return;
 
@@ -228,9 +235,16 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Ajouter les coordonnées des géométries
-    geometries.forEach(g => {
-      this.extractGeometryCoords(g.geoJson, allCoords);
+    // Ajouter les coordonnées des areas
+    areas.forEach(a => {
+      const geoJson = typeof a.geoJson === 'string' ? JSON.parse(a.geoJson) : a.geoJson;
+      this.extractGeometryCoords(geoJson, allCoords);
+    });
+
+    // Ajouter les coordonnées des paths
+    paths.forEach(p => {
+      const geoJson = typeof p.geoJson === 'string' ? JSON.parse(p.geoJson) : p.geoJson;
+      this.extractGeometryCoords(geoJson, allCoords);
     });
 
     // Si aucune coordonnée, ne rien faire
@@ -414,7 +428,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.events.push(event);
     // Sélectionner automatiquement le nouvel événement
     this.selectedEvent = event;
-    this.selectedEventName = event.name;
+    this.selectedEventName = event.title;
     this.mapService.setSelectedEvent(event);
     // Charger les points (vide pour un nouvel événement)
     this.loadPointsForEvent(event.uuid);
@@ -438,7 +452,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     }
     // Mettre à jour la sélection
     this.selectedEvent = updatedEvent;
-    this.selectedEventName = updatedEvent.name;
+    this.selectedEventName = updatedEvent.title;
     this.mapService.setSelectedEvent(updatedEvent);
   }
 
@@ -479,8 +493,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         const items = sortedPoints.map((p) => ({
           id: p.uuid,
           title: p.comment || `Point ${p.uuid}`,
-          start: p.installedAt ? new Date(p.installedAt) : undefined,
-          end: p.removedAt ? new Date(p.removedAt) : undefined,
+          start: undefined,
+          end: undefined,
         }));
 
         this.dialog.open(TimelinePopupComponent, {
@@ -530,9 +544,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   sortPointsByInstalledDate(points: Point[]): Point[] {
     return [...points].sort((a, b) => {
-      const dateA = a.installedAt ? new Date(a.installedAt).getTime() : Infinity;
-      const dateB = b.installedAt ? new Date(b.installedAt).getTime() : Infinity;
-      return dateA - dateB;
+      // Sort by order if available
+      const orderA = a.order ?? Infinity;
+      const orderB = b.order ?? Infinity;
+      return orderA - orderB;
     });
   }
 
