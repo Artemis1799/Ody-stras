@@ -300,7 +300,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
 
   getEquipmentDisplayName(equipment: Equipment): string {
     if (!equipment || !equipment.uuid) return 'Aucun';
-    return equipment.description || equipment.type || 'Équipement sans nom';
+    return equipment.type || 'Équipement sans type';
   }
 
   confirmDeletePoint(): void {

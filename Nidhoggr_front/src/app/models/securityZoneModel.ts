@@ -8,5 +8,6 @@ export interface SecurityZone {
   installationDate: Date;
   removalDate: Date;
   geoJson: string;
+  event: Event; 
   equipment?: Equipment;
 }

@@ -1,4 +1,5 @@
-import { AfterViewInit, Component, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MapService } from '../../../services/MapService';
 import { AreaService } from '../../../services/AreaService';
 import { PathService } from '../../../services/PathService';
@@ -10,11 +11,12 @@ import { RoutePath } from '../../../models/routePathModel';
 import { Subscription, forkJoin } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, inject } from '@angular/core';
+import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
 
 @Component({
   selector: 'app-map-loader',
   standalone: true,
-  imports: [],
+  imports: [CommonModule, DeletePopupComponent],
   templateUrl: './map-loader.component.html',
   styleUrls: ['./map-loader.component.scss']
 })
@@ -40,11 +42,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private leafletInstance: any = null;
 
+  // Popup de suppression de géométrie
+  showDeleteGeometryConfirm = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private layerToDelete: any = null;
+
   constructor(
     private mapService: MapService,
     private areaService: AreaService,
     private pathService: PathService,
-    private pointService: PointService
+    private pointService: PointService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngAfterViewInit(): void {
@@ -874,35 +882,53 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private deleteGeometry(layer: any): void {
     if (!layer) return;
     
-    const confirmed = confirm('Voulez-vous vraiment supprimer cet élément ?');
-    
-    if (confirmed) {
-      // Fermer le popup
-      if (layer.closePopup) {
-        layer.closePopup();
-      }
-      
-      // Supprimer du groupe
-      if (this.drawnItems) {
-        this.drawnItems.removeLayer(layer);
-      }
-      
-      // Supprimer de la base de données si sauvegardé
-      if (layer.areaUuid) {
-        this.areaService.delete(layer.areaUuid).subscribe({
-          next: () => this.mapService.removeArea(layer.areaUuid),
-          error: (error) => console.error('Erreur lors de la suppression de l\'area:', error)
-        });
-      } else if (layer.pathUuid) {
-        this.pathService.delete(layer.pathUuid).subscribe({
-          next: () => this.mapService.removePath(layer.pathUuid),
-          error: (error) => console.error('Erreur lors de la suppression du path:', error)
-        });
-      }
-      
-      // Réinitialiser la sélection
-      this.selectedLayer = null;
+    // Fermer le popup Leaflet d'abord
+    if (layer.closePopup) {
+      layer.closePopup();
     }
+    
+    this.layerToDelete = layer;
+    this.showDeleteGeometryConfirm = true;
+    this.cdr.detectChanges();
+  }
+
+  cancelDeleteGeometry(): void {
+    this.showDeleteGeometryConfirm = false;
+    this.layerToDelete = null;
+  }
+
+  confirmDeleteGeometry(): void {
+    const layer = this.layerToDelete;
+    if (!layer) return;
+
+    this.showDeleteGeometryConfirm = false;
+    this.layerToDelete = null;
+
+    // Fermer le popup
+    if (layer.closePopup) {
+      layer.closePopup();
+    }
+    
+    // Supprimer du groupe
+    if (this.drawnItems) {
+      this.drawnItems.removeLayer(layer);
+    }
+    
+    // Supprimer de la base de données si sauvegardé
+    if (layer.areaUuid) {
+      this.areaService.delete(layer.areaUuid).subscribe({
+        next: () => this.mapService.removeArea(layer.areaUuid),
+        error: (error) => console.error('Erreur lors de la suppression de l\'area:', error)
+      });
+    } else if (layer.pathUuid) {
+      this.pathService.delete(layer.pathUuid).subscribe({
+        next: () => this.mapService.removePath(layer.pathUuid),
+        error: (error) => console.error('Erreur lors de la suppression du path:', error)
+      });
+    }
+    
+    // Réinitialiser la sélection
+    this.selectedLayer = null;
   }
 
   /**

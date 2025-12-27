@@ -9,6 +9,7 @@ import { Equipment } from '../../models/equipmentModel';
 import { Observable } from 'rxjs';
 import { EquipmentCard } from './equipment-card/equipment-card';
 import { ToastService } from '../../services/ToastService';
+import { DeletePopupComponent } from '../../shared/delete-popup/delete-popup';
 
 @Component({
   selector: 'app-equipment-manager',
@@ -18,7 +19,8 @@ import { ToastService } from '../../services/ToastService';
     FormsModule,
     InputText,
     InputNumber,
-    EquipmentCard
+    EquipmentCard,
+    DeletePopupComponent
   ],
   templateUrl: './equipment-manager.component.html',
   styleUrls: ['./equipment-manager.component.scss']
@@ -28,6 +30,10 @@ export class EquipmentManagerComponent implements OnInit {
   editingEquipment: Equipment | null = null;
   isLoading = false;
   errorMessage = '';
+
+  // Popup de suppression
+  showDeleteConfirm = false;
+  equipmentToDelete: Equipment | null = null;
 
   // Nouvel équipement
   newEquipment: Partial<Equipment> = {
@@ -91,9 +97,21 @@ export class EquipmentManagerComponent implements OnInit {
   }
 
   deleteEquipment(equipment: Equipment): void {
-    if (!confirm(`Voulez-vous vraiment supprimer l'équipement "${equipment.description || equipment.type}" ?`)) {
-      return;
-    }
+    this.equipmentToDelete = equipment;
+    this.showDeleteConfirm = true;
+  }
+
+  cancelDelete(): void {
+    this.showDeleteConfirm = false;
+    this.equipmentToDelete = null;
+  }
+
+  confirmDelete(): void {
+    if (!this.equipmentToDelete) return;
+
+    const equipment = this.equipmentToDelete;
+    this.showDeleteConfirm = false;
+    this.equipmentToDelete = null;
 
     // Charger tous les points qui utilisent cet équipement
     this.pointService.getAll().subscribe({
