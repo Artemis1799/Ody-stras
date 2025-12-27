@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using t5_back.Data;
 
@@ -10,9 +11,11 @@ using t5_back.Data;
 namespace t5_back.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251217201831_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -167,14 +170,24 @@ namespace t5_back.Migrations
                         .IsRequired()
                         .HasColumnType("BLOB");
 
+                    b.HasKey("UUID");
+
+                    b.ToTable("Pictures");
+                });
+
+            modelBuilder.Entity("t5_back.Models.PicturePoint", b =>
+                {
+                    b.Property<Guid>("PictureId")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("PointId")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("UUID");
+                    b.HasKey("PictureId", "PointId");
 
                     b.HasIndex("PointId");
 
-                    b.ToTable("Pictures");
+                    b.ToTable("PicturePoints");
                 });
 
             modelBuilder.Entity("t5_back.Models.Planning", b =>
@@ -399,13 +412,21 @@ namespace t5_back.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("t5_back.Models.Picture", b =>
+            modelBuilder.Entity("t5_back.Models.PicturePoint", b =>
                 {
+                    b.HasOne("t5_back.Models.Picture", "Picture")
+                        .WithMany("PicturePoints")
+                        .HasForeignKey("PictureId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("t5_back.Models.Point", "Point")
-                        .WithMany("Pictures")
+                        .WithMany("PicturePoints")
                         .HasForeignKey("PointId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Picture");
 
                     b.Navigation("Point");
                 });
@@ -524,6 +545,11 @@ namespace t5_back.Migrations
                     b.Navigation("Teams");
                 });
 
+            modelBuilder.Entity("t5_back.Models.Picture", b =>
+                {
+                    b.Navigation("PicturePoints");
+                });
+
             modelBuilder.Entity("t5_back.Models.Planning", b =>
                 {
                     b.Navigation("Actions");
@@ -531,7 +557,7 @@ namespace t5_back.Migrations
 
             modelBuilder.Entity("t5_back.Models.Point", b =>
                 {
-                    b.Navigation("Pictures");
+                    b.Navigation("PicturePoints");
                 });
 
             modelBuilder.Entity("t5_back.Models.SecurityZone", b =>
