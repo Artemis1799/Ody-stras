@@ -47,6 +47,17 @@ export class EventCreatePopupPresenter {
       this.errorMessage = 'Le titre de l\'événement est requis.';
       return false;
     }
+    
+    // Vérifier que la date de fin n'est pas inférieure à la date de début
+    if (this.formData.startDate && this.formData.endDate) {
+      const startDate = new Date(this.formData.startDate);
+      const endDate = new Date(this.formData.endDate);
+      if (endDate < startDate) {
+        this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
+        return false;
+      }
+    }
+    
     this.errorMessage = '';
     return true;
   }
