@@ -2,18 +2,21 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TeamService } from '../../../services/TeamService';
-import { MemberService } from '../../../services/MemberService';
-import { TeamMemberService } from '../../../services/TeamMemberService';
+import { EmployeeService } from '../../../services/EmployeeService';
+import { TeamEmployeeService } from '../../../services/TeamEmployeeService';
+import { EventService } from '../../../services/EventService';
 import { Team } from '../../../models/teamModel';
-import { Member } from '../../../models/memberModel';
-import { TeamMember } from '../../../models/teamMemberModel';
+import { Employee } from '../../../models/employeeModel';
+import { TeamEmployee } from '../../../models/teamEmployeeModel';
+import { Event } from '../../../models/eventModel';
 import { forkJoin } from 'rxjs';
 import { TeamPopupComponent, TeamFormData } from '../../../shared/team-popup/team-popup';
 import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
 import { ToastService } from '../../../services/ToastService';
 
-interface TeamWithMembers extends Team {
-  members: Member[];
+interface TeamWithEmployees extends Team {
+  employees: Employee[];
+  eventName?: string;
 }
 
 @Component({
@@ -26,103 +29,112 @@ interface TeamWithMembers extends Team {
 export class TeamsComponent implements OnInit {
   // Injection des services
   private teamService = inject(TeamService);
-  private memberService = inject(MemberService);
-  private teamMemberService = inject(TeamMemberService);
+  private employeeService = inject(EmployeeService);
+  private teamEmployeeService = inject(TeamEmployeeService);
+  private eventService = inject(EventService);
   private toastService = inject(ToastService);
   
   // Signals calculés pour combiner les données
-  readonly teams = computed<TeamWithMembers[]>(() => {
+  readonly teams = computed<TeamWithEmployees[]>(() => {
     const teams = this.teamService.teams();
-    const members = this.memberService.members();
-    const teamMembers = this.teamMemberService.teamMembers();
+    const employees = this.employeeService.employees();
+    const teamEmployees = this.teamEmployeeService.teamEmployees();
+    const events = this.eventService.events();
     
     return teams.map(team => {
-      const memberIds = teamMembers
-        .filter((tm: TeamMember) => tm.teamId === team.uuid)
-        .map((tm: TeamMember) => tm.memberId);
+      const employeeIds = teamEmployees
+        .filter((te: TeamEmployee) => te.teamId === team.uuid)
+        .map((te: TeamEmployee) => te.employeeId);
       
-      const teamMembersList = members
-        .filter(m => memberIds.includes(m.uuid))
+      const teamEmployeesList = employees
+        .filter(e => employeeIds.includes(e.uuid))
         .sort((a, b) => {
           const firstNameCompare = a.firstName.localeCompare(b.firstName, 'fr');
-          return firstNameCompare !== 0 ? firstNameCompare : a.name.localeCompare(b.name, 'fr');
+          return firstNameCompare !== 0 ? firstNameCompare : a.lastName.localeCompare(b.lastName, 'fr');
         });
+      
+      const event = events.find((e: Event) => e.uuid === team.eventId);
       
       return {
         ...team,
-        members: teamMembersList
+        employees: teamEmployeesList,
+        eventName: event?.title
       };
     });
   });
   
-  readonly allMembers = computed(() => 
-    [...this.memberService.members()].sort((a, b) => {
+  readonly allEmployees = computed(() => 
+    [...this.employeeService.employees()].sort((a, b) => {
       const firstNameCompare = a.firstName.localeCompare(b.firstName, 'fr');
-      return firstNameCompare !== 0 ? firstNameCompare : a.name.localeCompare(b.name, 'fr');
+      return firstNameCompare !== 0 ? firstNameCompare : a.lastName.localeCompare(b.lastName, 'fr');
     })
   );
   
+  readonly events = computed(() => this.eventService.events());
+  
   readonly isLoading = computed(() => 
     this.teamService.loading() || 
-    this.memberService.loading() || 
-    this.teamMemberService.loading()
+    this.employeeService.loading() || 
+    this.teamEmployeeService.loading() ||
+    this.eventService.loading()
   );
   
   // Dialog state avec Signals
   showDialog = signal(false);
   isEditing = signal(false);
   currentTeam = signal<Partial<Team>>({});
-  selectedMembers = signal<Member[]>([]);
+  selectedEmployees = signal<Employee[]>([]);
   
   // Confirmation dialog
   showDeleteConfirm = signal(false);
-  teamToDelete = signal<TeamWithMembers | null>(null);
+  teamToDelete = signal<TeamWithEmployees | null>(null);
 
   ngOnInit(): void {
     // Charger les données au démarrage
     this.teamService.load();
-    this.memberService.load();
-    this.teamMemberService.load();
+    this.employeeService.load();
+    this.teamEmployeeService.load();
+    this.eventService.load();
   }
 
   openCreateDialog(): void {
     this.isEditing.set(false);
     this.currentTeam.set({ teamName: '', teamNumber: this.teams().length + 1 });
-    this.selectedMembers.set([]);
+    this.selectedEmployees.set([]);
     this.showDialog.set(true);
   }
 
-  openEditDialog(team: TeamWithMembers): void {
+  openEditDialog(team: TeamWithEmployees): void {
     this.isEditing.set(true);
     // S'assurer que teamNumber est inclus dans la copie
     this.currentTeam.set({ 
       ...team,
       teamNumber: team.teamNumber || undefined
     });
-    this.selectedMembers.set([...team.members]);
+    this.selectedEmployees.set([...team.employees]);
     this.showDialog.set(true);
   }
 
   closeDialog(): void {
     this.showDialog.set(false);
     this.currentTeam.set({});
-    this.selectedMembers.set([]);
+    this.selectedEmployees.set([]);
   }
 
   onTeamSave(data: TeamFormData): void {
     // Fermer immédiatement - l'API s'exécute en arrière-plan
     const teamToSave = { ...data.team };
-    const membersToSave = [...data.selectedMembers];
+    const employeesToSave = [...data.selectedEmployees];
     const wasEditing = this.isEditing();
     const teamUuid = data.team.uuid;
     
     this.closeDialog();
     
     // Exécuter les opérations en arrière-plan
-    this.saveTeamAsync(teamToSave, membersToSave, wasEditing, teamUuid);
+    this.saveTeamAsync(teamToSave, employeesToSave, wasEditing, teamUuid);
   }
 
-  private saveTeamAsync(team: Partial<Team>, members: Member[], isEditing: boolean, uuid?: string): void {
+  private saveTeamAsync(team: Partial<Team>, employees: Employee[], isEditing: boolean, uuid?: string): void {
     if (!team.teamName?.trim()) {
       return;
     }
@@ -131,7 +143,7 @@ export class TeamsComponent implements OnInit {
       // Update team
       this.teamService.update(uuid, team as Team).subscribe({
         next: () => {
-          this.updateTeamMembersAsync(uuid, members);
+          this.updateTeamEmployeesAsync(uuid, employees);
           this.toastService.showSuccess('Groupe modifié', `Le groupe "${team.teamName}" a été modifié avec succès`);
         },
         error: () => {
@@ -142,7 +154,7 @@ export class TeamsComponent implements OnInit {
       // Create team
       this.teamService.create(team as Team).subscribe({
         next: (newTeam) => {
-          this.addMembersToTeamAsync(newTeam.uuid, members);
+          this.addEmployeesToTeamAsync(newTeam.uuid, employees);
           this.toastService.showSuccess('Groupe créé', `Le groupe "${team.teamName}" a été créé avec succès`);
         },
         error: () => {
@@ -152,21 +164,21 @@ export class TeamsComponent implements OnInit {
     }
   }
 
-  private updateTeamMembersAsync(teamId: string, selectedMembers: Member[]): void {
-    this.teamMemberService.getAll().subscribe({
-      next: (allTeamMembers) => {
-        const currentMembers = allTeamMembers.filter(tm => tm.teamId === teamId);
-        const currentMemberIds = currentMembers.map(tm => tm.memberId);
-        const newMemberIds = selectedMembers.map(m => m.uuid);
+  private updateTeamEmployeesAsync(teamId: string, selectedEmployees: Employee[]): void {
+    this.teamEmployeeService.getAll().subscribe({
+      next: (allTeamEmployees) => {
+        const currentEmployees = allTeamEmployees.filter(te => te.teamId === teamId);
+        const currentEmployeeIds = currentEmployees.map(te => te.employeeId);
+        const newEmployeeIds = selectedEmployees.map(e => e.uuid);
         
-        const toRemove = currentMembers.filter(tm => !newMemberIds.includes(tm.memberId));
-        const toAdd = selectedMembers.filter(m => !currentMemberIds.includes(m.uuid));
+        const toRemove = currentEmployees.filter(te => !newEmployeeIds.includes(te.employeeId));
+        const toAdd = selectedEmployees.filter(e => !currentEmployeeIds.includes(e.uuid));
         
-        const deleteOps = toRemove.map(tm => 
-          this.teamMemberService.delete(tm.teamId, tm.memberId)
+        const deleteOps = toRemove.map(te => 
+          this.teamEmployeeService.delete(te.teamId, te.employeeId)
         );
-        const addOps = toAdd.map(m => 
-          this.teamMemberService.create({ teamId, memberId: m.uuid })
+        const addOps = toAdd.map(e => 
+          this.teamEmployeeService.create({ teamId, employeeId: e.uuid })
         );
         
         if (deleteOps.length === 0 && addOps.length === 0) {
@@ -175,30 +187,30 @@ export class TeamsComponent implements OnInit {
         
         forkJoin([...deleteOps, ...addOps]).subscribe({
           error: (error) => {
-            console.error('Erreur lors de la mise à jour des membres:', error);
+            console.error('Erreur lors de la mise à jour des employés:', error);
           }
         });
       }
     });
   }
 
-  private addMembersToTeamAsync(teamId: string, selectedMembers: Member[]): void {
-    if (selectedMembers.length === 0) {
+  private addEmployeesToTeamAsync(teamId: string, selectedEmployees: Employee[]): void {
+    if (selectedEmployees.length === 0) {
       return;
     }
     
-    const addOps = selectedMembers.map(m => 
-      this.teamMemberService.create({ teamId, memberId: m.uuid })
+    const addOps = selectedEmployees.map(e => 
+      this.teamEmployeeService.create({ teamId, employeeId: e.uuid })
     );
     
     forkJoin(addOps).subscribe({
       error: (error) => {
-        console.error('Erreur lors de l\'ajout des membres:', error);
+        console.error('Erreur lors de l\'ajout des employés:', error);
       }
     });
   }
 
-  confirmDelete(team: TeamWithMembers): void {
+  confirmDelete(team: TeamWithEmployees): void {
     this.teamToDelete.set(team);
     this.showDeleteConfirm.set(true);
   }
@@ -224,11 +236,11 @@ export class TeamsComponent implements OnInit {
     });
   }
 
-  getMemberNames(members: Member[]): string {
-    if (members.length === 0) return 'Aucun membre';
-    if (members.length <= 2) {
-      return members.map(m => `${m.firstName} ${m.name}`).join(', ');
+  getEmployeeNames(employees: Employee[]): string {
+    if (employees.length === 0) return 'Aucun membre';
+    if (employees.length <= 2) {
+      return employees.map(e => `${e.firstName} ${e.lastName}`).join(', ');
     }
-    return `${members[0].firstName} ${members[0].name} et ${members.length - 1} autre(s)`;
+    return `${employees[0].firstName} ${employees[0].lastName} et ${employees.length - 1} autre(s)`;
   }
 }

@@ -20,9 +20,9 @@ export class EventEditPopup implements OnInit {
   @Output() eventDeleted = new EventEmitter<string>();
 
   formData = {
-    name: '',
-    description: '',
+    title: '',
     startDate: '',
+    endDate: '',
     status: EventStatus.ToOrganize
   };
 
@@ -37,21 +37,34 @@ export class EventEditPopup implements OnInit {
 
   ngOnInit(): void {
     if (this.event) {
-      this.formData.name = this.event.name || '';
-      this.formData.description = this.event.description || '';
+      this.formData.title = this.event.title || '';
       this.formData.status = this.event.status;
       
       if (this.event.startDate) {
         const date = new Date(this.event.startDate);
         this.formData.startDate = date.toISOString().slice(0, 16);
       }
+      if (this.event.endDate) {
+        const date = new Date(this.event.endDate);
+        this.formData.endDate = date.toISOString().slice(0, 16);
+      }
     }
   }
 
   onSubmit(): void {
-    if (!this.formData.name?.trim()) {
-      this.errorMessage = 'Le nom de l\'événement est requis';
+    if (!this.formData.title?.trim()) {
+      this.errorMessage = 'Le titre de l\'événement est requis';
       return;
+    }
+
+    // Vérifier que la date de fin n'est pas inférieure à la date de début
+    if (this.formData.startDate && this.formData.endDate) {
+      const startDate = new Date(this.formData.startDate);
+      const endDate = new Date(this.formData.endDate);
+      if (endDate < startDate) {
+        this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
+        return;
+      }
     }
 
     this.isSubmitting = true;
@@ -59,16 +72,16 @@ export class EventEditPopup implements OnInit {
 
     const updatedEvent: Event = {
       ...this.event,
-      name: this.formData.name.trim(),
-      description: this.formData.description?.trim() || '',
+      title: this.formData.title.trim(),
       status: this.formData.status,
-      startDate: this.formData.startDate ? new Date(this.formData.startDate) : undefined
+      startDate: this.formData.startDate ? new Date(this.formData.startDate) : new Date(),
+      endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date()
     };
 
     this.eventService.update(this.event.uuid, updatedEvent).subscribe({
       next: (result) => {
         this.isSubmitting = false;
-        this.toastService.showSuccess('Événement modifié', `L'événement "${updatedEvent.name}" a été modifié avec succès`);
+        this.toastService.showSuccess('Événement modifié', `L'événement "${updatedEvent.title}" a été modifié avec succès`);
         this.eventUpdated.emit(result);
         this.close.emit();
       },
@@ -90,7 +103,7 @@ export class EventEditPopup implements OnInit {
     this.eventService.delete(this.event.uuid).subscribe({
       next: () => {
         this.showDeleteConfirm = false;
-        this.toastService.showSuccess('Événement supprimé', `L'événement "${this.event.name}" a été supprimé`);
+        this.toastService.showSuccess('Événement supprimé', `L'événement "${this.event.title}" a été supprimé`);
         this.eventDeleted.emit(this.event.uuid);
         this.close.emit();
       },

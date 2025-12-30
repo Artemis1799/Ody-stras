@@ -9,6 +9,7 @@ import { Equipment } from '../../models/equipmentModel';
 import { Observable } from 'rxjs';
 import { EquipmentCard } from './equipment-card/equipment-card';
 import { ToastService } from '../../services/ToastService';
+import { DeletePopupComponent } from '../../shared/delete-popup/delete-popup';
 
 @Component({
   selector: 'app-equipment-manager',
@@ -18,7 +19,8 @@ import { ToastService } from '../../services/ToastService';
     FormsModule,
     InputText,
     InputNumber,
-    EquipmentCard
+    EquipmentCard,
+    DeletePopupComponent
   ],
   templateUrl: './equipment-manager.component.html',
   styleUrls: ['./equipment-manager.component.scss']
@@ -29,13 +31,16 @@ export class EquipmentManagerComponent implements OnInit {
   isLoading = false;
   errorMessage = '';
 
+  // Popup de suppression
+  showDeleteConfirm = false;
+  equipmentToDelete: Equipment | null = null;
+
   // Nouvel équipement
   newEquipment: Partial<Equipment> = {
     type: '',
     description: '',
-    unit: '',
-    totalStock: 0,
-    remainingStock: 0
+    length: 0,
+    storageType: 0
   };
   showAddForm = false;
 
@@ -78,20 +83,6 @@ export class EquipmentManagerComponent implements OnInit {
   saveEquipment(equipment: Equipment): void {
     if (!this.editingEquipment) return;
 
-    const oldTotalStock = equipment.totalStock || 0;
-    const newTotalStock = this.editingEquipment.totalStock || 0;
-    const stockDifference = newTotalStock - oldTotalStock;
-
-    // Mettre à jour le remaining stock proportionnellement
-    if (stockDifference !== 0 && equipment.remainingStock !== undefined) {
-      this.editingEquipment.remainingStock = (equipment.remainingStock || 0) + stockDifference;
-      
-      // S'assurer que le remaining stock ne dépasse pas le total stock
-      if (this.editingEquipment.remainingStock > newTotalStock) {
-        this.editingEquipment.remainingStock = newTotalStock;
-      }
-    }
-
     const editedEquipmentName = this.editingEquipment.description || this.editingEquipment.type;
 
     this.equipmentService.update(equipment.uuid, this.editingEquipment).subscribe({
@@ -106,9 +97,21 @@ export class EquipmentManagerComponent implements OnInit {
   }
 
   deleteEquipment(equipment: Equipment): void {
-    if (!confirm(`Voulez-vous vraiment supprimer l'équipement "${equipment.description || equipment.type}" ?`)) {
-      return;
-    }
+    this.equipmentToDelete = equipment;
+    this.showDeleteConfirm = true;
+  }
+
+  cancelDelete(): void {
+    this.showDeleteConfirm = false;
+    this.equipmentToDelete = null;
+  }
+
+  confirmDelete(): void {
+    if (!this.equipmentToDelete) return;
+
+    const equipment = this.equipmentToDelete;
+    this.showDeleteConfirm = false;
+    this.equipmentToDelete = null;
 
     // Charger tous les points qui utilisent cet équipement
     this.pointService.getAll().subscribe({
@@ -151,9 +154,8 @@ export class EquipmentManagerComponent implements OnInit {
       this.newEquipment = {
         type: '',
         description: '',
-        unit: '',
-        totalStock: 0,
-        remainingStock: 0
+        length: 0,
+        storageType: 0
       };
     }
   }
@@ -164,9 +166,6 @@ export class EquipmentManagerComponent implements OnInit {
       return;
     }
 
-    // S'assurer que remainingStock = totalStock pour un nouvel équipement
-    this.newEquipment.remainingStock = this.newEquipment.totalStock;
-
     this.equipmentService.create(this.newEquipment as Equipment).subscribe({
       next: () => {
         this.toastService.showSuccess('Équipement créé', `L'équipement "${this.newEquipment.description || this.newEquipment.type}" a été créé avec succès`);
@@ -174,9 +173,8 @@ export class EquipmentManagerComponent implements OnInit {
         this.newEquipment = {
           type: '',
           description: '',
-          unit: '',
-          totalStock: 0,
-          remainingStock: 0
+          length: 0,
+          storageType: 0
         };
       },
       error: () => {

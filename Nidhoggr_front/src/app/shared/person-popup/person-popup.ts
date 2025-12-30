@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Member } from '../../models/memberModel';
+import { Employee } from '../../models/employeeModel';
 
 @Component({
   selector: 'app-person-popup',
@@ -12,13 +12,13 @@ import { Member } from '../../models/memberModel';
 })
 export class PersonPopupComponent {
   @Input() isEditing = false;
-  @Input() person: Partial<Member> = {};
+  @Input() person: Partial<Employee> = {};
 
-  @Output() save = new EventEmitter<Partial<Member>>();
+  @Output() save = new EventEmitter<Partial<Employee>>();
   @Output() close = new EventEmitter<void>();
 
   onSave(): void {
-    if (!this.person.name?.trim() || !this.person.firstName?.trim()) {
+    if (!this.person.lastName?.trim() || !this.person.firstName?.trim()) {
       return;
     }
 
@@ -28,7 +28,7 @@ export class PersonPopupComponent {
     }
 
     // Validate phone format (0 followed by 9 digits)
-    if (this.person.phoneNumber && !/^0[0-9]{9}$/.test(this.person.phoneNumber)) {
+    if (this.person.phone && !/^0[0-9]{9}$/.test(this.person.phone)) {
       return;
     }
 

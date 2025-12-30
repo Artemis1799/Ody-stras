@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Point } from '../models/pointModel';
 import { Event } from '../models/eventModel';
-import { Geometry } from '../models/geometryModel';
+import { Area } from '../models/areaModel';
+import { RoutePath } from '../models/routePathModel';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +17,8 @@ export class MapService {
   private reloadPointsSubject = new Subject<void>();
   private selectedEventSubject = new BehaviorSubject<Event | null>(null);
   private reloadEventSubject = new Subject<void>();
-  private geometriesSubject = new BehaviorSubject<Geometry[]>([]); // Géométries de l'event sélectionné
+  private areasSubject = new BehaviorSubject<Area[]>([]);
+  private pathsSubject = new BehaviorSubject<RoutePath[]>([]);
 
   points$: Observable<Point[]> = this.pointsSubject.asObservable();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +28,8 @@ export class MapService {
   reloadPoints$: Observable<void> = this.reloadPointsSubject.asObservable();
   selectedEvent$: Observable<Event | null> = this.selectedEventSubject.asObservable();
   reloadEvent$: Observable<void> = this.reloadEventSubject.asObservable();
-  geometries$: Observable<Geometry[]> = this.geometriesSubject.asObservable(); // Observable pour les géométries
+  areas$: Observable<Area[]> = this.areasSubject.asObservable();
+  paths$: Observable<RoutePath[]> = this.pathsSubject.asObservable();
 
   setPoints(points: Point[]): void {
     this.pointsSubject.next(points);
@@ -63,59 +66,81 @@ export class MapService {
     return this.selectedEventSubject.value;
   }
 
-  /**
-   * Définit les géométries de l'événement sélectionné
-   */
-  setGeometries(geometries: Geometry[]): void {
-    this.geometriesSubject.next(geometries);
+  // ============= Areas =============
+  
+  setAreas(areas: Area[]): void {
+    this.areasSubject.next(areas);
   }
 
-  /**
-   * Récupère les géométries actuelles
-   */
-  getGeometries(): Geometry[] {
-    return this.geometriesSubject.value;
+  getAreas(): Area[] {
+    return this.areasSubject.value;
   }
 
-  /**
-   * Ajoute une géométrie à la liste des géométries
-   */
-  addGeometry(geometry: Geometry): void {
-    const currentGeometries = this.geometriesSubject.value;
-    this.geometriesSubject.next([...currentGeometries, geometry]);
+  addArea(area: Area): void {
+    const current = this.areasSubject.value;
+    this.areasSubject.next([...current, area]);
   }
 
-  /**
-   * Supprime une géométrie de la liste
-   */
-  removeGeometry(geometryUuid: string): void {
-    const currentGeometries = this.geometriesSubject.value;
-    this.geometriesSubject.next(currentGeometries.filter(g => g.uuid !== geometryUuid));
+  removeArea(areaUuid: string): void {
+    const current = this.areasSubject.value;
+    this.areasSubject.next(current.filter(a => a.uuid !== areaUuid));
   }
 
-  /**
-   * Met à jour une géométrie dans la liste
-   */
-  updateGeometry(geometry: Geometry): void {
-    const currentGeometries = this.geometriesSubject.value;
-    const index = currentGeometries.findIndex(g => g.uuid === geometry.uuid);
+  updateArea(area: Area): void {
+    const current = this.areasSubject.value;
+    const index = current.findIndex(a => a.uuid === area.uuid);
     if (index !== -1) {
-      const updated = [...currentGeometries];
-      updated[index] = geometry;
-      this.geometriesSubject.next(updated);
+      const updated = [...current];
+      updated[index] = area;
+      this.areasSubject.next(updated);
     }
   }
 
-  /**
-   * Vide la liste des géométries
-   */
-  clearGeometries(): void {
-    this.geometriesSubject.next([]);
+  clearAreas(): void {
+    this.areasSubject.next([]);
   }
 
-  /**
-   * Déclenche un rechargement de l'événement sélectionné
-   */
+  // ============= Paths =============
+  
+  setPaths(paths: RoutePath[]): void {
+    this.pathsSubject.next(paths);
+  }
+
+  getPaths(): RoutePath[] {
+    return this.pathsSubject.value;
+  }
+
+  addPath(path: RoutePath): void {
+    const current = this.pathsSubject.value;
+    this.pathsSubject.next([...current, path]);
+  }
+
+  removePath(pathUuid: string): void {
+    const current = this.pathsSubject.value;
+    this.pathsSubject.next(current.filter(p => p.uuid !== pathUuid));
+  }
+
+  updatePath(path: RoutePath): void {
+    const current = this.pathsSubject.value;
+    const index = current.findIndex(p => p.uuid === path.uuid);
+    if (index !== -1) {
+      const updated = [...current];
+      updated[index] = path;
+      this.pathsSubject.next(updated);
+    }
+  }
+
+  clearPaths(): void {
+    this.pathsSubject.next([]);
+  }
+
+  // ============= Clear All =============
+  
+  clearAllShapes(): void {
+    this.clearAreas();
+    this.clearPaths();
+  }
+
   triggerReloadEvent(): void {
     this.reloadEventSubject.next();
   }

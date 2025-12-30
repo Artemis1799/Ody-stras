@@ -117,6 +117,10 @@ export class TeamService {
     return this.http.get<Team>(`${this.apiUrl}/${id}`);
   }
 
+  getByEventId(eventId: string): Observable<Team[]> {
+    return this.http.get<Team[]>(`${this.apiUrl}/event/${eventId}`);
+  }
+
   deleteAll(): Observable<{ deletedCount: number }> {
     const oldTeams = this._teams();
     this._teams.set([]);

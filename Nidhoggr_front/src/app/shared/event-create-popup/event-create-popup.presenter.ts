@@ -3,18 +3,18 @@ import { EventService } from '../../services/EventService';
 import { Event, EventStatus } from '../../models/eventModel';
 
 export interface EventFormData {
-  name: string;
-  description: string;
+  title: string;
   startDate: string;
+  endDate: string;
   status: EventStatus;
 }
 
 @Injectable()
 export class EventCreatePopupPresenter {
   formData: EventFormData = {
-    name: '',
-    description: '',
+    title: '',
     startDate: '',
+    endDate: '',
     status: EventStatus.ToOrganize
   };
 
@@ -33,9 +33,9 @@ export class EventCreatePopupPresenter {
 
   reset(): void {
     this.formData = {
-      name: '',
-      description: '',
+      title: '',
       startDate: '',
+      endDate: '',
       status: EventStatus.ToOrganize
     };
     this.isSubmitting = false;
@@ -43,10 +43,21 @@ export class EventCreatePopupPresenter {
   }
 
   validate(): boolean {
-    if (!this.formData.name.trim()) {
-      this.errorMessage = 'Le nom de l\'événement est requis.';
+    if (!this.formData.title.trim()) {
+      this.errorMessage = 'Le titre de l\'événement est requis.';
       return false;
     }
+    
+    // Vérifier que la date de fin n'est pas inférieure à la date de début
+    if (this.formData.startDate && this.formData.endDate) {
+      const startDate = new Date(this.formData.startDate);
+      const endDate = new Date(this.formData.endDate);
+      if (endDate < startDate) {
+        this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
+        return false;
+      }
+    }
+    
     this.errorMessage = '';
     return true;
   }
@@ -63,9 +74,9 @@ export class EventCreatePopupPresenter {
 
       const event: Event = {
         uuid: this.generateUuid(),
-        name: this.formData.name.trim(),
-        description: this.formData.description.trim(),
-        startDate: this.formData.startDate ? new Date(this.formData.startDate) : undefined,
+        title: this.formData.title.trim(),
+        startDate: this.formData.startDate ? new Date(this.formData.startDate) : new Date(),
+        endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date(),
         status: this.formData.status
       };
 

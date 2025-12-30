@@ -22,42 +22,22 @@
     
     <form (ngSubmit)="onSubmit()">
       <div class="form-group">
-        <label for="name">
+        <label for="title">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
-          Nom de l'événement <span class="required">*</span>
+          Titre de l'événement <span class="required">*</span>
         </label>
         <input 
           type="text" 
-          id="name" 
-          [(ngModel)]="formData.name" 
-          name="name"
+          id="title" 
+          [(ngModel)]="formData.title" 
+          name="title"
           placeholder="Ex: Festival d'été 2025"
           required
-          [class.has-value]="formData.name"
+          [class.has-value]="formData.title"
         />
-      </div>
-      
-      <div class="form-group">
-        <label for="description">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="17" y1="10" x2="3" y2="10"></line>
-            <line x1="21" y1="6" x2="3" y2="6"></line>
-            <line x1="21" y1="14" x2="3" y2="14"></line>
-            <line x1="17" y1="18" x2="3" y2="18"></line>
-          </svg>
-          Description
-        </label>
-        <textarea 
-          id="description" 
-          [(ngModel)]="formData.description" 
-          name="description"
-          placeholder="Décrivez brièvement cet événement..."
-          rows="3"
-          [class.has-value]="formData.description"
-        ></textarea>
       </div>
       
       <div class="form-row">
@@ -79,25 +59,43 @@
         </div>
         
         <div class="form-group">
-          <label for="status">
+          <label for="endDate">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
-            Statut
+            Date de fin
           </label>
-          <div class="select-wrapper">
-            <select 
-              id="status" 
-              [(ngModel)]="formData.status" 
-              name="status"
-            >
-              <option [ngValue]="3">📋 À organiser</option>
-              <option [ngValue]="2">🔧 En installation</option>
-              <option [ngValue]="1">✅ Terminé</option>
-              <option [ngValue]="0">📦 En désinstallation</option>
-            </select>
-          </div>
+          <input 
+            type="datetime-local" 
+            id="endDate" 
+            [(ngModel)]="formData.endDate" 
+            name="endDate"
+            [class.has-value]="formData.endDate"
+          />
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="status">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          Statut
+        </label>
+        <div class="select-wrapper">
+          <select 
+            id="status" 
+            [(ngModel)]="formData.status" 
+            name="status"
+          >
+            <option [ngValue]="0">📋 À organiser</option>
+            <option [ngValue]="1">🚀 En cours</option>
+            <option [ngValue]="2">🔧 En installation</option>
+            <option [ngValue]="3">📦 En désinstallation</option>
+            <option [ngValue]="4">✅ Terminé</option>
+          </select>
         </div>
       </div>
       
@@ -122,7 +120,7 @@
           <button type="button" class="cancel-btn" (click)="close.emit()">
             Annuler
           </button>
-          <button type="submit" class="submit-btn" [disabled]="isSubmitting || !formData.name">
+          <button type="submit" class="submit-btn" [disabled]="isSubmitting || !formData.title">
             <svg *ngIf="!isSubmitting" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
               <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -149,7 +147,7 @@
 @if (showDeleteConfirm) {
   <app-delete-popup
     title="Supprimer cet événement"
-    [itemName]="event.name"
+    [itemName]="event.title"
     warningMessage="Cette action supprimera également tous les points et géométries associés à cet événement."
     (confirm)="deleteEvent()"
     (close)="cancelDelete()"
