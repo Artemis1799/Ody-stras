@@ -23,18 +23,18 @@
       
       <div class="dialog-content">
         <!-- État de chargement -->
-        <div *ngIf="loadingPhotos" class="loading-state">
+        <div *ngIf="loadingPictures" class="loading-state">
           <div class="loading-spinner">
             <span class="pi pi-spin pi-spinner"></span>
           </div>
           <p class="loading-text">Chargement des photos...</p>
         </div>
         <!-- Affichage des photos -->
-        <div class="photo-viewer" *ngIf="!loadingPhotos && currentPhoto">
+        <div class="photo-viewer" *ngIf="!loadingPictures && currentPicture">
           <div class="photo-container">
             <img 
-              [src]="getPhotoSrc(currentPhoto)" 
-              [alt]="currentPhoto.pictureName"
+              [src]="getPictureSrc(currentPicture)" 
+              alt="Photo"
               class="photo-image"
             />
           </div>
@@ -43,20 +43,20 @@
             <button 
               type="button"
               class="nav-button nav-prev"
-              (click)="previousPhoto()"
-              [disabled]="currentPhotoIndex === 0"
+              (click)="previousPicture()"
+              [disabled]="currentPictureIndex === 0"
               title="Photo précédente"
             >
               ←
             </button>
             
-            <span class="photo-counter">{{ photoCountText }}</span>
+            <span class="photo-counter">{{ pictureCountText }}</span>
             
             <button 
               type="button"
               class="nav-button nav-next"
-              (click)="nextPhoto()"
-              [disabled]="currentPhotoIndex === photos.length - 1"
+              (click)="nextPicture()"
+              [disabled]="currentPictureIndex === pictures.length - 1"
               title="Photo suivante"
             >
               →
@@ -65,7 +65,7 @@
         </div>
         
         <!-- Aucune photo -->
-        <div *ngIf="!loadingPhotos && !currentPhoto" class="no-photos">
+        <div *ngIf="!loadingPictures && !currentPicture" class="no-photos">
           <div class="no-photos-icon">
             <span class="pi pi-image"></span>
           </div>

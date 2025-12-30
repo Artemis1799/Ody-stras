@@ -21,13 +21,13 @@
       <div class="nav-dropdown">
         <button class="nav-link dropdown-toggle" [class.active]="isPersonnelsActive" (click)="onToggleDropdown()">
           <span class="pi pi-users"></span>
-          Personnels
+          Employés
           <span class="pi pi-angle-down"></span>
         </button>
         <div class="dropdown-menu" [class.show]="showDropdown" (mouseenter)="onMouseEnter()" (mouseleave)="onMouseLeave()">
           <a routerLink="/personnels/personnes" routerLinkActive="active" class="dropdown-item" (click)="onDropdownItemClick()">
             <span class="pi pi-user"></span>
-            Personnes
+            Employés
           </a>
           <a routerLink="/personnels/teams" routerLinkActive="active" class="dropdown-item" (click)="onDropdownItemClick()">
             <span class="pi pi-users"></span>

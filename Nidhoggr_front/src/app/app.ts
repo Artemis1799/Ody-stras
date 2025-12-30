@@ -4,8 +4,7 @@ import { RouterOutlet } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ToastModule } from 'primeng/toast';
 import { PointService } from './services/PointService';
-import { PhotoService } from './services/PhotoService';
-import { ImagePointService } from './services/ImagePointsService';
+import { PictureService } from './services/PictureService';
 import { EquipmentService } from './services/EquipmentService';
 import { AuthService } from './services/AuthService';
 import { UserService } from './services/UserService';
@@ -27,8 +26,7 @@ export class App implements OnInit {
 
   constructor(
     private pointService: PointService,
-    private photoService: PhotoService,
-    private imagePointService: ImagePointService,
+    private pictureService: PictureService,
     private equipmentService: EquipmentService,
     private authService: AuthService,
     private userService: UserService,
@@ -72,8 +70,7 @@ export class App implements OnInit {
       // load data from services (non-blocking)
       forkJoin({
         points: this.pointService.getAll(),
-        photos: this.photoService.getAll(),
-        imagePoints: this.imagePointService.getAll(),
+        pictures: this.pictureService.getAll(),
         equipments: this.equipmentService.getAll(),
       }).subscribe();
     } catch {

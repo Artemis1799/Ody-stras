@@ -3,14 +3,15 @@ import { forkJoin, Observable, of } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
 import { EventService } from './EventService';
 import { PointService } from './PointService';
-import { GeometryService } from './GeometryService';
-import { PhotoService } from './PhotoService';
-import { ImagePointService } from './ImagePointsService';
+import { AreaService } from './AreaService';
+import { PathService } from './PathService';
+import { PictureService } from './PictureService';
 import { EquipmentService } from './EquipmentService';
 import { Event } from '../models/eventModel';
 import { Point } from '../models/pointModel';
-import { Geometry } from '../models/geometryModel';
-import { Photo } from '../models/photoModel';
+import { Area } from '../models/areaModel';
+import { RoutePath } from '../models/routePathModel';
+import { Picture } from '../models/pictureModel';
 import { Equipment } from '../models/equipmentModel';
 
 /**
@@ -19,15 +20,17 @@ import { Equipment } from '../models/equipmentModel';
 export interface EventExportData {
   event: Event;
   points: Array<Point & { 
-    photos: Photo[];
+    pictures: Picture[];
     equipment?: Equipment;
   }>;
-  geometries: Geometry[];
+  areas: Area[];
+  paths: RoutePath[];
   exportMetadata: {
     exportDate: Date;
     totalPoints: number;
-    totalPhotos: number;
-    totalGeometries: number;
+    totalPictures: number;
+    totalAreas: number;
+    totalPaths: number;
   };
 }
 
@@ -38,9 +41,9 @@ export class EventExportService {
   constructor(
     private eventService: EventService,
     private pointService: PointService,
-    private geometryService: GeometryService,
-    private photoService: PhotoService,
-    private imagePointService: ImagePointService,
+    private areaService: AreaService,
+    private pathService: PathService,
+    private pictureService: PictureService,
     private equipmentService: EquipmentService
   ) {}
 
@@ -53,22 +56,25 @@ export class EventExportService {
 
         return forkJoin({
           event: of(event),
-          points: this.getPointsWithPhotosAndEquipment(eventId),
-          geometries: this.getGeometriesByEvent(eventId)
+          points: this.getPointsWithPicturesAndEquipment(eventId),
+          areas: this.areaService.getByEventId(eventId),
+          paths: this.pathService.getByEventId(eventId)
         });
       }),
-      map(({ event, points, geometries }) => {
-        const totalPhotos = points.reduce((sum, p) => sum + p.photos.length, 0);
+      map(({ event, points, areas, paths }) => {
+        const totalPictures = points.reduce((sum, p) => sum + p.pictures.length, 0);
 
         const exportData: EventExportData = {
           event,
           points,
-          geometries,
+          areas,
+          paths,
           exportMetadata: {
             exportDate: new Date(),
             totalPoints: points.length,
-            totalPhotos,
-            totalGeometries: geometries.length
+            totalPictures,
+            totalAreas: areas.length,
+            totalPaths: paths.length
           }
         };
 
@@ -83,30 +89,24 @@ export class EventExportService {
   /**
    * Récupère les points avec leurs photos et équipements associés
    */
-  private getPointsWithPhotosAndEquipment(eventId: string): Observable<Array<Point & { photos: Photo[]; equipment?: Equipment }>> {
+  private getPointsWithPicturesAndEquipment(eventId: string): Observable<Array<Point & { pictures: Picture[]; equipment?: Equipment }>> {
     return this.pointService.getByEventId(eventId).pipe(
       switchMap(points => {
         if (points.length === 0) {
           return of([]);
         }
 
-        // Récupérer toutes les photos et relations imagePoints
+        // Récupérer toutes les photos et équipements
         return forkJoin({
           points: of(points),
-          allPhotos: this.photoService.getAll(),
-          allImagePoints: this.imagePointService.getAll(),
+          allPictures: this.pictureService.getAll(),
           allEquipments: this.equipmentService.getAll()
         }).pipe(
-          map(({ points, allPhotos, allImagePoints, allEquipments }) => {
-            // Associer les photos à chaque point
+          map(({ points, allPictures, allEquipments }) => {
+            // Associer les photos à chaque point via pointId
             return points.map(point => {
-              // Trouver les ImagePoints pour ce point
-              const pointImagePoints = allImagePoints.filter(ip => ip.pointId === point.uuid);
-              
-              // Récupérer les photos correspondantes
-              const pointPhotos = pointImagePoints
-                .map(ip => allPhotos.find(p => p.uuid === ip.imageId))
-                .filter((p): p is Photo => p !== undefined);
+              // Trouver les pictures pour ce point
+              const pointPictures = allPictures.filter(pic => pic.pointId === point.uuid);
 
               // Récupérer l'équipement si disponible
               const equipment = point.equipmentId 
@@ -115,27 +115,12 @@ export class EventExportService {
 
               return {
                 ...point,
-                photos: pointPhotos,
+                pictures: pointPictures,
                 equipment
               };
             });
           })
         );
-      })
-    );
-  }
-
-  /**
-   * Récupère les géométries d'un événement
-   */
-  private getGeometriesByEvent(eventId: string): Observable<Geometry[]> {
-    return this.geometryService.getAll().pipe(
-      map(geometries => {
-        const eventGeometries = geometries.filter(g => g.eventId === eventId);
-        return eventGeometries;
-      }),
-      catchError(() => {
-        return of([]);
       })
     );
   }
@@ -156,7 +141,7 @@ export class EventExportService {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${eventData.event.name || 'event'}_export_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `${eventData.event.title || 'event'}_export_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     window.URL.revokeObjectURL(url);
   }

@@ -4,6 +4,7 @@ import { filter } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/AuthService';
 import { UserService } from '../../services/UserService';
+import { ToastService } from '../../services/ToastService';
 
 @Component({
   selector: 'app-navbar',
@@ -22,7 +23,8 @@ export class Navbar implements OnDestroy {
   constructor(
     private router: Router,
     private authService: AuthService,
-    private userService: UserService
+    private userService: UserService,
+    private toastService: ToastService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -127,16 +129,14 @@ export class Navbar implements OnDestroy {
                 }
               });
             },
-            error: (error) => {
-              console.error('Erreur lors de la réinitialisation du mot de passe:', error);
-              alert('Erreur lors de la réinitialisation du mot de passe');
+            error: () => {
+              this.toastService.showError('Erreur', 'Erreur lors de la réinitialisation du mot de passe');
             }
           });
         }
       },
-      error: (error) => {
-        console.error('Erreur lors de la récupération de l\'utilisateur:', error);
-        alert('Erreur lors de la récupération de l\'utilisateur');
+      error: () => {
+        this.toastService.showError('Erreur', 'Erreur lors de la récupération de l\'utilisateur');
       }
     });
   }

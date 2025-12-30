@@ -215,6 +215,41 @@ form {
       }
     }
   }
+
+  select {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: inherit;
+    cursor: pointer;
+
+    &:hover {
+      border-color: #484f58;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #2ad783;
+      box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.15);
+      background: #161b22;
+    }
+
+    &.has-value {
+      border-color: #484f58;
+    }
+
+    option {
+      background: #161b22;
+      color: #c9d1d9;
+      padding: 0.5rem;
+    }
+  }
 }
 
 // Search filters

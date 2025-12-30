@@ -1,15 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { PointService } from './PointService';
-import { PhotoService } from './PhotoService';
+import { PictureService } from './PictureService';
 import { EquipmentService } from './EquipmentService';
 import { EventService } from './EventService';
-import { ImagePointService } from './ImagePointsService';
 import { Point } from '../models/pointModel';
-import { Photo } from '../models/photoModel';
+import { Picture } from '../models/pictureModel';
 import { Equipment } from '../models/equipmentModel';
 import { EventStatus } from '../models/eventModel';
-import { ImagePoint } from '../models/imagePointsModel';
 import { DEFAULT_EVENT_UUID } from '../shared/constants/default_id';
 import { WS_URL } from '../shared/constants/wsUrl';
 
@@ -27,7 +25,7 @@ export class WebSocketExportService {
   private progressSubject = new Subject<WebSocketMessage>();
   public progress$ = this.progressSubject.asObservable();
   private existingPoints: Map<string, Point> = new Map();
-  private existingPhotos: Map<string, Photo> = new Map();
+  private existingPictures: Map<string, Picture> = new Map();
   private existingEquipments: Map<string, Equipment> = new Map();
   
   // UUID de l'événement en cours d'import (reçu du mobile via metadata)
@@ -35,10 +33,9 @@ export class WebSocketExportService {
 
   constructor(
     private pointService: PointService,
-    private photoService: PhotoService,
+    private pictureService: PictureService,
     private equipmentService: EquipmentService,
-    private eventService: EventService,
-    private imagePointService: ImagePointService
+    private eventService: EventService
   ) {
     this.loadExistingData();
   }
@@ -57,10 +54,10 @@ export class WebSocketExportService {
         }
       });
 
-      // Charger les photos existantes
-      this.photoService.getAll().subscribe({
-        next: (photos) => {
-          photos.forEach(p => this.existingPhotos.set(p.uuid, p));
+      // Charger les pictures existantes
+      this.pictureService.getAll().subscribe({
+        next: (pictures) => {
+          pictures.forEach(p => this.existingPictures.set(p.uuid, p));
         },
         error: () => {
         }
@@ -179,9 +176,9 @@ export class WebSocketExportService {
       } catch {
         // Ignorer les erreurs de traitement
       }
-    } else if (data.type === 'photo' && data.photo) {
+    } else if (data.type === 'picture' && data.picture) {
       try {
-        await this.processPhoto(data.photo, data.pointUUID);
+        await this.processPicture(data.picture, data.pointUUID);
       } catch {
         // Ignorer les erreurs de traitement
       }
@@ -210,9 +207,9 @@ export class WebSocketExportService {
             if (err.status === 404) {
               const newEvent = {
                 uuid: eventId,
-                name: 'Event Mobile Import',
-                description: 'Event créé automatiquement lors de l\'import des données mobiles',
+                title: 'Event Mobile Import',
                 startDate: new Date(),
+                endDate: new Date(),
                 status: EventStatus.ToOrganize
               };
               
@@ -256,25 +253,21 @@ export class WebSocketExportService {
       await this.ensureEventExists(eventIdToUse);
     }
     
+    // Récupérer l'équipement ID du format mobile
+    const mobileEquipmentId = pointData.Equipement_ID || pointData.equipmentId;
+
     // Convertir du format mobile vers TypeScript (camelCase)
     const point: Point = {
       uuid: uuid,
       eventId: eventIdToUse,
-      equipmentId: '', // Sera défini après vérification de l'équipement
+      name: pointData.Name ?? pointData.name ?? '',
       latitude: pointData.Latitude ?? pointData.latitude,
       longitude: pointData.Longitude ?? pointData.longitude,
       comment: pointData.Commentaire ?? pointData.Comment ?? pointData.comment ?? '',
-      imageId: pointData.Image_ID ?? pointData.imageId,
       order: pointData.Ordre ?? pointData.Order ?? pointData.order ?? 0,
-      isValid: pointData.Valide !== undefined ? Boolean(pointData.Valide) : (pointData.Is_valid ?? pointData.isValid ?? true),
-      equipmentQuantity: 0, // Sera défini après vérification de l'équipement
-      created: pointData.Created ? new Date(pointData.Created) : (pointData.created ? new Date(pointData.created) : new Date()),
-      modified: pointData.Modified ? new Date(pointData.Modified) : (pointData.modified ? new Date(pointData.modified) : new Date())
+      validated: pointData.Valide !== undefined ? Boolean(pointData.Valide) : (pointData.Validated ?? pointData.validated ?? true),
+      equipmentId: mobileEquipmentId ?? ''
     };
-    
-    // Récupérer l'équipement ID du format mobile
-    const mobileEquipmentId = pointData.Equipement_ID || pointData.equipmentId;
-    const mobileEquipmentQuantity = pointData.Equipement_quantite ?? pointData.Equipement_quantity ?? pointData.equipmentQuantity ?? 0;
     
     // Si un équipement est spécifié, vérifier s'il existe ou le créer
     if (mobileEquipmentId) {
@@ -283,14 +276,11 @@ export class WebSocketExportService {
       
       if (equipmentExists) {
         point.equipmentId = mobileEquipmentId;
-        point.equipmentQuantity = mobileEquipmentQuantity;
       } else {
         // Créer l'équipement d'abord
         const newEquipment: Equipment = {
           uuid: mobileEquipmentId,
-          unit: 'pièce', // Unité par défaut (obligatoire en base de données)
-          totalStock: mobileEquipmentQuantity,
-          remainingStock: mobileEquipmentQuantity
+          length: 0
         };
         
         // Essayer de créer l'équipement de manière synchrone
@@ -299,7 +289,6 @@ export class WebSocketExportService {
             next: (created) => {
               this.existingEquipments.set(created.uuid, created);
               point.equipmentId = created.uuid;
-              point.equipmentQuantity = mobileEquipmentQuantity;
               resolve();
             },
             error: () => {
@@ -341,81 +330,49 @@ export class WebSocketExportService {
   }
 
   /**
-   * Traite une photo reçue (création ou modification)
+   * Traite une picture reçue (création ou modification)
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private processPhoto(photoData: any, pointUUID: string): void {
+  private processPicture(pictureData: any, pointUUID: string): void {
     // Le mobile peut envoyer en PascalCase ou camelCase
-    const uuid = photoData.UUID || photoData.uuid;
+    const uuid = pictureData.UUID || pictureData.uuid;
     
     if (!uuid) {
       return;
     }
     
     // Récupérer et nettoyer les données de l'image
-    let pictureData = photoData.Picture || photoData.picture || '';
-    if (typeof pictureData === 'string' && pictureData.includes(',')) {
+    let imageData = pictureData.PictureData || pictureData.pictureData || pictureData.Picture || pictureData.picture || '';
+    if (typeof imageData === 'string' && imageData.includes(',')) {
       // Enlever le préfixe "data:image/...;base64,"
-      pictureData = pictureData.split(',')[1] || pictureData;
+      imageData = imageData.split(',')[1] || imageData;
     }
     
     // Convertir du format mobile vers TypeScript (camelCase)
-    const photo: Photo = {
+    const picture: Picture = {
       uuid: uuid,
-      pictureName: photoData.Picture_name || photoData.pictureName || 'photo.jpg',
-      picture: pictureData
+      pointId: pointUUID,
+      pictureData: imageData
     };
     
-    // Vérifier si la photo existe déjà
-    if (this.existingPhotos.has(uuid)) {
-      this.photoService.update(uuid, photo).subscribe({
+    // Vérifier si la picture existe déjà
+    if (this.existingPictures.has(uuid)) {
+      this.pictureService.update(uuid, picture).subscribe({
         next: (updated) => {
-          this.existingPhotos.set(uuid, updated);
-          // Créer la relation ImagePoint
-          this.createImagePointRelation(uuid, pointUUID);
+          this.existingPictures.set(uuid, updated);
         },
         error: () => {
         }
       });
     } else {
-      this.photoService.create(photo).subscribe({
+      this.pictureService.create(picture).subscribe({
         next: (created) => {
-          this.existingPhotos.set(uuid, created);
-          // Créer la relation ImagePoint
-          this.createImagePointRelation(uuid, pointUUID);
+          this.existingPictures.set(uuid, created);
         },
         error: () => {
         }
       });
     }
-  }
-
-  /**
-   * Crée la relation ImagePoint entre une photo et un point
-   */
-  private createImagePointRelation(imageId: string, pointId: string): void {
-    // Vérifier si la relation existe déjà
-    this.imagePointService.getByIds(imageId, pointId).subscribe({
-      next: () => {
-      },
-      error: (err) => {
-        if (err.status === 404) {
-          // La relation n'existe pas, on la crée
-          // IMPORTANT: L'API C# attend PascalCase (ImageId, PointId)
-          const imagePoint: ImagePoint = {
-            imageId: imageId,
-            pointId: pointId
-          };
-          
-          this.imagePointService.create(imagePoint).subscribe({
-            next: () => {
-            },
-            error: () => {
-            }
-          });
-        }
-      }
-    });
   }
 
   /**
@@ -428,9 +385,8 @@ export class WebSocketExportService {
     const equipment: Equipment = {
       uuid: equipmentData.uuid,
       type: equipmentData.type,
-      description: equipmentData.type,
-      totalStock: equipmentData.totalStock || 0,
-      remainingStock: equipmentData.remainingStock || 0
+      description: equipmentData.description,
+      length: equipmentData.length || 0
     };
     
     // Vérifier si l'équipement existe déjà

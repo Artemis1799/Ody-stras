@@ -1,13 +1,14 @@
 import { Component, EventEmitter, Output, Input, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PointService } from '../../services/PointService';
-import { PhotoService } from '../../services/PhotoService';
-import { ImagePointService } from '../../services/ImagePointsService';
-import { GeometryService } from '../../services/GeometryService';
+import { PictureService } from '../../services/PictureService';
+import { AreaService } from '../../services/AreaService';
+import { PathService } from '../../services/PathService';
 import { EquipmentService } from '../../services/EquipmentService';
 import { Event } from '../../models/eventModel';
 import { Point } from '../../models/pointModel';
-import { Geometry, GeoJSONGeometry } from '../../models/geometryModel';
+import { Area } from '../../models/areaModel';
+import { RoutePath } from '../../models/routePathModel';
 import { forkJoin, Subscription } from 'rxjs';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -27,9 +28,9 @@ export class ExportPopup implements OnInit, OnDestroy {
   @Output() close = new EventEmitter<void>();
   
   private pointService = inject(PointService);
-  private photoService = inject(PhotoService);
-  private imagePointService = inject(ImagePointService);
-  private geometryService = inject(GeometryService);
+  private pictureService = inject(PictureService);
+  private areaService = inject(AreaService);
+  private pathService = inject(PathService);
   private equipmentService = inject(EquipmentService);
 
   // WebSocket export properties
@@ -142,19 +143,21 @@ export class ExportPopup implements OnInit, OnDestroy {
 
   /**
    * Récupère les données et les envoie au serveur pour transmission au téléphone
-   * Note: On envoie l'événement, les géométries et les équipements, PAS les points ni les photos
+   * Note: On envoie l'événement, les areas, paths et équipements, PAS les points ni les photos
    * Les points seront créés/modifiés sur le mobile puis renvoyés au PC
    */
   private fetchAndSendData(): void {
-    // Récupérer les géométries de cet événement et les équipements
+    // Récupérer les areas, paths et équipements de cet événement
     forkJoin({
-      geometries: this.geometryService.getByEventId(this.event.uuid),
+      areas: this.areaService.getByEventId(this.event.uuid),
+      paths: this.pathService.getByEventId(this.event.uuid),
       equipments: this.equipmentService.getAll()
     }).subscribe({
-      next: ({ geometries, equipments }) => {
+      next: ({ areas, paths, equipments }) => {
         console.log('✅ Données récupérées pour export vers mobile');
-        console.log('   📋 Event:', this.event.name);
-        console.log('   📐 Géométries:', geometries.length);
+        console.log('   📋 Event:', this.event.title);
+        console.log('   📐 Areas:', areas.length);
+        console.log('   📐 Paths:', paths.length);
         console.log('   🔧 Équipements:', equipments.length);
         console.log('   ⚠️ Points exclus de l\'export (seront créés sur mobile)');
         
@@ -165,17 +168,19 @@ export class ExportPopup implements OnInit, OnDestroy {
           return;
         }
 
-        // On envoie l'événement, les géométries et les équipements
+        // On envoie l'événement, les areas, paths et équipements
         // Les points ne sont PAS envoyés - ils seront créés sur le mobile
         const message = {
           type: 'event_export',
           event: this.event,
           points: [], // Pas de points envoyés
-          geometries: geometries,
+          areas: areas,
+          paths: paths,
           equipments: equipments,
           metadata: {
             exportDate: new Date().toISOString(),
-            totalGeometries: geometries.length,
+            totalAreas: areas.length,
+            totalPaths: paths.length,
             totalEquipments: equipments.length,
             note: 'Export sans points - les points seront créés sur le mobile'
           }
@@ -184,7 +189,7 @@ export class ExportPopup implements OnInit, OnDestroy {
         console.log('📤 JSON envoyé au serveur WebSocket:', JSON.stringify(message, null, 2));
 
         this.ws.send(JSON.stringify(message));
-        console.log('✅ Données envoyées au serveur (event + géométries + équipements)');
+        console.log('✅ Données envoyées au serveur (event + areas + paths + équipements)');
       },
       error: (error) => {
         console.error('❌ Erreur récupération données:', error);
@@ -228,12 +233,12 @@ export class ExportPopup implements OnInit, OnDestroy {
     this.pointService.getByEventId(this.event.uuid).subscribe(points => {
       // Prepare data for Excel
       const data = points.map(point => ({
+        'Nom': point.name ?? '',
         'Latitude': point.latitude ?? '',
         'Longitude': point.longitude ?? '',
-        'Équipement': point.equipment?.type ?? point.equipment?.description ?? '',
-        'Quantité': point.equipmentQuantity ?? 0,
         'Commentaire': point.comment ?? '',
-        'Date création': point.created ? new Date(point.created).toLocaleString('fr-FR') : '',
+        'Ordre': point.order ?? 0,
+        'Validé': point.validated ? 'Oui' : 'Non',
       }));
       
       // Create worksheet and workbook
@@ -242,14 +247,14 @@ export class ExportPopup implements OnInit, OnDestroy {
       XLSX.utils.book_append_sheet(wb, ws, 'Points');
       
       // Download
-      XLSX.writeFile(wb, `${this.event.name || 'Export_Points'}.xlsx`);
+      XLSX.writeFile(wb, `${this.event.title || 'Export_Points'}.xlsx`);
     });
   }
 
   /**
-   * Génère une image de carte avec les points et géométries
+   * Génère une image de carte avec les points, areas et paths
    */
-  private async generateMapImage(points: Point[], geometries: Geometry[]): Promise<string | null> {
+  private async generateMapImage(points: Point[], areas: Area[], paths: RoutePath[]): Promise<string | null> {
     return new Promise((resolve) => {
       // Calculer les bounds pour centrer la carte
       const allCoords: [number, number][] = [];
@@ -261,9 +266,16 @@ export class ExportPopup implements OnInit, OnDestroy {
         }
       });
 
-      // Ajouter les coordonnées des géométries
-      geometries.forEach(g => {
-        this.extractGeometryCoords(g.geoJson, allCoords);
+      // Ajouter les coordonnées des areas
+      areas.forEach(a => {
+        const geoJson = typeof a.geoJson === 'string' ? JSON.parse(a.geoJson) : a.geoJson;
+        this.extractGeometryCoords(geoJson, allCoords);
+      });
+
+      // Ajouter les coordonnées des paths
+      paths.forEach(p => {
+        const geoJson = typeof p.geoJson === 'string' ? JSON.parse(p.geoJson) : p.geoJson;
+        this.extractGeometryCoords(geoJson, allCoords);
       });
 
       if (allCoords.length === 0) {
@@ -314,13 +326,23 @@ export class ExportPopup implements OnInit, OnDestroy {
       
       // Créer l'image de fond avec plusieurs tuiles
       this.loadMapTiles(ctx, canvas, centerLat, centerLng, zoom, width, height).then(() => {
-        // Dessiner les géométries
-        ctx.strokeStyle = '#2ad783';
-        ctx.fillStyle = 'rgba(42, 215, 131, 0.2)';
+        // Dessiner les areas (polygones) en bleu
+        ctx.strokeStyle = '#3388ff';
+        ctx.fillStyle = 'rgba(51, 136, 255, 0.2)';
         ctx.lineWidth = 3;
 
-        geometries.forEach(g => {
-          this.drawGeometryOnCanvas(ctx, g.geoJson, centerLat, centerLng, zoom, width, height);
+        areas.forEach(a => {
+          const geoJson = typeof a.geoJson === 'string' ? JSON.parse(a.geoJson) : a.geoJson;
+          this.drawGeometryOnCanvas(ctx, geoJson, centerLat, centerLng, zoom, width, height);
+        });
+
+        // Dessiner les paths (polylignes) en rouge
+        ctx.strokeStyle = '#a91a1a';
+        ctx.lineWidth = 4;
+
+        paths.forEach(p => {
+          const geoJson = typeof p.geoJson === 'string' ? JSON.parse(p.geoJson) : p.geoJson;
+          this.drawGeometryOnCanvas(ctx, geoJson, centerLat, centerLng, zoom, width, height);
         });
 
         // Dessiner les points
@@ -331,7 +353,7 @@ export class ExportPopup implements OnInit, OnDestroy {
             // Cercle extérieur
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, 12, 0, 2 * Math.PI);
-            ctx.fillStyle = p.isValid ? '#2ad783' : '#f87171';
+            ctx.fillStyle = p.validated ? '#2ad783' : '#f87171';
             ctx.fill();
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 2;
@@ -409,7 +431,9 @@ export class ExportPopup implements OnInit, OnDestroy {
   /**
    * Extrait les coordonnées d'une géométrie GeoJSON
    */
-  private extractGeometryCoords(geoJson: GeoJSONGeometry, coords: [number, number][]): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private extractGeometryCoords(geoJson: any, coords: [number, number][]): void {
+    if (!geoJson) return;
     if (geoJson.type === 'Point') {
       const c = geoJson.coordinates as [number, number];
       coords.push([c[1], c[0]]); // GeoJSON est [lng, lat]
@@ -425,10 +449,9 @@ export class ExportPopup implements OnInit, OnDestroy {
   /**
    * Dessine une géométrie sur le canvas
    */
-  private drawGeometryOnCanvas(ctx: CanvasRenderingContext2D, geoJson: GeoJSONGeometry, centerLat: number, centerLng: number, zoom: number, width: number, height: number): void {
-    ctx.strokeStyle = '#2ad783';
-    ctx.fillStyle = 'rgba(42, 215, 131, 0.3)';
-    ctx.lineWidth = 3;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private drawGeometryOnCanvas(ctx: CanvasRenderingContext2D, geoJson: any, centerLat: number, centerLng: number, zoom: number, width: number, height: number): void {
+    if (!geoJson) return;
 
     if (geoJson.type === 'LineString') {
       const coords = geoJson.coordinates as [number, number][];
@@ -495,16 +518,15 @@ export class ExportPopup implements OnInit, OnDestroy {
   exportPDF(): void {
     forkJoin({
       points: this.pointService.getByEventId(this.event.uuid),
-      photos: this.photoService.getAll(),
-      imagePoints: this.imagePointService.getAll(),
-      geometries: this.geometryService.getByEventId(this.event.uuid)
-    }).subscribe(async ({ points, photos, imagePoints, geometries }) => {
+      areas: this.areaService.getByEventId(this.event.uuid),
+      paths: this.pathService.getByEventId(this.event.uuid)
+    }).subscribe(async ({ points, areas, paths }) => {
       const doc = new jsPDF();
       const pageHeight = doc.internal.pageSize.height;
       const pageWidth = doc.internal.pageSize.width;
       const margin = 15;
       let yPosition = 25;
-      const eventTitle = this.event.name || 'Export_Points';
+      const eventTitle = this.event.title || 'Export_Points';
       
       // En-tête du document avec fond coloré
       doc.setFillColor(41, 128, 185);
@@ -519,9 +541,9 @@ export class ExportPopup implements OnInit, OnDestroy {
       doc.setTextColor(0, 0, 0);
 
       // === CARTE RÉCAPITULATIVE ===
-      if (points.length > 0 || geometries.length > 0) {
+      if (points.length > 0 || areas.length > 0 || paths.length > 0) {
         try {
-          const mapImageData = await this.generateMapImage(points, geometries);
+          const mapImageData = await this.generateMapImage(points, areas, paths);
           if (mapImageData) {
             // Titre de la section carte
             doc.setFontSize(14);
@@ -540,7 +562,7 @@ export class ExportPopup implements OnInit, OnDestroy {
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(100, 100, 100);
-            doc.text(`${points.length} point(s) • ${geometries.length} géométrie(s)`, margin, yPosition);
+            doc.text(`${points.length} point(s) • ${areas.length} zone(s) • ${paths.length} chemin(s)`, margin, yPosition);
             doc.setTextColor(0, 0, 0);
             yPosition += 15;
           }
@@ -566,7 +588,7 @@ export class ExportPopup implements OnInit, OnDestroy {
         
         // Badge de validation
         const badgeX = pageWidth - margin - 25;
-        if (point.isValid) {
+        if (point.validated) {
           doc.setFillColor(46, 204, 113);
           doc.setTextColor(255, 255, 255);
         } else {
@@ -575,7 +597,7 @@ export class ExportPopup implements OnInit, OnDestroy {
         }
         doc.roundedRect(badgeX, yPosition - 3, 20, 6, 1, 1, 'F');
         doc.setFontSize(8);
-        doc.text(point.isValid ? 'Validé' : 'Non validé', badgeX + 10, yPosition + 1, { align: 'center' });
+        doc.text(point.validated ? 'Validé' : 'Non validé', badgeX + 10, yPosition + 1, { align: 'center' });
         
         yPosition += 12;
         doc.setTextColor(0, 0, 0);
@@ -597,9 +619,8 @@ export class ExportPopup implements OnInit, OnDestroy {
         doc.setFont('helvetica', 'bold');
         doc.text('Équipement:', col2X, yPosition);
         doc.setFont('helvetica', 'normal');
-        const equipText = point.equipment?.type ?? point.equipment?.description ?? 'N/A';
+        const equipText = point.equipmentId ? 'Assigné' : 'N/A';
         doc.text(equipText, col2X + 5, yPosition + 5);
-        doc.text(`Quantité: ${point.equipmentQuantity ?? 0}`, col2X + 5, yPosition + 10);
         
         yPosition += 18;
         
@@ -614,68 +635,6 @@ export class ExportPopup implements OnInit, OnDestroy {
         }
         
         yPosition += 3;
-        
-        // Photos
-        const pointImagePoints = imagePoints.filter(ip => ip.pointId === point.uuid);
-        const pointPhotos = pointImagePoints
-          .map(ip => photos.find(p => p.uuid === ip.imageId))
-          .filter(p => p != null);
-        
-        if (pointPhotos.length > 0) {
-          doc.setFont('helvetica', 'bold');
-          doc.text(`Photos (${pointPhotos.length}):`, col1X, yPosition);
-          yPosition += 7;
-          doc.setFont('helvetica', 'normal');
-          
-          for (let photoIndex = 0; photoIndex < pointPhotos.length; photoIndex++) {
-            const photo = pointPhotos[photoIndex];
-            
-            // Afficher uniquement les photos impaires (colonnes de gauche)
-            if (photoIndex % 2 === 0) {
-              if (yPosition > pageHeight - 90) {
-                doc.addPage();
-                yPosition = 25;
-              }
-              
-              doc.setFontSize(9);
-              doc.text(`Image ${photoIndex + 1}/${pointPhotos.length}`, col1X + 5, yPosition);
-              yPosition += 5;
-              
-              if (photo.picture) {
-                try {
-                  const imgData = photo.picture.startsWith('data:') ? photo.picture : `data:image/jpeg;base64,${photo.picture}`;
-                  doc.addImage(imgData, 'JPEG', col1X + 5, yPosition, 70, 70);
-                } catch (err) {
-                  console.error('Error adding image to PDF:', err);
-                  doc.text('(Image non disponible)', col1X + 5, yPosition);
-                }
-              } else {
-                doc.text('(Image non disponible)', col1X + 5, yPosition);
-              }
-              
-              // Afficher la photo paire (colonne de droite) si elle existe
-              if (photoIndex + 1 < pointPhotos.length) {
-                const nextPhoto = pointPhotos[photoIndex + 1];
-                doc.setFontSize(9);
-                doc.text(`Image ${photoIndex + 2}/${pointPhotos.length}`, col2X + 5, yPosition - 5);
-                
-                if (nextPhoto.picture) {
-                  try {
-                    const nextImgData = nextPhoto.picture.startsWith('data:') ? nextPhoto.picture : `data:image/jpeg;base64,${nextPhoto.picture}`;
-                    doc.addImage(nextImgData, 'JPEG', col2X + 5, yPosition, 70, 70);
-                  } catch (err) {
-                    console.error('Error adding image to PDF:', err);
-                    doc.text('(Image non disponible)', col2X + 5, yPosition);
-                  }
-                } else {
-                  doc.text('(Image non disponible)', col2X + 5, yPosition);
-                }
-              }
-              
-              yPosition += 75;
-            }
-          }
-        }
         
         // Ligne de séparation entre les points
         yPosition += 8;
