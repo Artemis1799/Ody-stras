@@ -3,6 +3,7 @@ using t5_back.Data;
 using t5_back.Models;
 
 namespace t5_back.Services;
+
 public class PointService : IPointService
 {
     private readonly AppDbContext _context;
@@ -15,18 +16,14 @@ public class PointService : IPointService
     public async Task<IEnumerable<Point>> GetAllAsync()
     {
         return await _context.Points
-            .Include(p => p.ImagePoints)
             .Include(p => p.Equipment)
-            .Include(p => p.Event)
             .ToListAsync();
     }
 
     public async Task<Point?> GetByIdAsync(Guid id)
     {
         return await _context.Points
-            .Include(p => p.ImagePoints)
             .Include(p => p.Equipment)
-            .Include(p => p.Event)
             .FirstOrDefaultAsync(p => p.UUID == id);
     }
 
@@ -34,7 +31,6 @@ public class PointService : IPointService
     {
         return await _context.Points
             .Where(p => p.EventId == eventId)
-            .Include(p => p.ImagePoints)
             .Include(p => p.Equipment)
             .OrderBy(p => p.Order)
             .ToListAsync();
@@ -42,14 +38,12 @@ public class PointService : IPointService
 
     public async Task<Point> CreateAsync(Point point)
     {
-        // If caller didn't provide a UUID, generate one
         if (point.UUID == Guid.Empty)
         {
             point.UUID = Guid.NewGuid();
         }
         else
         {
-            // If caller provided a UUID, ensure it's not already used
             var exists = await _context.Points.AnyAsync(p => p.UUID == point.UUID);
             if (exists)
             {
@@ -67,18 +61,14 @@ public class PointService : IPointService
         var existing = await _context.Points.FindAsync(id);
         if (existing == null) return null;
 
+        existing.Name = point.Name;
         existing.Latitude = point.Latitude;
         existing.Longitude = point.Longitude;
         existing.Comment = point.Comment;
-        existing.ImageId = point.ImageId;
         existing.Order = point.Order;
-        existing.IsValid = point.IsValid;
-        existing.Modified = DateTime.UtcNow;
-        existing.EquipmentQuantity = point.EquipmentQuantity;
+        existing.Validated = point.Validated;
         existing.EquipmentId = point.EquipmentId;
         existing.EventId = point.EventId;
-        existing.InstalledAt = point.InstalledAt;
-        existing.RemovedAt = point.RemovedAt;
 
         await _context.SaveChangesAsync();
         return existing;
@@ -103,3 +93,4 @@ public class PointService : IPointService
         return count;
     }
 }
+
