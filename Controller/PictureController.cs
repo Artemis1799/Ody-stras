@@ -33,6 +33,20 @@ public class PictureController : ControllerBase
         return Ok(picture);
     }
 
+    [HttpGet("point/{pointId}")]
+    public async Task<ActionResult<IEnumerable<Picture>>> GetByPointId(Guid pointId)
+    {
+        var pictures = await _pictureService.GetByPointIdAsync(pointId);
+        return Ok(pictures);
+    }
+
+    [HttpGet("securityzone/{securityZoneId}")]
+    public async Task<ActionResult<IEnumerable<Picture>>> GetBySecurityZoneId(Guid securityZoneId)
+    {
+        var pictures = await _pictureService.GetBySecurityZoneIdAsync(securityZoneId);
+        return Ok(pictures);
+    }
+
     [HttpPost]
     public async Task<ActionResult<Picture>> Create(Picture picture)
     {
@@ -67,5 +81,12 @@ public class PictureController : ControllerBase
     {
         var count = await _pictureService.DeleteAllAsync();
         return Ok(new { deletedCount = count });
+    }
+
+    [HttpPost("transfer/{pointId}/{securityZoneId}")]
+    public async Task<ActionResult<int>> TransferFromPointToSecurityZone(Guid pointId, Guid securityZoneId)
+    {
+        var count = await _pictureService.TransferFromPointToSecurityZoneAsync(pointId, securityZoneId);
+        return Ok(new { transferredCount = count });
     }
 }

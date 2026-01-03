@@ -20,6 +20,8 @@ public class SecurityZone
     [Required]
     public int Quantity { get; set; }
     
+    public string? Comment { get; set; }
+    
     [Required]
     public DateTime InstallationDate { get; set; }
     
@@ -35,9 +37,11 @@ public class SecurityZone
     public Event? Event { get; set; }
     
     [ForeignKey("EquipmentId")]
-    [JsonIgnore]
     public Equipment? Equipment { get; set; }
     
     [JsonIgnore]
     public ICollection<Action>? Actions { get; set; }
+    
+    [JsonIgnore]
+    public ICollection<Picture>? Pictures { get; set; }
 }

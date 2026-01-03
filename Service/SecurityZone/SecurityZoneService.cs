@@ -45,7 +45,10 @@ public class SecurityZoneService : ISecurityZoneService
         _context.SecurityZones.Add(securityZone);
         await _context.SaveChangesAsync();
 
-        return securityZone;
+        // Recharger avec l'équipement inclus
+        return await _context.SecurityZones
+            .Include(sz => sz.Equipment)
+            .FirstAsync(sz => sz.UUID == securityZone.UUID);
     }
 
     public async Task<SecurityZone?> UpdateAsync(Guid id, SecurityZone securityZone)
@@ -59,6 +62,7 @@ public class SecurityZoneService : ISecurityZoneService
 
         existing.EquipmentId = securityZone.EquipmentId;
         existing.Quantity = securityZone.Quantity;
+        existing.Comment = securityZone.Comment;
         existing.InstallationDate = securityZone.InstallationDate;
         existing.RemovalDate = securityZone.RemovalDate;
         existing.GeoJson = securityZone.GeoJson;
@@ -66,7 +70,10 @@ public class SecurityZoneService : ISecurityZoneService
 
         await _context.SaveChangesAsync();
 
-        return existing;
+        // Recharger avec l'équipement inclus
+        return await _context.SecurityZones
+            .Include(sz => sz.Equipment)
+            .FirstOrDefaultAsync(sz => sz.UUID == id);
     }
 
     public async Task<bool> DeleteAsync(Guid id)

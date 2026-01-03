@@ -10,12 +10,17 @@ public class Picture
     [Key]
     public Guid UUID { get; set; }
     
-    [Required]
-    public Guid PointId { get; set; }
+    public Guid? PointId { get; set; }
+    
+    public Guid? SecurityZoneId { get; set; }
     
     public byte[] PictureData { get; set; } = Array.Empty<byte>();
     
     [ForeignKey("PointId")]
     [JsonIgnore]
     public Point? Point { get; set; }
+    
+    [ForeignKey("SecurityZoneId")]
+    [JsonIgnore]
+    public SecurityZone? SecurityZone { get; set; }
 }
