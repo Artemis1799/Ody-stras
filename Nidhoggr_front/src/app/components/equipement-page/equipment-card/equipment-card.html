@@ -3,11 +3,7 @@
     <div class="equipment-header">
       <div class="equipment-info">
         <h3>{{ equipment.type }}</h3>
-        <p class="type">{{ equipment.description }}<span *ngIf="equipment.unit"> • {{ equipment.unit }}</span></p>
-      </div>
-      <div class="stock-info">
-        <span class="stock-value">{{ equipment.remainingStock || 0 }} / {{ equipment.totalStock || 0 }}</span>
-        <span class="stock-label">Stock</span>
+        <p class="type">{{ equipment.description }}<span *ngIf="equipment.length"> • {{ equipment.length }}m</span></p>
       </div>
     </div>
     
@@ -56,33 +52,10 @@
       </div>
 
       <div class="form-field">
-        <label>Unité</label>
-        <input 
-          type="text"
-          pInputText
-          [(ngModel)]="editingEquipment!.unit"
-          placeholder="ex: pièces, mètres, kg"
-        />
-      </div>
-
-      <div class="form-field">
-        <label>Stock total</label>
+        <label>Longueur (m)</label>
         <p-inputnumber
-          [(ngModel)]="editingEquipment!.totalStock"
+          [(ngModel)]="editingEquipment!.length"
           [min]="0"
-          [showButtons]="true"
-        ></p-inputnumber>
-        <small class="help-text">
-          Le stock restant sera ajusté automatiquement
-        </small>
-      </div>
-
-      <div class="form-field">
-        <label>Stock restant</label>
-        <p-inputnumber
-          [(ngModel)]="editingEquipment!.remainingStock"
-          [min]="0"
-          [max]="editingEquipment!.totalStock || 0"
           [showButtons]="true"
         ></p-inputnumber>
       </div>

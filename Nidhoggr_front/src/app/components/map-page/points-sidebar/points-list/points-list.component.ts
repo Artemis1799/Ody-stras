@@ -30,18 +30,6 @@ export class PointsListComponent {
     return `Point ${point.uuid.substring(0, 8)}`;
   }
 
-  getInstalledDateDisplay(point: Point): string {
-    if (!point.installedAt) return '-';
-    const date = new Date(point.installedAt);
-    return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
-  }
-
-  getRemovedDateDisplay(point: Point): string {
-    if (!point.removedAt) return '-';
-    const date = new Date(point.removedAt);
-    return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
-  }
-
   trackByUuid(_index: number, point: Point): string {
     return point.uuid;
   }

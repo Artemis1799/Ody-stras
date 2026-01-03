@@ -42,21 +42,10 @@
       </div>
 
       <div class="form-field">
-        <label for="new-unit">Unité</label>
-        <input 
-          id="new-unit"
-          type="text"
-          pInputText
-          [(ngModel)]="newEquipment.unit"
-          placeholder="ex: pièces, mètres, kg"
-        />
-      </div>
-
-      <div class="form-field">
-        <label for="new-stock">Stock total</label>
+        <label for="new-length">Longueur</label>
         <p-inputnumber
-          inputId="new-stock"
-          [(ngModel)]="newEquipment.totalStock"
+          inputId="new-length"
+          [(ngModel)]="newEquipment.length"
           [min]="0"
           [showButtons]="true"
         ></p-inputnumber>
@@ -101,3 +90,13 @@
     </div>
   </div>
 </div>
+
+@if (showDeleteConfirm && equipmentToDelete) {
+  <app-delete-popup
+    title="Supprimer l'équipement"
+    [itemName]="equipmentToDelete.description || equipmentToDelete.type || 'cet équipement'"
+    warningMessage="Cette action est irréversible. Les points utilisant cet équipement seront mis à jour."
+    (confirm)="confirmDelete()"
+    (close)="cancelDelete()"
+  ></app-delete-popup>
+}

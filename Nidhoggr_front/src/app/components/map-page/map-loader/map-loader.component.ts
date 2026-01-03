@@ -1,38 +1,51 @@
-import { AfterViewInit, Component, OnDestroy } from '@angular/core';
-import { MapService } from '../../../services/MapService';
-import { GeometryService } from '../../../services/GeometryService';
+import { AfterViewInit, Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MapService, DrawingMode } from '../../../services/MapService';
+import { AreaService } from '../../../services/AreaService';
+import { PathService } from '../../../services/PathService';
 import { PointService } from '../../../services/PointService';
+import { SecurityZoneService } from '../../../services/SecurityZoneService';
+import { EquipmentService } from '../../../services/EquipmentService';
+import { PictureService } from '../../../services/PictureService';
 import { Point } from '../../../models/pointModel';
 import { Event } from '../../../models/eventModel';
-import { Geometry, GeometryProperties } from '../../../models/geometryModel';
-import { Subscription } from 'rxjs';
+import { Area } from '../../../models/areaModel';
+import { RoutePath } from '../../../models/routePathModel';
+import { SecurityZone } from '../../../models/securityZoneModel';
+import { Subscription, forkJoin } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, inject } from '@angular/core';
+import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
+import { ToastService } from '../../../services/ToastService';
 
 @Component({
   selector: 'app-map-loader',
   standalone: true,
-  imports: [],
+  imports: [CommonModule, DeletePopupComponent],
   templateUrl: './map-loader.component.html',
   styleUrls: ['./map-loader.component.scss'],
 })
 export class MapLoaderComponent implements AfterViewInit, OnDestroy {
-  private openedPoint: Point | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private map: any | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private markers: Map<string, any> = new Map();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private geometryLayers: Map<string, any> = new Map(); // Map pour stocker les layers des géométries
+  private geometryLayers: Map<string, any> = new Map(); // Map pour stocker les layers des areas/paths
   private pointsSubscription?: Subscription;
-  private selectedPointSubscription?: Subscription;
   private selectedEventSubscription?: Subscription;
-  private geometriesSubscription?: Subscription;
+  private shapesSubscription?: Subscription;
   private focusPointSubscription?: Subscription;
+  private focusSecurityZoneSubscription?: Subscription;
+  private drawingModeSubscription?: Subscription;
+  private securityZonesSubscription?: Subscription;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private drawnItems: any = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private drawControl: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private polylineDrawHandler: any = null; // Handler pour le mode dessin polyline
+  private currentDrawingMode: DrawingMode = { active: false, sourcePoint: null, equipment: null };
   private platformId = inject(PLATFORM_ID);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private selectedLayer: any = null;
@@ -40,10 +53,21 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private leafletInstance: any = null;
 
+  // Popup de suppression de géométrie
+  showDeleteGeometryConfirm = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private layerToDelete: any = null;
+
   constructor(
     private mapService: MapService,
-    private geometryService: GeometryService,
-    private pointService: PointService
+    private areaService: AreaService,
+    private pathService: PathService,
+    private pointService: PointService,
+    private securityZoneService: SecurityZoneService,
+    private equipmentService: EquipmentService,
+    private pictureService: PictureService,
+    private toastService: ToastService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngAfterViewInit(): void {
@@ -178,14 +202,19 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.updateMarkers(points);
       });
 
-      // S'abonner à la sélection de points
-      this.selectedPointSubscription = this.mapService.selectedPoint$.subscribe((point) => {
-        this.highlightMarker(point);
-      });
-
       // S'abonner au focus sur un point (depuis la timeline)
       this.focusPointSubscription = this.mapService.focusPoint$.subscribe((point) => {
         this.centerMapOnPoint(point);
+      });
+
+      // S'abonner au focus sur une security zone (depuis la sidebar)
+      this.focusSecurityZoneSubscription = this.mapService.focusSecurityZone$.subscribe((zone) => {
+        this.centerMapOnSecurityZone(zone);
+      });
+
+      // S'abonner au mode dessin pour les SecurityZones
+      this.drawingModeSubscription = this.mapService.drawingMode$.subscribe((mode) => {
+        this.handleDrawingModeChange(mode);
       });
 
       // Forcer Leaflet à recalculer la taille
@@ -226,26 +255,15 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           title: this.getPointDisplayName(point),
           icon: L.divIcon({
             className: 'custom-marker',
-            html: `<div class="marker-pin ${point.isValid ? 'valid' : 'invalid'}">
+            html: `<div class="marker-pin ${point.validated ? 'valid' : 'invalid'}">
                      <span class="marker-number">${point.order || index + 1}</span>
                    </div>`,
             iconSize: [30, 42],
             iconAnchor: [15, 42],
-            popupAnchor: [0, -42],
           }),
         }).addTo(this.map);
 
-        // Popup avec informations (ne s'ouvre que manuellement)
-        const popupContent = `
-          <div class="point-popup">
-            <strong>${this.getPointDisplayName(point)}</strong><br>
-            <small>Ordre: ${point.order || index + 1}</small><br>
-            <small>Statut: ${point.isValid ? 'Valide ✓' : 'Invalide ✗'}</small>
-          </div>
-        `;
-        marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
-
-        // Clic sur le marker - ouvre le drawer au lieu du popup
+        // Clic sur le marker - ouvre le drawer
         marker.on('click', () => {
           this.onMarkerClick(point);
         });
@@ -255,31 +273,179 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  private highlightMarker(point: Point | null): void {
-    if (!point) return;
-
-    const marker = this.markers.get(point.uuid);
-    if (marker) {
-      if (this.openedPoint && this.openedPoint.uuid !== point.uuid) {
-        try {
-          const openedMarker = this.markers.get(this.openedPoint.uuid);
-          openedMarker.closePopup();
-        } catch {
-          this.openedPoint = null;
-        }
-      }
-      marker.openPopup();
-      this.openedPoint = point;
-    }
-  }
-
   private centerMapOnPoint(point: Point): void {
     if (!this.map || !point.latitude || !point.longitude) return;
-    this.highlightMarker(point);
-    this.map.setView([point.latitude - 0.001, point.longitude], 17, {
+    
+    // Calculer directement le centre décalé pour compenser le drawer
+    // Le drawer fait 26.25rem (420px), donc on décale de 210px (la moitié)
+    const containerWidth = this.map.getContainer().offsetWidth;
+    const drawerWidth = 420; // 26.25rem
+    const offsetX = drawerWidth / 2;
+    
+    // Convertir le décalage en pixels vers un décalage en coordonnées
+    const targetPoint = this.map.project([point.latitude, point.longitude], 19);
+    targetPoint.x += offsetX;
+    const offsetCenter = this.map.unproject(targetPoint, 19);
+    
+    this.map.setView([offsetCenter.lat, offsetCenter.lng], 19, {
       animate: true,
       duration: 0.5,
     });
+  }
+
+  private centerMapOnSecurityZone(zone: SecurityZone): void {
+    if (!this.map || !zone.geoJson) return;
+    
+    try {
+      const geometry = JSON.parse(zone.geoJson);
+      let coordinates: number[][] = [];
+      
+      if (geometry.type === 'LineString') {
+        coordinates = geometry.coordinates;
+      } else if (geometry.type === 'MultiLineString') {
+        coordinates = geometry.coordinates.flat();
+      } else if (geometry.type === 'Feature' && geometry.geometry) {
+        coordinates = geometry.geometry.coordinates;
+      }
+      
+      if (coordinates.length > 0) {
+        // Calculer le centre de la polyline
+        const lats = coordinates.map(c => c[1]);
+        const lons = coordinates.map(c => c[0]);
+        const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+        const centerLon = (Math.min(...lons) + Math.max(...lons)) / 2;
+        
+        // Calculer directement le centre décalé pour compenser le drawer
+        // Le drawer fait 26.25rem (420px), donc on décale de 210px (la moitié)
+        const drawerWidth = 420; // 26.25rem
+        const offsetX = drawerWidth / 2;
+        
+        // Convertir le décalage en pixels vers un décalage en coordonnées
+        const targetPoint = this.map.project([centerLat, centerLon], 19);
+        targetPoint.x += offsetX;
+        const offsetCenter = this.map.unproject(targetPoint, 19);
+        
+        this.map.setView([offsetCenter.lat, offsetCenter.lng], 19, {
+          animate: true,
+          duration: 0.5,
+        });
+
+        // Ouvrir le popup sur la zone après l'animation
+        setTimeout(() => {
+          this.openSecurityZonePopup(zone, centerLat, centerLon);
+        }, 550);
+      }
+    } catch {
+      // Erreur de parsing, ne rien faire
+    }
+  }
+
+  /**
+   * Ouvre un popup sur une SecurityZone avec les informations de l'équipement
+   */
+  private openSecurityZonePopup(zone: SecurityZone, lat: number, lon: number): void {
+    if (typeof window === 'undefined') return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+
+    // Calculer la longueur de la géométrie
+    const length = this.calculateGeometryLength(zone.geoJson);
+    const formattedLength = length < 1000 
+      ? `${length.toFixed(1)} m` 
+      : `${(length / 1000).toFixed(2)} km`;
+
+    // Fonction pour afficher le popup
+    const showPopup = (equipmentName: string) => {
+      const popupContent = `
+        <div class="security-zone-popup" style="text-align: center; min-width: 150px;">
+          <strong style="color: #2ad783;">${equipmentName}</strong><br>
+          <span style="font-size: 0.875rem; color: #8b949e;">
+            Longueur: ${formattedLength}<br>
+          </span>
+        </div>
+      `;
+
+      // Récupérer le layer si disponible
+      const layer = this.geometryLayers.get(zone.uuid);
+      if (layer && layer.bindPopup) {
+        layer.bindPopup(popupContent).openPopup();
+      } else {
+        // Créer un popup temporaire si le layer n'est pas trouvé
+        L.popup()
+          .setLatLng([lat, lon])
+          .setContent(popupContent)
+          .openOn(this.map);
+      }
+    };
+
+    // Si l'équipement est déjà disponible, afficher le popup directement
+    if (zone.equipment?.type) {
+      showPopup(zone.equipment.type);
+    } else if (zone.equipmentId) {
+      // Charger l'équipement si pas disponible
+      this.equipmentService.getById(zone.equipmentId).subscribe({
+        next: (equipment) => {
+          showPopup(equipment.type || 'Équipement');
+        },
+        error: () => {
+          showPopup('Équipement');
+        }
+      });
+    } else {
+      showPopup('Équipement');
+    }
+  }
+
+  /**
+   * Calcule la longueur totale d'une polyline à partir du GeoJSON en mètres
+   */
+  private calculateGeometryLength(geoJson: string): number {
+    if (!geoJson) return 0;
+
+    try {
+      const geometry = JSON.parse(geoJson);
+      let coordinates: number[][] = [];
+      
+      if (geometry.type === 'LineString') {
+        coordinates = geometry.coordinates;
+      } else if (geometry.type === 'MultiLineString') {
+        coordinates = geometry.coordinates.flat();
+      } else if (geometry.type === 'Feature' && geometry.geometry) {
+        return this.calculateGeometryLength(JSON.stringify(geometry.geometry));
+      } else {
+        return 0;
+      }
+
+      // Calculer la distance totale entre tous les points
+      let totalDistance = 0;
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const [lon1, lat1] = coordinates[i];
+        const [lon2, lat2] = coordinates[i + 1];
+        totalDistance += this.haversineDistance(lat1, lon1, lat2, lon2);
+      }
+
+      return totalDistance;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Calcule la distance entre deux points GPS en mètres (formule de Haversine)
+   */
+  private haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371000; // Rayon de la Terre en mètres
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
   }
 
   private getPointDisplayName(point: Point): string {
@@ -290,6 +456,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   private onMarkerClick(point: Point): void {
+    // Fermer tous les popups ouverts
+    this.closeAllPopups();
+
     // Sélectionner le point (ouvrira automatiquement le drawer)
     this.mapService.selectPoint(point);
 
@@ -300,6 +469,14 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         duration: 0.5,
       });
     }
+  }
+
+  /**
+   * Ferme tous les popups ouverts sur la carte
+   */
+  private closeAllPopups(): void {
+    if (!this.map) return;
+    this.map.closePopup();
   }
 
   /**
@@ -387,7 +564,6 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
                      </div>`,
               iconSize: [30, 42],
               iconAnchor: [15, 42],
-              popupAnchor: [0, -42],
             }),
           },
           circlemarker: false,
@@ -424,119 +600,125 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Vider la map des géométries
     this.geometryLayers.clear();
-
-    // Vider la liste des géométries dans le service
-    this.mapService.clearGeometries();
+    
+    // Vider la liste des areas/paths dans le service
+    this.mapService.clearAllShapes();
   }
 
   /**
-   * Charge et affiche les géométries d'un événement sur la carte
+   * Charge et affiche les areas et paths d'un événement sur la carte
    */
   private loadEventGeometries(event: Event): void {
-    // Charger les géométries depuis l'API
-    this.geometryService.getByEventId(event.uuid).subscribe({
-      next: (geometries) => {
-        // Mettre à jour le MapService avec les géométries chargées
-        this.mapService.setGeometries(geometries);
-
-        // Afficher les géométries sur la carte
-        geometries.forEach((geometry) => {
-          this.addGeometryToMap(geometry);
+    // Charger les areas et paths en parallèle
+    forkJoin({
+      areas: this.areaService.getByEventId(event.uuid),
+      paths: this.pathService.getByEventId(event.uuid)
+    }).subscribe({
+      next: ({ areas, paths }) => {
+        // Mettre à jour le MapService
+        this.mapService.setAreas(areas);
+        this.mapService.setPaths(paths);
+        
+        // Afficher les areas sur la carte
+        areas.forEach(area => {
+          this.addAreaToMap(area);
+        });
+        
+        // Afficher les paths sur la carte
+        paths.forEach(path => {
+          this.addPathToMap(path);
         });
       },
       error: (error) => {
-        console.error('Erreur lors du chargement des géométries:', error);
-        this.mapService.setGeometries([]);
-      },
+        console.error('Erreur lors du chargement des areas/paths:', error);
+        this.mapService.setAreas([]);
+        this.mapService.setPaths([]);
+      }
     });
   }
 
   /**
-   * Ajoute une géométrie à la carte
+   * Ajoute une Area (polygon) à la carte
    */
-  private addGeometryToMap(geometry: Geometry): void {
+  private addAreaToMap(area: Area): void {
     if (!this.map || !this.drawnItems || typeof window === 'undefined') return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const L: any = (window as any).L;
-    const geoJson = geometry.geoJson;
-
-    if (!geoJson || !geoJson.type) {
-      console.warn('GeoJSON invalide pour la géométrie:', geometry.uuid);
-      return;
-    }
-
+    
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let layer: any = null;
-      // Couleurs standardisées: lignes en rouge, zones en bleu
-      const LINE_COLOR = '#a91a1a'; // Rouge pour les lignes
-      const ZONE_COLOR = '#3388ff'; // Bleu pour les zones
-
-      switch (geoJson.type) {
-        case 'Point': {
-          const coords = geoJson.coordinates as [number, number];
-          layer = L.marker([coords[1], coords[0]], {
-            icon: L.divIcon({
-              className: 'custom-marker',
-              html: `<div class="marker-pin newly-created"></div>`,
-              iconSize: [30, 42],
-              iconAnchor: [15, 42],
-              popupAnchor: [0, -42],
-            }),
-          });
-          break;
-        }
-
-        case 'LineString': {
-          const lineCoords = (geoJson.coordinates as [number, number][]).map((c) => [c[1], c[0]]);
-          layer = L.polyline(lineCoords, {
-            color: LINE_COLOR,
-            weight: 4,
-          });
-          break;
-        }
-
-        case 'Polygon': {
-          const polygonCoords = (geoJson.coordinates as [number, number][][])[0].map((c) => [
-            c[1],
-            c[0],
-          ]);
-          layer = L.polygon(polygonCoords, {
-            color: ZONE_COLOR,
-            fillOpacity: 0.2,
-            weight: 3,
-          });
-          break;
-        }
-
-        default:
-          // Pour les autres types, utiliser geoJSON de Leaflet avec couleur bleue par défaut
-          layer = L.geoJSON(geoJson, {
-            style: {
-              color: ZONE_COLOR,
-              fillOpacity: 0.2,
-              weight: 3,
-            },
-          });
-          break;
+      const geoJson = typeof area.geoJson === 'string' ? JSON.parse(area.geoJson) : area.geoJson;
+      
+      if (!geoJson || !geoJson.coordinates) {
+        console.warn('GeoJSON invalide pour l\'area:', area.uuid);
+        return;
       }
 
-      if (layer) {
-        // Associer l'UUID à la couche
-        layer.geometryUuid = geometry.uuid;
+      // Convertir les coordonnées [lng, lat] en [lat, lng] pour Leaflet
+      const polygonCoords = geoJson.coordinates[0].map((c: [number, number]) => [c[1], c[0]]);
+      
+      const layer = L.polygon(polygonCoords, {
+        color: area.colorHex || '#3388ff',
+        fillOpacity: 0.2,
+        weight: 3
+      });
 
-        // Ajouter au groupe drawnItems
-        this.drawnItems.addLayer(layer);
+      // Associer l'UUID à la couche
+      layer.areaUuid = area.uuid;
+      layer.shapeType = 'area';
 
-        // Stocker dans la map
-        this.geometryLayers.set(geometry.uuid, layer);
+      // Ajouter au groupe drawnItems
+      this.drawnItems.addLayer(layer);
 
-        // Rendre interactive
-        this.makeLayerInteractive(layer);
-      }
+      // Stocker dans la map
+      this.geometryLayers.set(area.uuid, layer);
+
+      // Rendre interactive
+      this.makeLayerInteractive(layer);
     } catch (error) {
-      console.error("Erreur lors de l'ajout de la géométrie à la carte:", error);
+      console.error('Erreur lors de l\'ajout de l\'area à la carte:', error);
+    }
+  }
+
+  /**
+   * Ajoute un Path (polyline) à la carte
+   */
+  private addPathToMap(path: RoutePath): void {
+    if (!this.map || !this.drawnItems || typeof window === 'undefined') return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+    
+    try {
+      const geoJson = typeof path.geoJson === 'string' ? JSON.parse(path.geoJson) : path.geoJson;
+      
+      if (!geoJson || !geoJson.coordinates) {
+        console.warn('GeoJSON invalide pour le path:', path.uuid);
+        return;
+      }
+
+      // Convertir les coordonnées [lng, lat] en [lat, lng] pour Leaflet
+      const lineCoords = geoJson.coordinates.map((c: [number, number]) => [c[1], c[0]]);
+      
+      const layer = L.polyline(lineCoords, {
+        color: path.colorHex || '#a91a1a',
+        weight: 4
+      });
+
+      // Associer l'UUID à la couche
+      layer.pathUuid = path.uuid;
+      layer.shapeType = 'path';
+
+      // Ajouter au groupe drawnItems
+      this.drawnItems.addLayer(layer);
+
+      // Stocker dans la map
+      this.geometryLayers.set(path.uuid, layer);
+
+      // Rendre interactive
+      this.makeLayerInteractive(layer);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du path à la carte:', error);
     }
   }
 
@@ -582,7 +764,6 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         html: `<div class="marker-pin newly-created"></div>`,
         iconSize: [30, 42],
         iconAnchor: [15, 42],
-        popupAnchor: [0, -42],
       })
     );
 
@@ -596,11 +777,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     const pointData: Partial<Point> = {
       eventId: this.selectedEvent!.uuid,
+      name: `Point ${currentPoints + 1}`,
       latitude: latlng.lat,
       longitude: latlng.lng,
       order: currentPoints + 1,
-      isValid: false,
-      comment: ' ',
+      validated: false,
+      comment: ''
     };
 
     this.pointService.create(pointData).subscribe({
@@ -629,51 +811,83 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Sauvegarde une forme Leaflet comme Geometry dans la base de données
+   * Sauvegarde une forme Leaflet comme Area ou Path dans la base de données
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private saveLayerAsGeometry(layer: any, type: string): void {
     // Ajouter la forme au groupe
     this.drawnItems.addLayer(layer);
 
-    // Préparer les propriétés
-    const properties: GeometryProperties = {
-      name: `${type} - ${new Date().toLocaleString()}`,
-      color: this.getLayerColor(layer),
-      created: new Date(),
-      modified: new Date(),
-    };
+    // Convertir en GeoJSON
+    const geoJson = this.leafletToGeoJSON(layer);
+    if (!geoJson) {
+      this.makeLayerInteractive(layer);
+      return;
+    }
 
-    // Sauvegarder dans le service avec l'UUID de l'événement sélectionné
-    const saveObservable = this.geometryService.saveFromLeafletLayer(
-      layer,
-      this.selectedEvent!.uuid,
-      properties
-    );
+    const geoJsonString = JSON.stringify(geoJson);
+    const colorHex = this.getLayerColor(layer);
 
-    if (saveObservable) {
-      saveObservable.subscribe({
-        next: (geometry) => {
-          // Associer l'UUID à la couche pour les modifications futures
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (layer as any).geometryUuid = geometry.uuid;
+    // Si c'est un polygon -> Area, sinon (polyline) -> Path
+    if (type === 'polygon' || type === 'rectangle' || type === 'circle') {
+      const areaData = {
+        eventId: this.selectedEvent!.uuid,
+        name: `Zone ${new Date().toLocaleString()}`,
+        colorHex: colorHex,
+        geoJson: geoJsonString
+      };
 
-          // Ajouter la géométrie à la liste locale
-          this.mapService.addGeometry(geometry);
-
-          // Rendre la forme sélectionnable après la sauvegarde
+      this.areaService.create(areaData).subscribe({
+        next: (createdArea) => {
+          layer.areaUuid = createdArea.uuid;
+          layer.shapeType = 'area';
+          this.geometryLayers.set(createdArea.uuid, layer);
+          this.mapService.addArea(createdArea);
           this.makeLayerInteractive(layer);
         },
         error: (error) => {
-          console.error('Erreur lors de la sauvegarde de la géométrie:', error);
-          // Rendre quand même la forme interactive même en cas d'erreur
+          console.error('Erreur lors de la sauvegarde de l\'area:', error);
           this.makeLayerInteractive(layer);
         },
       });
     } else {
-      // Si pas de sauvegarde, rendre quand même interactive
-      this.makeLayerInteractive(layer);
+      // polyline
+      const pathData = {
+        eventId: this.selectedEvent!.uuid,
+        name: `Chemin ${new Date().toLocaleString()}`,
+        colorHex: colorHex,
+        startDate: new Date(),
+        fastestEstimatedSpeed: 5, // Valeurs par défaut
+        slowestEstimatedSpeed: 3,
+        geoJson: geoJsonString
+      };
+
+      this.pathService.create(pathData).subscribe({
+        next: (createdPath) => {
+          layer.pathUuid = createdPath.uuid;
+          layer.shapeType = 'path';
+          this.geometryLayers.set(createdPath.uuid, layer);
+          this.mapService.addPath(createdPath);
+          this.makeLayerInteractive(layer);
+        },
+        error: (error) => {
+          console.error('Erreur lors de la sauvegarde du path:', error);
+          this.makeLayerInteractive(layer);
+        }
+      });
     }
+  }
+
+  /**
+   * Convertit un layer Leaflet en GeoJSON
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private leafletToGeoJSON(layer: any): any {
+    if (!layer || typeof layer.toGeoJSON !== 'function') {
+      return null;
+    }
+    const geoJSON = layer.toGeoJSON();
+    return geoJSON.geometry;
   }
 
   /**
@@ -696,7 +910,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Gère la modification de géométries existantes
+   * Gère la modification d'areas/paths existants
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private onGeometriesEdited(e: any): void {
@@ -704,34 +918,46 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     layers.eachLayer((layer: any) => {
-      if (layer.geometryUuid) {
-        const geoJson = this.geometryService.leafletToGeoJSON(layer);
+      const geoJson = this.leafletToGeoJSON(layer);
+      if (!geoJson) return;
+      
+      const geoJsonString = JSON.stringify(geoJson);
+      const colorHex = this.getLayerColor(layer);
 
-        if (geoJson) {
-          const properties: GeometryProperties = {
-            color: this.getLayerColor(layer),
-            modified: new Date(),
+      if (layer.areaUuid) {
+        // C'est une Area
+        const currentArea = this.mapService.getAreas().find(a => a.uuid === layer.areaUuid);
+        if (currentArea) {
+          const updatedArea: Area = {
+            ...currentArea,
+            geoJson: geoJsonString,
+            colorHex: colorHex
           };
-
-          this.geometryService
-            .update(layer.geometryUuid, {
-              geoJson,
-              properties,
-              modified: new Date(),
-            })
-            .subscribe({
-              next: () => {}, // Modification réussie
-              error: (error) => {
-                console.error('Erreur lors de la modification:', error);
-              },
-            });
+          this.areaService.update(layer.areaUuid, updatedArea).subscribe({
+            next: (updated) => this.mapService.updateArea(updated),
+            error: (error) => console.error('Erreur lors de la modification de l\'area:', error)
+          });
+        }
+      } else if (layer.pathUuid) {
+        // C'est un Path
+        const currentPath = this.mapService.getPaths().find(p => p.uuid === layer.pathUuid);
+        if (currentPath) {
+          const updatedPath: RoutePath = {
+            ...currentPath,
+            geoJson: geoJsonString,
+            colorHex: colorHex
+          };
+          this.pathService.update(layer.pathUuid, updatedPath).subscribe({
+            next: (updated) => this.mapService.updatePath(updated),
+            error: (error) => console.error('Erreur lors de la modification du path:', error)
+          });
         }
       }
     });
   }
 
   /**
-   * Gère la suppression de géométries
+   * Gère la suppression d'areas/paths
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private onGeometriesDeleted(e: any): void {
@@ -739,16 +965,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     layers.eachLayer((layer: any) => {
-      if (layer.geometryUuid) {
-        const geometryUuid = layer.geometryUuid;
-        this.geometryService.delete(geometryUuid).subscribe({
-          next: () => {
-            // Retirer la géométrie de la liste locale
-            this.mapService.removeGeometry(geometryUuid);
-          },
-          error: (error) => {
-            console.error('Erreur lors de la suppression:', error);
-          },
+      if (layer.areaUuid) {
+        const areaUuid = layer.areaUuid;
+        this.areaService.delete(areaUuid).subscribe({
+          next: () => this.mapService.removeArea(areaUuid),
+          error: (error) => console.error('Erreur lors de la suppression de l\'area:', error)
+        });
+      } else if (layer.pathUuid) {
+        const pathUuid = layer.pathUuid;
+        this.pathService.delete(pathUuid).subscribe({
+          next: () => this.mapService.removePath(pathUuid),
+          error: (error) => console.error('Erreur lors de la suppression du path:', error)
         });
       }
     });
@@ -857,41 +1084,59 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Supprime une géométrie
+   * Supprime une area ou un path
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private deleteGeometry(layer: any): void {
     if (!layer) return;
-
-    const confirmed = confirm('Voulez-vous vraiment supprimer cet élément géométrique ?');
-
-    if (confirmed) {
-      // Fermer le popup
-      if (layer.closePopup) {
-        layer.closePopup();
-      }
-
-      // Supprimer du groupe
-      if (this.drawnItems) {
-        this.drawnItems.removeLayer(layer);
-      }
-
-      // Supprimer de la base de données si sauvegardé
-      if (layer.geometryUuid) {
-        this.geometryService.delete(layer.geometryUuid).subscribe({
-          next: () => {
-            // Retirer la géométrie de la liste locale
-            this.mapService.removeGeometry(layer.geometryUuid);
-          },
-          error: (error) => {
-            console.error('Erreur lors de la suppression:', error);
-          },
-        });
-      }
-
-      // Réinitialiser la sélection
-      this.selectedLayer = null;
+    
+    // Fermer le popup Leaflet d'abord
+    if (layer.closePopup) {
+      layer.closePopup();
     }
+    
+    this.layerToDelete = layer;
+    this.showDeleteGeometryConfirm = true;
+    this.cdr.detectChanges();
+  }
+
+  cancelDeleteGeometry(): void {
+    this.showDeleteGeometryConfirm = false;
+    this.layerToDelete = null;
+  }
+
+  confirmDeleteGeometry(): void {
+    const layer = this.layerToDelete;
+    if (!layer) return;
+
+    this.showDeleteGeometryConfirm = false;
+    this.layerToDelete = null;
+
+    // Fermer le popup
+    if (layer.closePopup) {
+      layer.closePopup();
+    }
+    
+    // Supprimer du groupe
+    if (this.drawnItems) {
+      this.drawnItems.removeLayer(layer);
+    }
+    
+    // Supprimer de la base de données si sauvegardé
+    if (layer.areaUuid) {
+      this.areaService.delete(layer.areaUuid).subscribe({
+        next: () => this.mapService.removeArea(layer.areaUuid),
+        error: (error) => console.error('Erreur lors de la suppression de l\'area:', error)
+      });
+    } else if (layer.pathUuid) {
+      this.pathService.delete(layer.pathUuid).subscribe({
+        next: () => this.mapService.removePath(layer.pathUuid),
+        error: (error) => console.error('Erreur lors de la suppression du path:', error)
+      });
+    }
+    
+    // Réinitialiser la sélection
+    this.selectedLayer = null;
   }
 
   /**
@@ -905,25 +1150,225 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     return '#3388ff'; // Couleur par défaut
   }
 
+  /**
+   * Gère les changements du mode dessin pour les SecurityZones
+   */
+  private handleDrawingModeChange(mode: DrawingMode): void {
+    if (!this.map || typeof window === 'undefined') return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+
+    if (mode.active && mode.sourcePoint && mode.equipment) {
+      this.currentDrawingMode = mode;
+      
+      // Masquer le contrôle de dessin standard
+      if (this.drawControl) {
+        this.map.removeControl(this.drawControl);
+      }
+
+      // Créer le handler polyline uniquement
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.polylineDrawHandler = new (L.Draw as any).Polyline(this.map, {
+        shapeOptions: {
+          color: '#ff6b6b',
+          weight: 4,
+          opacity: 0.8
+        }
+      });
+
+      // Écouter la création de la polyline
+      this.map.once('draw:created', (e: any) => {
+        this.onSecurityZoneDrawn(e);
+      });
+
+      // Activer le handler
+      this.polylineDrawHandler.enable();
+
+      // Centrer la carte sur le point source
+      if (mode.sourcePoint.latitude && mode.sourcePoint.longitude) {
+        this.map.setView([mode.sourcePoint.latitude, mode.sourcePoint.longitude], 17);
+      }
+
+    } else {
+      // Désactiver le mode dessin
+      if (this.polylineDrawHandler) {
+        this.polylineDrawHandler.disable();
+        this.polylineDrawHandler = null;
+      }
+
+      // Réafficher le contrôle de dessin standard
+      if (this.drawControl && this.map) {
+        this.map.addControl(this.drawControl);
+      }
+
+      this.currentDrawingMode = { active: false, sourcePoint: null, equipment: null };
+    }
+  }
+
+  /**
+   * Gère la création d'une SecurityZone après le dessin de la polyline
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private onSecurityZoneDrawn(e: any): void {
+    const layer = e.layer;
+    const { sourcePoint, equipment } = this.currentDrawingMode;
+
+    if (!sourcePoint || !equipment || !this.selectedEvent) {
+      this.mapService.stopDrawingMode();
+      return;
+    }
+
+    // Convertir la polyline en GeoJSON
+    const geoJson = this.leafletToGeoJSON(layer);
+    if (!geoJson) {
+      this.toastService.showError('Erreur', 'Impossible de créer la géométrie');
+      this.mapService.stopDrawingMode();
+      return;
+    }
+
+    // Calculer la quantité en fonction de la longueur de la géométrie et de l'équipement
+    const geoJsonString = JSON.stringify(geoJson);
+    const geometryLength = this.calculateGeometryLength(geoJsonString);
+    let quantity = 1;
+    if (equipment.length && equipment.length > 0 && geometryLength > 0) {
+      const rawQuantity = geometryLength / equipment.length;
+      const decimalPart = rawQuantity - Math.floor(rawQuantity);
+      quantity = decimalPart >= 0.20 ? Math.ceil(rawQuantity) : Math.floor(rawQuantity);
+      if (quantity < 1) quantity = 1;
+    }
+
+    // Créer la SecurityZone avec le commentaire du point et la quantité calculée
+    const securityZoneData: Partial<SecurityZone> = {
+      eventId: this.selectedEvent.uuid,
+      equipmentId: equipment.uuid,
+      quantity: quantity,
+      comment: sourcePoint.comment || '', // Transférer le commentaire du point
+      installationDate: new Date(),
+      removalDate: new Date(Date.now() + 86400000), // +1 jour par défaut
+      geoJson: geoJsonString
+    };
+
+    this.securityZoneService.create(securityZoneData as SecurityZone).subscribe({
+      next: (createdZone) => {
+        // Ajouter la polyline à la carte
+        this.drawnItems.addLayer(layer);
+        layer.securityZoneUuid = createdZone.uuid;
+        layer.shapeType = 'securityZone';
+        this.geometryLayers.set(createdZone.uuid, layer);
+
+        // Rendre interactive
+        this.makeSecurityZoneInteractive(layer, createdZone);
+
+        // Ajouter au MapService
+        this.mapService.addSecurityZone(createdZone);
+
+        // Transférer les photos du point vers la SecurityZone
+        this.pictureService.transferFromPointToSecurityZone(sourcePoint.uuid, createdZone.uuid).subscribe({
+          next: () => {
+            // Photos transférées avec succès
+          },
+          error: (error) => {
+            console.error('Erreur lors du transfert des photos:', error);
+          }
+        });
+
+        // Supprimer le point d'origine
+        this.pointService.delete(sourcePoint.uuid).subscribe({
+          next: () => {
+            // Retirer le marker de la carte
+            const marker = this.markers.get(sourcePoint.uuid);
+            if (marker && this.map) {
+              this.map.removeLayer(marker);
+              this.markers.delete(sourcePoint.uuid);
+            }
+
+            // Mettre à jour la liste des points
+            const currentPoints = this.mapService['pointsSubject'].value;
+            this.mapService.setPoints(currentPoints.filter((p: Point) => p.uuid !== sourcePoint.uuid));
+
+            this.toastService.showSuccess(
+              'Zone de sécurité créée',
+              'Complétez maintenant les dates de pose et dépose'
+            );
+
+            // Ouvrir le drawer de la SecurityZone pour l'étape 2/2
+            this.mapService.selectSecurityZone(createdZone);
+          },
+          error: (error) => {
+            console.error('Erreur lors de la suppression du point:', error);
+            // On continue quand même car la zone est créée
+            this.mapService.selectSecurityZone(createdZone);
+          }
+        });
+
+        // Arrêter le mode dessin
+        this.mapService.stopDrawingMode();
+      },
+      error: (error) => {
+        console.error('Erreur lors de la création de la zone de sécurité:', error);
+        this.toastService.showError('Erreur', 'Impossible de créer la zone de sécurité');
+        this.mapService.stopDrawingMode();
+      }
+    });
+  }
+
+  /**
+   * Rend une SecurityZone interactive
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private makeSecurityZoneInteractive(layer: any, zone: SecurityZone): void {
+    if (!layer) return;
+
+    // Stocker l'UUID pour récupérer la zone à jour lors du clic
+    const zoneUuid = zone.uuid;
+
+    layer.on('click', (e: any) => {
+      if (typeof window === 'undefined') return;
+      const L: any = (window as any).L;
+      L.DomEvent.stopPropagation(e);
+
+      // Récupérer la zone à jour depuis le MapService
+      const currentZones = this.mapService.getSecurityZones();
+      const currentZone = currentZones.find(z => z.uuid === zoneUuid);
+      
+      if (currentZone) {
+        // Centrer la carte et ouvrir le popup
+        this.mapService.focusOnSecurityZone(currentZone);
+        // Ouvrir le drawer
+        this.mapService.selectSecurityZone(currentZone);
+      }
+    });
+  }
+
   ngOnDestroy(): void {
     // Réinitialiser l'événement sélectionné
     this.mapService.setSelectedEvent(null);
+
+    // Arrêter le mode dessin si actif
+    this.mapService.stopDrawingMode();
 
     // Nettoyer les subscriptions
     if (this.pointsSubscription) {
       this.pointsSubscription.unsubscribe();
     }
-    if (this.selectedPointSubscription) {
-      this.selectedPointSubscription.unsubscribe();
-    }
     if (this.selectedEventSubscription) {
       this.selectedEventSubscription.unsubscribe();
     }
-    if (this.geometriesSubscription) {
-      this.geometriesSubscription.unsubscribe();
+    if (this.shapesSubscription) {
+      this.shapesSubscription.unsubscribe();
     }
     if (this.focusPointSubscription) {
       this.focusPointSubscription.unsubscribe();
+    }
+    if (this.focusSecurityZoneSubscription) {
+      this.focusSecurityZoneSubscription.unsubscribe();
+    }
+    if (this.drawingModeSubscription) {
+      this.drawingModeSubscription.unsubscribe();
+    }
+    if (this.securityZonesSubscription) {
+      this.securityZonesSubscription.unsubscribe();
     }
 
     // Nettoyer les markers
@@ -934,7 +1379,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     });
     this.markers.clear();
 
-    // Nettoyer les géométries complètement
+    // Nettoyer les areas/paths
     this.clearExistingGeometries();
 
     // Nettoyer le contrôle de dessin

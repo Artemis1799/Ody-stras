@@ -23,6 +23,31 @@
     </div>
     
     <form #teamForm="ngForm" (ngSubmit)="onSave()">
+      <div class="form-group">
+        <label for="eventId">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          Événement <span class="required">*</span>
+        </label>
+        <select 
+          id="eventId" 
+          [ngModel]="team.eventId"
+          (ngModelChange)="team.eventId = $event"
+          name="eventId"
+          required
+          [class.has-value]="team.eventId"
+        >
+          <option value="" disabled>Sélectionner un événement</option>
+          @for (event of events; track event.uuid) {
+            <option [value]="event.uuid">{{ event.title }}</option>
+          }
+        </select>
+      </div>
+
       <div class="form-row">
         <div class="form-group form-group-small">
           <label for="number">
@@ -78,7 +103,7 @@
         </label>
         
         <!-- Search filters -->
-        @if (allMembers.length > 0) {
+        @if (allEmployees.length > 0) {
           <div class="search-filters">
             <div class="search-field">
               <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -126,26 +151,26 @@
         }
         
         <div class="members-selector">
-          @if (allMembers.length === 0) {
+          @if (allEmployees.length === 0) {
             <div class="no-members-message">
-              Aucun membre disponible. Créez d'abord des personnes.
+              Aucun membre disponible. Créez d'abord des employés.
             </div>
-          } @else if (getFilteredMembers().length === 0) {
+          } @else if (getFilteredEmployees().length === 0) {
             <div class="no-members-message">
               Aucun membre ne correspond à votre recherche.
             </div>
           } @else {
             <div class="members-list">
-              @for (member of getFilteredMembers(); track member.uuid) {
+              @for (employee of getFilteredEmployees(); track employee.uuid) {
                 <div 
                   class="member-item" 
-                  [class.selected]="isMemberSelected(member)"
-                  (click)="toggleMember(member)"
+                  [class.selected]="isEmployeeSelected(employee)"
+                  (click)="toggleEmployee(employee)"
                 >
-                  <div class="member-avatar">{{ member.firstName.charAt(0) }}{{ member.name.charAt(0) }}</div>
-                  <span class="member-name">{{ member.firstName }} {{ member.name }}</span>
+                  <div class="member-avatar">{{ employee.firstName.charAt(0) }}{{ employee.lastName.charAt(0) }}</div>
+                  <span class="member-name">{{ employee.firstName }} {{ employee.lastName }}</span>
                   <div class="member-check">
-                    @if (isMemberSelected(member)) {
+                    @if (isEmployeeSelected(employee)) {
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
@@ -156,8 +181,8 @@
             </div>
           }
         </div>
-        @if (selectedMembers.length > 0) {
-          <div class="selected-count">{{ selectedMembers.length }} membre(s) sélectionné(s)</div>
+        @if (selectedEmployees.length > 0) {
+          <div class="selected-count">{{ selectedEmployees.length }} membre(s) sélectionné(s)</div>
         }
       </div>
       
@@ -165,7 +190,7 @@
         <button type="button" class="cancel-btn" (click)="onClose()">
           Annuler
         </button>
-        <button type="submit" class="submit-btn">
+        <button type="submit" class="submit-btn" [disabled]="!team.teamName?.trim() || !team.eventId">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>

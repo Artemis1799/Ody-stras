@@ -1,9 +1,7 @@
 import { Component, EventEmitter, Input, Output, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Photo } from '../../models/photoModel';
-import { ImagePointService } from '../../services/ImagePointsService';
-import { PhotoService } from '../../services/PhotoService';
-import { forkJoin } from 'rxjs';
+import { Picture } from '../../models/pictureModel';
+import { PictureService } from '../../services/PictureService';
 
 @Component({
   selector: 'app-photo-viewer',
@@ -14,98 +12,104 @@ import { forkJoin } from 'rxjs';
 })
 export class PhotoViewer implements OnInit {
   @Input() pointId: string | null = null;
+  @Input() securityZoneId: string | null = null;
   @Output() close = new EventEmitter<void>();
   
   showPhotoDialog = false;
-  photos: Photo[] = [];
-  currentPhotoIndex = 0;
-  loadingPhotos = false;
+  pictures: Picture[] = [];
+  currentPictureIndex = 0;
+  loadingPictures = false;
   
-  private imagePointService = inject(ImagePointService);
-  private photoService = inject(PhotoService);
+  private pictureService = inject(PictureService);
   private cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     this.showPhotoDialog = true;
     if (this.pointId) {
-      this.loadPhotosForPoint();
+      this.loadPicturesForPoint();
+    } else if (this.securityZoneId) {
+      this.loadPicturesForSecurityZone();
     }
   }
 
-  loadPhotosForPoint(): void {
+  loadPicturesForPoint(): void {
     if (!this.pointId) return;
 
-    this.loadingPhotos = true;
-    this.photos = [];
-    this.currentPhotoIndex = 0;
+    this.loadingPictures = true;
+    this.pictures = [];
+    this.currentPictureIndex = 0;
     this.cdr.detectChanges();
 
-    // D'abord récupérer les ImagePoints pour ce point
-    this.imagePointService.getByPointId(this.pointId).subscribe({
-      next: (imagePoints) => {
-        if (imagePoints.length === 0) {
-          this.loadingPhotos = false;
-          this.cdr.detectChanges();
-          return;
-        }
-
-        // Ensuite charger chaque photo par son imageId
-        const photoRequests = imagePoints.map(ip => this.photoService.getById(ip.imageId));
-        
-        forkJoin(photoRequests).subscribe({
-          next: (photos) => {
-            this.photos = photos.filter((photo): photo is Photo => photo !== null && photo !== undefined);
-            this.loadingPhotos = false;
-            this.cdr.detectChanges();
-          },
-          error: () => {
-            this.loadingPhotos = false;
-            this.cdr.detectChanges();
-          }
-        });
+    // Récupérer les pictures pour ce point directement
+    this.pictureService.getByPointId(this.pointId).subscribe({
+      next: (pictures) => {
+        this.pictures = pictures;
+        this.loadingPictures = false;
+        this.cdr.detectChanges();
       },
       error: () => {
-        this.loadingPhotos = false;
+        this.loadingPictures = false;
         this.cdr.detectChanges();
       }
     });
   }
 
-  get hasPhotos(): boolean {
-    return this.photos.length > 0;
+  loadPicturesForSecurityZone(): void {
+    if (!this.securityZoneId) return;
+
+    this.loadingPictures = true;
+    this.pictures = [];
+    this.currentPictureIndex = 0;
+    this.cdr.detectChanges();
+
+    this.pictureService.getBySecurityZoneId(this.securityZoneId).subscribe({
+      next: (pictures) => {
+        this.pictures = pictures;
+        this.loadingPictures = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loadingPictures = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
-  get currentPhoto(): Photo | null {
-    return this.photos.length > 0 ? this.photos[this.currentPhotoIndex] : null;
+  get hasPictures(): boolean {
+    return this.pictures.length > 0;
   }
 
-  nextPhoto(): void {
-    if (this.currentPhotoIndex < this.photos.length - 1) {
-      this.currentPhotoIndex++;
+  get currentPicture(): Picture | null {
+    return this.pictures.length > 0 ? this.pictures[this.currentPictureIndex] : null;
+  }
+
+  nextPicture(): void {
+    if (this.currentPictureIndex < this.pictures.length - 1) {
+      this.currentPictureIndex++;
     }
   }
 
-  previousPhoto(): void {
-    if (this.currentPhotoIndex > 0) {
-      this.currentPhotoIndex--;
+  previousPicture(): void {
+    if (this.currentPictureIndex > 0) {
+      this.currentPictureIndex--;
     }
   }
 
-  get photoCountText(): string {
-    return `${this.currentPhotoIndex + 1} / ${this.photos.length}`;
+  get pictureCountText(): string {
+    return `${this.currentPictureIndex + 1} / ${this.pictures.length}`;
   }
 
-  getPhotoSrc(photo: Photo): string {
-    if (photo.picture.startsWith('data:')) {
-      return photo.picture;
+  getPictureSrc(picture: Picture): string {
+    if (picture.pictureData.startsWith('data:')) {
+      return picture.pictureData;
     }
-    return `data:image/jpeg;base64,${photo.picture}`;
+    return `data:image/jpeg;base64,${picture.pictureData}`;
   }
 
   closeModal(): void {
     this.showPhotoDialog = false;
-    this.photos = [];
-    this.currentPhotoIndex = 0;
+    this.pictures = [];
+    this.currentPictureIndex = 0;
     this.close.emit();
   }
 }

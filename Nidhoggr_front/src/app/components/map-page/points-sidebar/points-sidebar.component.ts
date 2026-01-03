@@ -5,11 +5,16 @@ import { Router } from '@angular/router';
 import { AutoComplete } from 'primeng/autocomplete';
 import { PointService } from '../../../services/PointService';
 import { EventService } from '../../../services/EventService';
-import { GeometryService } from '../../../services/GeometryService';
+import { AreaService } from '../../../services/AreaService';
+import { PathService } from '../../../services/PathService';
+import { SecurityZoneService } from '../../../services/SecurityZoneService';
 import { MapService } from '../../../services/MapService';
 import { NominatimService, NominatimResult } from '../../../services/NominatimService';
 import { Point } from '../../../models/pointModel';
+import { SecurityZone } from '../../../models/securityZoneModel';
 import { Event } from '../../../models/eventModel';
+import { Area } from '../../../models/areaModel';
+import { RoutePath } from '../../../models/routePathModel';
 import { Subscription, Subject, Observable, forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ExportPopup } from '../../../shared/export-popup/export-popup';
@@ -39,12 +44,17 @@ import { TimelineDrawerComponent } from '../../../shared/timeline-drawer/timelin
 export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Observable pour la liste des points - utilise directement le MapService pour la réactivité
   points$!: Observable<Point[]>;
+  securityZones$!: Observable<SecurityZone[]>;
 
   selectedPointUuid: string | null = null;
   isLoading = false;
   errorMessage = '';
   emptyMessage = 'Sélectionnez un évènement pour voir ses points';
   private pointsSubscription?: Subscription;
+  private securityZonesSubscription?: Subscription;
+
+  // Onglet actif: 'points' ou 'zones'
+  activeTab: 'points' | 'zones' = 'points';
 
   // Timeline properties
   timelineItems: Array<{ id: string; title: string; start?: Date; end?: Date }> = [];
@@ -78,10 +88,20 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   itemsPerPage = 5;
   totalPages = 1;
 
+  // SecurityZones
+  allSecurityZones: SecurityZone[] = [];
+  filteredSecurityZones: SecurityZone[] = [];
+  paginatedSecurityZones: SecurityZone[] = [];
+  zonesSearchQuery = '';
+  zonesCurrentPage = 1;
+  zonesTotalPages = 1;
+
   constructor(
     private pointService: PointService,
     private eventService: EventService,
-    private geometryService: GeometryService,
+    private areaService: AreaService,
+    private pathService: PathService,
+    private securityZoneService: SecurityZoneService,
     private mapService: MapService,
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -89,6 +109,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   ) {
     // Initialiser points$ après l'injection de mapService
     this.points$ = this.mapService.points$;
+    this.securityZones$ = this.mapService.securityZones$;
     // Initialiser showTimeline$
     this.showTimeline$ = this.mapService.timelineVisible$;
   }
@@ -104,8 +125,16 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     });
 
+    // S'abonner aux changements de security zones
+    this.securityZonesSubscription = this.securityZones$.subscribe((zones) => {
+      this.allSecurityZones = zones;
+      this.applyZonesFiltersAndPagination();
+      this.cdr.markForCheck();
+    });
+
     // Initialiser les points à vide APRÈS la subscription (aucun événement sélectionné)
     this.mapService.setPoints([]);
+    this.mapService.setSecurityZones([]);
 
     // Setup debounced search (300ms)
     this.searchSubscription = this.searchSubject
@@ -133,6 +162,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.pointsSubscription?.unsubscribe();
+    this.securityZonesSubscription?.unsubscribe();
     this.searchSubscription?.unsubscribe();
   }
 
@@ -154,19 +184,19 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     const query = event.query.toLowerCase();
     const filtered = this.events
       .filter(
-        (e) => e.name.toLowerCase().includes(query) || e.description?.toLowerCase().includes(query)
+        (e) => e.title.toLowerCase().includes(query)
       )
-      .map((e) => e.name);
+      .map((e) => e.title);
     // Supprimer les doublons de noms
     this.filteredEvents = [...new Set(filtered)];
   }
 
   onEventSelect(event: { value: string }): void {
     const eventName = event.value;
-    const selectedEventObj = this.events.find((e) => e.name === eventName);
+    const selectedEventObj = this.events.find((e) => e.title === eventName);
     if (selectedEventObj?.uuid) {
       this.selectedEvent = selectedEventObj;
-      this.selectedEventName = selectedEventObj.name;
+      this.selectedEventName = selectedEventObj.title;
       // Émettre l'événement sélectionné dans le service pour les autres composants
       this.mapService.setSelectedEvent(selectedEventObj);
       this.loadPointsAndCenterMap(selectedEventObj.uuid);
@@ -174,18 +204,20 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Charge les points et géométries de l'événement et centre la carte
+   * Charge les points, areas, paths et security zones de l'événement et centre la carte
    */
   loadPointsAndCenterMap(eventId: string): void {
     this.isLoading = true;
     this.errorMessage = '';
 
-    // Charger les points et géométries en parallèle
+    // Charger les points, areas, paths et security zones en parallèle
     forkJoin({
       points: this.pointService.getByEventId(eventId),
-      geometries: this.geometryService.getByEventId(eventId),
+      areas: this.areaService.getByEventId(eventId),
+      paths: this.pathService.getByEventId(eventId),
+      securityZones: this.securityZoneService.getByEventId(eventId)
     }).subscribe({
-      next: ({ points, geometries }) => {
+      next: ({ points, areas, paths, securityZones }) => {
         // Trier les points
         const withOrder = points
           .filter((p) => p.order !== undefined && p.order !== null)
@@ -195,10 +227,13 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         const sortedPoints = [...withOrder, ...withoutOrder];
         // Utiliser le MapService pour la réactivité avec le map-loader
         this.mapService.setPoints(sortedPoints);
+        this.mapService.setAreas(areas);
+        this.mapService.setPaths(paths);
+        this.mapService.setSecurityZones(securityZones);
         this.emptyMessage = 'Aucun point pour cet événement';
 
-        // Centrer la carte sur les points et géométries
-        this.centerMapOnEventData(sortedPoints, geometries);
+        // Centrer la carte sur les points, areas et paths
+        this.centerMapOnEventData(sortedPoints, areas, paths);
 
         this.isLoading = false;
         this.cdr.markForCheck();
@@ -214,12 +249,9 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Centre la carte sur les bounds des points et géométries
+   * Centre la carte sur les bounds des points, areas et paths
    */
-  private centerMapOnEventData(
-    points: Point[],
-    geometries: import('../../../models/geometryModel').Geometry[]
-  ): void {
+  private centerMapOnEventData(points: Point[], areas: Area[], paths: RoutePath[]): void {
     const map = this.mapService.getMapInstance();
     if (!map) return;
 
@@ -237,9 +269,16 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Ajouter les coordonnées des géométries
-    geometries.forEach((g) => {
-      this.extractGeometryCoords(g.geoJson, allCoords);
+    // Ajouter les coordonnées des areas
+    areas.forEach(a => {
+      const geoJson = typeof a.geoJson === 'string' ? JSON.parse(a.geoJson) : a.geoJson;
+      this.extractGeometryCoords(geoJson, allCoords);
+    });
+
+    // Ajouter les coordonnées des paths
+    paths.forEach(p => {
+      const geoJson = typeof p.geoJson === 'string' ? JSON.parse(p.geoJson) : p.geoJson;
+      this.extractGeometryCoords(geoJson, allCoords);
     });
 
     // Si aucune coordonnée, ne rien faire
@@ -423,7 +462,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.events.push(event);
     // Sélectionner automatiquement le nouvel événement
     this.selectedEvent = event;
-    this.selectedEventName = event.name;
+    this.selectedEventName = event.title;
     this.mapService.setSelectedEvent(event);
     // Charger les points (vide pour un nouvel événement)
     this.loadPointsForEvent(event.uuid);
@@ -447,7 +486,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     }
     // Mettre à jour la sélection
     this.selectedEvent = updatedEvent;
-    this.selectedEventName = updatedEvent.name;
+    this.selectedEventName = updatedEvent.title;
     this.mapService.setSelectedEvent(updatedEvent);
   }
 
@@ -475,29 +514,20 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
           console.warn('Aucun point à afficher dans la frise.');
           return;
         }
-        // Filtrer uniquement les points avec les deux dates (installedAt ET removedAt)
-        const pointsWithBothDates = points.filter((p) => p.installedAt && p.removedAt);
-
-        if (pointsWithBothDates.length === 0) {
-          console.warn('Aucun point avec date de pose ET de dépose.');
-          return;
-        }
-
-        // Trier par date d'installation
-        const sortedPoints = [...pointsWithBothDates].sort((a, b) => {
-          const dateA = a.installedAt ? new Date(a.installedAt).getTime() : 0;
-          const dateB = b.installedAt ? new Date(b.installedAt).getTime() : 0;
-          return dateA - dateB;
-        });
-
-        this.timelineItems = sortedPoints.map((p) => ({
+        
+        // TODO: Le modèle Point a été refactoré - installedAt/removedAt n'existent plus
+        // La timeline nécessite une adaptation pour utiliser le nouveau modèle de données
+        console.warn('Timeline temporairement désactivée - modèle Point refactoré');
+        
+        // Pour l'instant, afficher tous les points sans dates dans la timeline
+        this.timelineItems = points.map((p, index) => ({
           id: p.uuid,
-          title: p.comment || `Point ${p.uuid}`,
-          start: new Date(p.installedAt!),
-          end: new Date(p.removedAt!),
+          title: p.name || `Point ${index + 1}`,
+          start: new Date(), // Placeholder - à remplacer par les vraies dates
+          end: new Date(Date.now() + 3600000), // Placeholder +1h
         }));
 
-        this.timelinePoints = sortedPoints;
+        this.timelinePoints = points;
         
         // Ouvrir la timeline via le service (ferme automatiquement le point drawer)
         this.mapService.openTimeline();
@@ -556,9 +586,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   sortPointsByInstalledDate(points: Point[]): Point[] {
     return [...points].sort((a, b) => {
-      const dateA = a.installedAt ? new Date(a.installedAt).getTime() : Infinity;
-      const dateB = b.installedAt ? new Date(b.installedAt).getTime() : Infinity;
-      return dateA - dateB;
+      // Sort by order if available
+      const orderA = a.order ?? Infinity;
+      const orderB = b.order ?? Infinity;
+      return orderA - orderB;
     });
   }
 
@@ -626,5 +657,110 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     }
 
     return pages;
+  }
+
+  // ============= Security Zones Methods =============
+
+  switchTab(tab: 'points' | 'zones'): void {
+    this.activeTab = tab;
+  }
+
+  onZoneClick(zone: SecurityZone): void {
+    // Centrer la carte sur la zone et ouvrir le drawer
+    this.mapService.focusOnSecurityZone(zone);
+    this.mapService.selectSecurityZone(zone);
+  }
+
+  onZonesSearchChange(): void {
+    this.zonesCurrentPage = 1;
+    this.applyZonesFiltersAndPagination();
+  }
+
+  applyZonesFiltersAndPagination(): void {
+    // Filtrer les zones
+    this.filteredSecurityZones = this.filterZones(this.allSecurityZones, this.zonesSearchQuery);
+
+    // Calculer la pagination
+    this.zonesTotalPages = Math.max(1, Math.ceil(this.filteredSecurityZones.length / this.itemsPerPage));
+
+    // Ajuster la page courante si nécessaire
+    if (this.zonesCurrentPage > this.zonesTotalPages) {
+      this.zonesCurrentPage = this.zonesTotalPages;
+    }
+
+    // Appliquer la pagination
+    const startIndex = (this.zonesCurrentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedSecurityZones = this.filteredSecurityZones.slice(startIndex, endIndex);
+  }
+
+  private filterZones(zones: SecurityZone[], query: string): SecurityZone[] {
+    if (!query || query.trim() === '') {
+      return zones;
+    }
+
+    const lowerQuery = query.toLowerCase().trim();
+    return zones.filter((zone) => {
+      // Recherche dans l'équipement
+      if (zone.equipment?.type && zone.equipment.type.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+      return false;
+    });
+  }
+
+  goToZonesPage(page: number): void {
+    if (page >= 1 && page <= this.zonesTotalPages) {
+      this.zonesCurrentPage = page;
+      this.applyZonesFiltersAndPagination();
+    }
+  }
+
+  previousZonesPage(): void {
+    if (this.zonesCurrentPage > 1) {
+      this.zonesCurrentPage--;
+      this.applyZonesFiltersAndPagination();
+    }
+  }
+
+  nextZonesPage(): void {
+    if (this.zonesCurrentPage < this.zonesTotalPages) {
+      this.zonesCurrentPage++;
+      this.applyZonesFiltersAndPagination();
+    }
+  }
+
+  getZonesPageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxPagesToShow = 5;
+
+    if (this.zonesTotalPages <= maxPagesToShow) {
+      for (let i = 1; i <= this.zonesTotalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let startPage = Math.max(1, this.zonesCurrentPage - 2);
+      const endPage = Math.min(this.zonesTotalPages, startPage + maxPagesToShow - 1);
+
+      if (endPage - startPage < maxPagesToShow - 1) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+    }
+
+    return pages;
+  }
+
+  getZoneEquipmentName(zone: SecurityZone): string {
+    return zone.equipment?.type || 'Équipement inconnu';
+  }
+
+  getZoneDateRange(zone: SecurityZone): string {
+    const install = zone.installationDate ? new Date(zone.installationDate).toLocaleDateString('fr-FR') : '?';
+    const removal = zone.removalDate ? new Date(zone.removalDate).toLocaleDateString('fr-FR') : '?';
+    return `${install} - ${removal}`;
   }
 }

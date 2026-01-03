@@ -1,0 +1,128 @@
+<p-drawer 
+  [(visible)]="visible"
+  position="right" 
+  [modal]="false" 
+  [closeOnEscape]="false" 
+  [dismissible]="false"
+  [closable]="false"
+>
+  <ng-template #header class="drawer-header-template">
+    <div class="drawer-header">
+      <div class="header-content">
+        <h3>Zone de sécurité</h3>
+        <span class="step-indicator complete">Étape 2/2</span>
+      </div>
+      <button 
+        type="button" 
+        class="close-button"
+        (click)="closeDrawer()"
+        title="Fermer"
+      >✕</button>
+    </div>
+  </ng-template>
+
+  <ng-container *ngIf="selectedZone" class="drawer-content">
+    <div class="unified-section">
+      <!-- Informations de la zone -->
+      <div class="info-row">
+        <div class="info-item">
+          <span class="info-label">Équipement</span>
+          <span class="info-value equipment-badge">{{ getEquipmentDisplayName() }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Quantité</span>
+          <span class="info-value">{{ quantity }}</span>
+        </div>
+      </div>
+
+      <!-- Commentaire -->
+      <div class="form-row">
+        <label for="comment">Commentaire</label>
+        <input 
+          id="comment" 
+          type="text" 
+          pInputText 
+          [(ngModel)]="editedComment"
+          placeholder="Ajouter un commentaire..."
+          class="w-full input-comment"
+        />
+      </div>
+
+      <!-- Date de pose -->
+      <div class="form-row">
+        <label for="installationDate">Date de pose <span class="required">*</span></label>
+        <p-datepicker 
+          inputId="installationDate"
+          [(ngModel)]="installationDate"
+          [showTime]="true"
+          [showIcon]="true"
+          dateFormat="dd/mm/yy"
+          placeholder="Sélectionner la date de pose..."
+          appendTo="body"
+          class="w-full"
+        />
+      </div>
+
+      <!-- Date de dépose -->
+      <div class="form-row">
+        <label for="removalDate">Date de dépose <span class="required">*</span></label>
+        <p-datepicker 
+          inputId="removalDate"
+          [(ngModel)]="removalDate"
+          [showTime]="true"
+          [showIcon]="true"
+          dateFormat="dd/mm/yy"
+          placeholder="Sélectionner la date de dépose..."
+          appendTo="body"
+          class="w-full"
+        />
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #footer>
+    <div class="drawer-footer">
+      <button 
+        type="button" 
+        class="btn btn-secondary"
+        (click)="openPhotoViewer()"
+      >
+        <span class="pi pi-image"></span>
+        Photos
+      </button>
+      <div class="main-actions">
+        <button 
+          type="button" 
+          class="btn btn-danger"
+          (click)="confirmDeleteZone()"
+        >
+          <span class="pi pi-trash"></span>
+          Supprimer
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary"
+          [disabled]="!canSave()"
+          (click)="saveChanges()"
+        >
+          <span class="pi pi-check"></span>
+          Valider
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</p-drawer>
+
+@if (showPhotoViewer && selectedZone) {
+  <app-photo-viewer [securityZoneId]="selectedZone.uuid" (close)="closePhotoViewer()"></app-photo-viewer>
+}
+
+@if (showDeleteConfirm && selectedZone) {
+  <app-delete-popup
+    [title]="'Supprimer la zone de sécurité'"
+    [itemName]="getEquipmentDisplayName()"
+    [warningMessage]="'Cette action est irréversible. La zone de sécurité sera supprimée.'"
+    (confirm)="deleteZone()"
+    (close)="cancelDeleteZone()"
+  ></app-delete-popup>
+}

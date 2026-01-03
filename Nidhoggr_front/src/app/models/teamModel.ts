@@ -1,5 +1,6 @@
 export interface Team {
   uuid: string;
-  teamNumber?: number;
+  eventId: string;
   teamName: string;
+  teamNumber?: number;
 }

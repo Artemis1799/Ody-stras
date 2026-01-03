@@ -120,6 +120,65 @@ $danger: #f87171;
   margin-bottom: 0.5rem;
 }
 
+// Sidebar Tabs
+.sidebar-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid $border-primary;
+  
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    background: transparent;
+    border: 1px solid $border-primary;
+    border-radius: 8px;
+    color: $text-muted;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    .tab-icon {
+      font-size: 0.875rem;
+    }
+    
+    .tab-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.25rem;
+      height: 1.25rem;
+      padding: 0 0.375rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+    }
+    
+    &:hover {
+      background: $bg-hover;
+      border-color: $border-hover;
+      color: $text-secondary;
+    }
+    
+    &.active {
+      background: rgba(42, 215, 131, 0.1);
+      border-color: $accent-primary;
+      color: $accent-primary;
+      
+      .tab-count {
+        background: rgba(42, 215, 131, 0.2);
+        color: $accent-primary;
+      }
+    }
+  }
+}
+
 // Search results dropdown
 .search-results {
   max-height: 200px;
@@ -299,6 +358,126 @@ $danger: #f87171;
     display: flex;
     flex-direction: column;
     flex: 1;
+  }
+}
+
+// Security Zones list
+.zones-list-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  
+  .loading-state,
+  .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    color: $text-muted;
+    font-size: 0.875rem;
+    text-align: center;
+  }
+  
+  .zones-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    
+    .zone-item {
+      display: flex;
+      flex-direction: column;
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid $border-subtle;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      
+      &:hover {
+        background: linear-gradient(90deg, rgba(42, 215, 131, 0.08) 0%, transparent 100%);
+        padding-left: 1.25rem;
+      }
+      
+      .zone-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.3rem;
+        
+        .zone-equipment {
+          font-size: 0.94rem;
+          font-weight: 500;
+          color: $text-primary;
+        }
+        
+        .zone-quantity {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: $accent-primary;
+          background: rgba(42, 215, 131, 0.15);
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+        }
+      }
+      
+      .zone-dates {
+        font-size: 0.75rem;
+        color: $text-muted;
+      }
+    }
+  }
+}
+
+// List pagination (shared between points and zones)
+.list-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid $border-subtle;
+  flex-shrink: 0;
+  
+  .pagination-buttons {
+    display: flex;
+    gap: 0.25rem;
+  }
+  
+  .pagination-btn {
+    min-width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid $border-primary;
+    border-radius: 6px;
+    color: $text-muted;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    
+    &:hover:not(:disabled) {
+      background: $bg-hover;
+      border-color: $border-hover;
+      color: $text-secondary;
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    &.active {
+      background: rgba(42, 215, 131, 0.15);
+      border-color: $accent-primary;
+      color: $accent-primary;
+    }
+  }
+  
+  .pagination-info {
+    font-size: 0.6875rem;
+    color: $text-muted;
   }
 }
 
