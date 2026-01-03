@@ -7,9 +7,11 @@ import { PointService } from '../../../services/PointService';
 import { EventService } from '../../../services/EventService';
 import { AreaService } from '../../../services/AreaService';
 import { PathService } from '../../../services/PathService';
+import { SecurityZoneService } from '../../../services/SecurityZoneService';
 import { MapService } from '../../../services/MapService';
 import { NominatimService, NominatimResult } from '../../../services/NominatimService';
 import { Point } from '../../../models/pointModel';
+import { SecurityZone } from '../../../models/securityZoneModel';
 import { Event } from '../../../models/eventModel';
 import { Area } from '../../../models/areaModel';
 import { RoutePath } from '../../../models/routePathModel';
@@ -20,8 +22,7 @@ import { ImportPopup } from '../../../shared/import-popup/import-popup';
 import { EventCreatePopup } from '../../../shared/event-create-popup/event-create-popup';
 import { EventEditPopup } from '../../../shared/event-edit-popup/event-edit-popup';
 import { PointsListComponent } from './points-list/points-list.component';
-import { MatDialog } from '@angular/material/dialog';
-import { TimelinePopupComponent } from '../../../shared/timeline-popup/timeline-popup.component';
+import { TimelineDrawerComponent } from '../../../shared/timeline-drawer/timeline-drawer.component';
 
 @Component({
   selector: 'app-points-sidebar',
@@ -35,6 +36,7 @@ import { TimelinePopupComponent } from '../../../shared/timeline-popup/timeline-
     EventCreatePopup,
     EventEditPopup,
     PointsListComponent,
+    TimelineDrawerComponent,
   ],
   templateUrl: './points-sidebar.component.html',
   styleUrls: ['./points-sidebar.component.scss'],
@@ -42,12 +44,22 @@ import { TimelinePopupComponent } from '../../../shared/timeline-popup/timeline-
 export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Observable pour la liste des points - utilise directement le MapService pour la réactivité
   points$!: Observable<Point[]>;
+  securityZones$!: Observable<SecurityZone[]>;
 
   selectedPointUuid: string | null = null;
   isLoading = false;
   errorMessage = '';
   emptyMessage = 'Sélectionnez un évènement pour voir ses points';
   private pointsSubscription?: Subscription;
+  private securityZonesSubscription?: Subscription;
+
+  // Onglet actif: 'points' ou 'zones'
+  activeTab: 'points' | 'zones' = 'points';
+
+  // Timeline properties
+  timelineItems: Array<{ id: string; title: string; start?: Date; end?: Date }> = [];
+  showTimeline$!: Observable<boolean>;
+  timelinePoints: Point[] = [];
 
   // Search properties
   searchQuery = '';
@@ -76,19 +88,30 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   itemsPerPage = 5;
   totalPages = 1;
 
+  // SecurityZones
+  allSecurityZones: SecurityZone[] = [];
+  filteredSecurityZones: SecurityZone[] = [];
+  paginatedSecurityZones: SecurityZone[] = [];
+  zonesSearchQuery = '';
+  zonesCurrentPage = 1;
+  zonesTotalPages = 1;
+
   constructor(
     private pointService: PointService,
     private eventService: EventService,
     private areaService: AreaService,
     private pathService: PathService,
+    private securityZoneService: SecurityZoneService,
     private mapService: MapService,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private nominatimService: NominatimService,
-    private dialog: MatDialog
+    private nominatimService: NominatimService
   ) {
     // Initialiser points$ après l'injection de mapService
     this.points$ = this.mapService.points$;
+    this.securityZones$ = this.mapService.securityZones$;
+    // Initialiser showTimeline$
+    this.showTimeline$ = this.mapService.timelineVisible$;
   }
 
   ngOnInit(): void {
@@ -102,8 +125,16 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     });
 
+    // S'abonner aux changements de security zones
+    this.securityZonesSubscription = this.securityZones$.subscribe((zones) => {
+      this.allSecurityZones = zones;
+      this.applyZonesFiltersAndPagination();
+      this.cdr.markForCheck();
+    });
+
     // Initialiser les points à vide APRÈS la subscription (aucun événement sélectionné)
     this.mapService.setPoints([]);
+    this.mapService.setSecurityZones([]);
 
     // Setup debounced search (300ms)
     this.searchSubscription = this.searchSubject
@@ -131,6 +162,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.pointsSubscription?.unsubscribe();
+    this.securityZonesSubscription?.unsubscribe();
     this.searchSubscription?.unsubscribe();
   }
 
@@ -172,19 +204,20 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Charge les points, areas et paths de l'événement et centre la carte
+   * Charge les points, areas, paths et security zones de l'événement et centre la carte
    */
   loadPointsAndCenterMap(eventId: string): void {
     this.isLoading = true;
     this.errorMessage = '';
 
-    // Charger les points, areas et paths en parallèle
+    // Charger les points, areas, paths et security zones en parallèle
     forkJoin({
       points: this.pointService.getByEventId(eventId),
       areas: this.areaService.getByEventId(eventId),
-      paths: this.pathService.getByEventId(eventId)
+      paths: this.pathService.getByEventId(eventId),
+      securityZones: this.securityZoneService.getByEventId(eventId)
     }).subscribe({
-      next: ({ points, areas, paths }) => {
+      next: ({ points, areas, paths, securityZones }) => {
         // Trier les points
         const withOrder = points
           .filter((p) => p.order !== undefined && p.order !== null)
@@ -196,6 +229,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         this.mapService.setPoints(sortedPoints);
         this.mapService.setAreas(areas);
         this.mapService.setPaths(paths);
+        this.mapService.setSecurityZones(securityZones);
         this.emptyMessage = 'Aucun point pour cet événement';
 
         // Centrer la carte sur les points, areas et paths
@@ -229,7 +263,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     const allCoords: [number, number][] = [];
 
     // Ajouter les coordonnées des points
-    points.forEach(p => {
+    points.forEach((p) => {
       if (p.latitude && p.longitude) {
         allCoords.push([p.latitude, p.longitude]);
       }
@@ -252,7 +286,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
     // Créer les bounds et zoomer dessus
     const bounds = L.latLngBounds(allCoords);
-    
+
     // Ajouter un padding pour ne pas coller aux bords
     // Prendre en compte la sidebar (300px) et le drawer potentiel (420px)
     map.fitBounds(bounds, {
@@ -261,7 +295,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       paddingBottomRight: [50, 50],
       maxZoom: 18,
       animate: true,
-      duration: 0.5
+      duration: 0.5,
     });
   }
 
@@ -277,10 +311,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       coords.push([c[1], c[0]]); // GeoJSON est [lng, lat]
     } else if (geoJson.type === 'LineString') {
       const lineCoords = geoJson.coordinates as [number, number][];
-      lineCoords.forEach(c => coords.push([c[1], c[0]]));
+      lineCoords.forEach((c) => coords.push([c[1], c[0]]));
     } else if (geoJson.type === 'Polygon') {
       const polyCoords = geoJson.coordinates as [number, number][][];
-      polyCoords.forEach(ring => ring.forEach(c => coords.push([c[1], c[0]])));
+      polyCoords.forEach((ring) => ring.forEach((c) => coords.push([c[1], c[0]])));
     }
   }
 
@@ -319,7 +353,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.selectedPointUuid = point.uuid;
 
     // Trouver l'index du point dans la liste filtrée
-    const pointIndex = this.filteredPoints.findIndex(p => p.uuid === point.uuid);
+    const pointIndex = this.filteredPoints.findIndex((p) => p.uuid === point.uuid);
 
     // Sélectionner le point (ouvrira le drawer)
     this.mapService.selectPoint(point, pointIndex + 1);
@@ -474,42 +508,50 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       console.warn("Aucun événement sélectionné — impossible d'afficher la frise.");
       return;
     }
-
     this.pointService.getByEventId(selectedEvent.uuid).subscribe({
       next: (points) => {
         if (!points || points.length === 0) {
           console.warn('Aucun point à afficher dans la frise.');
           return;
         }
-
-        // Trier et préparer les items pour la frise
-        const withOrder = points
-          .filter((p) => p.order !== undefined && p.order !== null)
-          .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-        const withoutOrder = points.filter((p) => p.order === undefined || p.order === null);
-        const sortedPoints = [...withOrder, ...withoutOrder];
-
-        const items = sortedPoints.map((p) => ({
+        
+        // TODO: Le modèle Point a été refactoré - installedAt/removedAt n'existent plus
+        // La timeline nécessite une adaptation pour utiliser le nouveau modèle de données
+        console.warn('Timeline temporairement désactivée - modèle Point refactoré');
+        
+        // Pour l'instant, afficher tous les points sans dates dans la timeline
+        this.timelineItems = points.map((p, index) => ({
           id: p.uuid,
-          title: p.comment || `Point ${p.uuid}`,
-          start: undefined,
-          end: undefined,
+          title: p.name || `Point ${index + 1}`,
+          start: new Date(), // Placeholder - à remplacer par les vraies dates
+          end: new Date(Date.now() + 3600000), // Placeholder +1h
         }));
 
-        this.dialog.open(TimelinePopupComponent, {
-          width: '70vw',
-          maxWidth: '1800px',
-          maxHeight: '95vh',
-          data: { items },
-        });
+        this.timelinePoints = points;
+        
+        // Ouvrir la timeline via le service (ferme automatiquement le point drawer)
+        this.mapService.openTimeline();
       },
       error: (err) => {
         console.error('Erreur lors du chargement des points pour la frise :', err);
       },
     });
   }
+  onTimelinePointHovered(pointId: string): void {
+    const hoveredPoint = this.timelinePoints.find((p) => p.uuid === pointId);
+    if (hoveredPoint) {
+      this.mapService.focusOnPoint(hoveredPoint);
+    }
+  }
 
+  onTimelinePointHoverEnd(): void {
+    // Optionnel: réinitialiser le focus de la map
+    // this.mapService.resetFocus();
+  }
+
+  closeTimeline(): void {
+    this.mapService.closeTimeline();
+  }
   // Points search and pagination methods
   onPointsSearchChange(): void {
     this.currentPage = 1;
@@ -522,20 +564,20 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     
     // Trier les points par date d'installation
     this.filteredPoints = this.sortPointsByInstalledDate(filtered);
-    
+
     // Calculer le nombre total de pages
     this.totalPages = Math.ceil(this.filteredPoints.length / this.itemsPerPage);
-    
+
     // S'assurer qu'on a au moins 1 page si on a des points
     if (this.totalPages === 0 && this.filteredPoints.length > 0) {
       this.totalPages = 1;
     }
-    
+
     // S'assurer que la page courante est valide
     if (this.currentPage > this.totalPages && this.totalPages > 0) {
       this.currentPage = this.totalPages;
     }
-    
+
     // Appliquer la pagination
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
@@ -557,12 +599,12 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     }
 
     const lowerQuery = query.toLowerCase().trim();
-    return points.filter(point => {
+    return points.filter((point) => {
       // Recherche dans le commentaire (nom)
       if (point.comment && point.comment.toLowerCase().includes(lowerQuery)) {
         return true;
       }
-      
+
       // Recherche dans le numéro d'ordre
       if (point.order && point.order.toString().includes(lowerQuery)) {
         return true;
@@ -596,7 +638,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   getPointsPageNumbers(): number[] {
     const pages: number[] = [];
     const maxPagesToShow = 5;
-    
+
     if (this.totalPages <= maxPagesToShow) {
       for (let i = 1; i <= this.totalPages; i++) {
         pages.push(i);
@@ -604,16 +646,121 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     } else {
       let startPage = Math.max(1, this.currentPage - 2);
       const endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
-      
+
       if (endPage - startPage < maxPagesToShow - 1) {
         startPage = Math.max(1, endPage - maxPagesToShow + 1);
       }
-      
+
       for (let i = startPage; i <= endPage; i++) {
         pages.push(i);
       }
     }
-    
+
     return pages;
+  }
+
+  // ============= Security Zones Methods =============
+
+  switchTab(tab: 'points' | 'zones'): void {
+    this.activeTab = tab;
+  }
+
+  onZoneClick(zone: SecurityZone): void {
+    // Centrer la carte sur la zone et ouvrir le drawer
+    this.mapService.focusOnSecurityZone(zone);
+    this.mapService.selectSecurityZone(zone);
+  }
+
+  onZonesSearchChange(): void {
+    this.zonesCurrentPage = 1;
+    this.applyZonesFiltersAndPagination();
+  }
+
+  applyZonesFiltersAndPagination(): void {
+    // Filtrer les zones
+    this.filteredSecurityZones = this.filterZones(this.allSecurityZones, this.zonesSearchQuery);
+
+    // Calculer la pagination
+    this.zonesTotalPages = Math.max(1, Math.ceil(this.filteredSecurityZones.length / this.itemsPerPage));
+
+    // Ajuster la page courante si nécessaire
+    if (this.zonesCurrentPage > this.zonesTotalPages) {
+      this.zonesCurrentPage = this.zonesTotalPages;
+    }
+
+    // Appliquer la pagination
+    const startIndex = (this.zonesCurrentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    this.paginatedSecurityZones = this.filteredSecurityZones.slice(startIndex, endIndex);
+  }
+
+  private filterZones(zones: SecurityZone[], query: string): SecurityZone[] {
+    if (!query || query.trim() === '') {
+      return zones;
+    }
+
+    const lowerQuery = query.toLowerCase().trim();
+    return zones.filter((zone) => {
+      // Recherche dans l'équipement
+      if (zone.equipment?.type && zone.equipment.type.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+      return false;
+    });
+  }
+
+  goToZonesPage(page: number): void {
+    if (page >= 1 && page <= this.zonesTotalPages) {
+      this.zonesCurrentPage = page;
+      this.applyZonesFiltersAndPagination();
+    }
+  }
+
+  previousZonesPage(): void {
+    if (this.zonesCurrentPage > 1) {
+      this.zonesCurrentPage--;
+      this.applyZonesFiltersAndPagination();
+    }
+  }
+
+  nextZonesPage(): void {
+    if (this.zonesCurrentPage < this.zonesTotalPages) {
+      this.zonesCurrentPage++;
+      this.applyZonesFiltersAndPagination();
+    }
+  }
+
+  getZonesPageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxPagesToShow = 5;
+
+    if (this.zonesTotalPages <= maxPagesToShow) {
+      for (let i = 1; i <= this.zonesTotalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let startPage = Math.max(1, this.zonesCurrentPage - 2);
+      const endPage = Math.min(this.zonesTotalPages, startPage + maxPagesToShow - 1);
+
+      if (endPage - startPage < maxPagesToShow - 1) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+    }
+
+    return pages;
+  }
+
+  getZoneEquipmentName(zone: SecurityZone): string {
+    return zone.equipment?.type || 'Équipement inconnu';
+  }
+
+  getZoneDateRange(zone: SecurityZone): string {
+    const install = zone.installationDate ? new Date(zone.installationDate).toLocaleDateString('fr-FR') : '?';
+    const removal = zone.removalDate ? new Date(zone.removalDate).toLocaleDateString('fr-FR') : '?';
+    return `${install} - ${removal}`;
   }
 }

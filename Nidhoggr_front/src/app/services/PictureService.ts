@@ -57,12 +57,20 @@ export class PictureService {
   }
 
   getByPointId(pointId: string): Observable<Picture[]> {
-    return this.http.get<Picture[]>(`${this.apiUrl}/Point/${pointId}`);
+    return this.http.get<Picture[]>(`${this.apiUrl}/point/${pointId}`);
+  }
+
+  getBySecurityZoneId(securityZoneId: string): Observable<Picture[]> {
+    return this.http.get<Picture[]>(`${this.apiUrl}/securityzone/${securityZoneId}`);
   }
 
   deleteAll(): Observable<{ deletedCount: number }> {
     return this.http.delete<{ deletedCount: number }>(this.apiUrl).pipe(
       tap(() => this._pictures$.next([]))
     );
+  }
+
+  transferFromPointToSecurityZone(pointId: string, securityZoneId: string): Observable<{ transferredCount: number }> {
+    return this.http.post<{ transferredCount: number }>(`${this.apiUrl}/transfer/${pointId}/${securityZoneId}`, {});
   }
 }

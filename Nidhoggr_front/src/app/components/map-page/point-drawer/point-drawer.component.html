@@ -10,9 +10,7 @@
     <div class="drawer-header">
       <div class="header-content">
         <h3>Point #{{ selectedPointIndex || selectedPoint?.order || '?' }}</h3>
-        <span class="point-status" [class.valid]="editedValidated" [class.invalid]="!editedValidated">
-          {{ editedValidated ? 'Validé' : 'Non validé' }}
-        </span>
+        <span class="step-indicator">Étape 1/2</span>
       </div>
       <button 
         type="button" 
@@ -38,16 +36,9 @@
         </div>
       </div>
 
-      <!-- Validation -->
-      <div class="form-row">
-        <div class="checkbox-field">
-          <p-checkbox 
-            inputId="validated" 
-            [(ngModel)]="editedValidated"
-            [binary]="true"
-          ></p-checkbox>
-          <label for="validated">Marquer ce point comme validé</label>
-        </div>
+      <!-- Instructions pour l'étape 1 -->
+      <div class="step-instructions">
+        <p>Sélectionnez le type d'équipement pour ce point, puis placez-le sur la carte.</p>
       </div>
 
       <!-- Commentaire -->
@@ -65,7 +56,7 @@
 
       <!-- Équipement -->
       <div class="form-row equipment-selector">
-        <label for="equipment">Équipement</label>
+        <label for="equipment">Équipement <span class="required">*</span></label>
         <p-autoComplete
           inputId="equipment"
           [(ngModel)]="selectedEquipmentName"
@@ -107,11 +98,11 @@
         <button 
           type="button" 
           class="btn btn-primary"
-          [disabled]="!hasChanges()"
-          (click)="saveChanges()"
+          [disabled]="!canProceedToDrawing()"
+          (click)="proceedToDrawing()"
         >
-          <span class="pi pi-save"></span>
-          Enregistrer
+          <span class="pi pi-map-marker"></span>
+          Placer sur la carte
         </button>
       </div>
     </div>

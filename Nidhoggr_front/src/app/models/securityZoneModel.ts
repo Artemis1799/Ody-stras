@@ -5,6 +5,7 @@ export interface SecurityZone {
   eventId: string;
   equipmentId: string;
   quantity: number;
+  comment?: string;
   installationDate: Date;
   removalDate: Date;
   geoJson: string;

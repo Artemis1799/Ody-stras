@@ -24,16 +24,18 @@ $border-subtle: #21262d;
 
 $danger: #f87171;
 
-.timeline-overlay {
+// Variables pour le layout
+$sidebar-width: 320px;
+
+.timeline-container {
   position: fixed;
-  inset: 0;
+  bottom: 0;
+  left: $sidebar-width; // Commence après la sidebar
+  right: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 2000;
-  backdrop-filter: blur(8px);
-  animation: fadeIn 0.25s ease-out;
+  justify-content: stretch;
+  z-index: 999;
+  pointer-events: auto;
 }
 
 @keyframes fadeIn {
@@ -45,13 +47,13 @@ $danger: #f87171;
   }
 }
 
-@keyframes slideIn {
+@keyframes slideUp {
   from {
-    transform: translateY(-30px) scale(0.95);
+    transform: translateY(100%);
     opacity: 0;
   }
   to {
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
     opacity: 1;
   }
 }
@@ -59,20 +61,18 @@ $danger: #f87171;
 .timeline-dialog {
   background: linear-gradient(145deg, $bg-elevated 0%, $bg-card 100%);
   padding: 0;
-  border-radius: 20px;
-  min-width: 600px;
-  max-width: 900px;
-  width: 90%;
+  border-radius: 16px 16px 0 0;
+  width: 100%;
   position: relative;
-  box-shadow: 
-    0 25px 80px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.05),
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  animation: slideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  height: 35vh;
+  min-height: 200px;
+  max-height: 50vh;
 
   &::before {
     content: '';
@@ -88,7 +88,8 @@ $danger: #f87171;
 }
 
 @keyframes shimmer {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -175,15 +176,15 @@ $danger: #f87171;
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: $border-primary;
     border-radius: 3px;
-    
+
     &:hover {
       background: $border-hover;
     }
@@ -224,55 +225,86 @@ $danger: #f87171;
   }
 }
 
-.timeline-container {
-  background: transparent;
-  padding: 1.5rem 2rem;
-  display: flex;
-  flex-direction: column;
+.timeline-header {
+  margin-bottom: 25px;
+  text-align: center;
+
+  h2 {
+    margin: 0 0 12px 0;
+    font-size: 24px;
+    color: $text-primary;
+    font-weight: 600;
+  }
+
+  .timeline-label {
+    margin: 0;
+    font-size: 14px;
+    color: $text-muted;
+    font-weight: 500;
+  }
+}
+
+.timeline-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  border-top: 1px solid $border-primary;
+  border-bottom: 1px solid $border-primary;
+  padding: 15px 0;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $border-primary;
+    border-radius: 3px;
+
+    &:hover {
+      background: $border-hover;
+    }
+  }
+}
+
+// Conteneur de l'axe temporel avec les graduations
+.timeline-axis-container {
+  position: relative;
+  height: 40px;
+  margin-left: 220px; // Aligner avec les barres (après le label)
+  margin-right: 20px;
+  margin-bottom: 10px;
+}
+
+.timeline-graduations {
+  position: relative;
   width: 100%;
+  height: 100%;
+  border-bottom: 2px solid $border-primary;
 }
 
-.timeline-header {
-  margin-bottom: 25px;
-  text-align: center;
+.graduation {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
-  h2 {
-    margin: 0 0 12px 0;
-    font-size: 24px;
-    color: $text-primary;
-    font-weight: 600;
-  }
-
-  .timeline-label {
-    margin: 0;
-    font-size: 14px;
-    color: $text-muted;
-    font-weight: 500;
-  }
-}
-
-.timeline-wrapper {
-  flex: 1;
-  overflow-y: auto;
-  border-top: 1px solid $border-primary;
-  border-bottom: 1px solid $border-primary;
-  padding: 15px 0;
-  
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  
-  &::-webkit-scrollbar-thumb {
+  .graduation-tick {
+    width: 2px;
+    height: 10px;
     background: $border-primary;
-    border-radius: 3px;
-    
-    &:hover {
-      background: $border-hover;
-    }
+  }
+
+  .graduation-label {
+    font-size: 11px;
+    color: $text-muted;
+    white-space: nowrap;
+    margin-bottom: 4px;
+    font-weight: 500;
   }
 }
 
@@ -301,15 +333,15 @@ $danger: #f87171;
 .timeline-items {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 0 10px;
+  gap: 1px;
+  padding: 0 0px;
 }
 
 .timeline-item {
   display: flex;
-  gap: 20px;
+  gap: 0px;
   align-items: stretch;
-  min-height: 60px;
+  height: 2rem;
 
   .item-label {
     width: 220px;
@@ -336,10 +368,11 @@ $danger: #f87171;
     align-items: center;
     background: $bg-primary;
     border-radius: 6px;
-    padding: 4px;
-    min-height: 50px;
+    height: 1.5rem;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
     border: 1px solid $border-primary;
+    overflow: hidden; // Empêche les barres de sortir du conteneur
+    margin-right: 20px; // Marge à droite pour aligner avec les graduations
 
     .item-bar-background {
       position: absolute;
@@ -362,7 +395,7 @@ $danger: #f87171;
 
   .item-bar {
     position: absolute;
-    height: 32px;
+    height: 1.4rem;
     background: $accent-gradient;
     border-radius: 4px;
     display: flex;
@@ -438,228 +471,85 @@ mat-dialog-actions {
   padding-top: 15px;
   border-top: 1px solid $border-primary;
   background: $bg-card;
-  
+
   button {
     color: $text-primary;
-    
+
     &:hover {
       background: rgba(42, 215, 131, 0.1);
     }
   }
 }
 
-.timeline-header {
-  margin-bottom: 25px;
-  text-align: center;
+// Tooltip dynamique
+.dynamic-tooltip {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background: linear-gradient(145deg, $bg-elevated 0%, $bg-card 100%);
+  border: 1px solid $border-primary;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  z-index: 10000;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.15s ease-out;
+  min-width: 200px;
+  max-width: 300px;
 
-  h2 {
-    margin: 0 0 12px 0;
-    font-size: 24px;
-    color: $text-primary;
-    font-weight: 600;
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid $bg-card;
   }
 
-  .timeline-label {
-    margin: 0;
+  .tooltip-title {
     font-size: 14px;
-    color: $text-muted;
-    font-weight: 500;
-  }
-}
-
-.timeline-wrapper {
-  flex: 1;
-  overflow-y: auto;
-  border-top: 1px solid $border-primary;
-  border-bottom: 1px solid $border-primary;
-  padding: 15px 0;
-  
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: $border-primary;
-    border-radius: 3px;
-    
-    &:hover {
-      background: $border-hover;
-    }
-  }
-}
-
-.timeline-axis {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 20px 10px 200px;
-  font-size: 12px;
-  color: $text-muted;
-  font-weight: bold;
-}
-
-.axis-start,
-.axis-end {
-  flex: 1;
-
-  &:first-child {
-    text-align: left;
-  }
-
-  &:last-child {
-    text-align: right;
-  }
-}
-
-.timeline-items {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0 10px;
-}
-
-.timeline-item {
-  display: flex;
-  gap: 20px;
-  align-items: stretch;
-  min-height: 60px;
-
-  .item-label {
-    width: 220px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    padding: 0 12px;
-    border-right: 2px solid $border-primary;
-
-    .item-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: $text-primary;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-  }
-
-  .item-bar-container {
-    flex: 1;
-    position: relative;
-    display: flex;
-    align-items: center;
-    background: $bg-primary;
-    border-radius: 6px;
-    padding: 4px;
-    min-height: 50px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-    border: 1px solid $border-primary;
-
-    .item-bar-background {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 49px,
-        $border-subtle 49px,
-        $border-subtle 50px
-      );
-      pointer-events: none;
-      border-radius: 5px;
-      opacity: 0.3;
-    }
-  }
-
-  .item-bar {
-    position: absolute;
-    height: 32px;
-    background: $accent-gradient;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(42, 215, 131, 0.3);
-    min-width: 50px;
-
-    &:hover {
-      background: linear-gradient(135deg, #52d273 0%, #2ad783 100%);
-      box-shadow: 0 4px 16px rgba(42, 215, 131, 0.4);
-      transform: translateY(-2px);
-    }
-
-    .bar-label {
-      font-size: 12px;
-      color: $bg-card;
-      font-weight: 600;
-      padding: 0 10px;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    }
-  }
-
-  .item-bar-start-only {
-    min-width: 60px;
-    background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
-
-    &:hover {
-      background: linear-gradient(135deg, #ffb74d 0%, #ffa726 100%);
-      box-shadow: 0 4px 16px rgba(255, 167, 38, 0.4);
-    }
-  }
-
-  .item-bar-empty {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 32px;
-    background: $border-primary;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    .bar-label {
-      font-size: 13px;
-      color: $text-muted;
-      font-weight: 500;
-      text-shadow: none;
-    }
-  }
-}
-
-.no-data {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  color: $text-muted;
-  font-size: 14px;
-
-  p {
-    margin: 0;
-  }
-}
-
-mat-dialog-actions {
-  padding-top: 15px;
-  border-top: 1px solid $border-primary;
-  background: $bg-card;
-  
-  button {
+    font-weight: 700;
     color: $text-primary;
-    
-    &:hover {
-      background: rgba(42, 215, 131, 0.1);
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid $border-subtle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tooltip-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tooltip-date {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+
+    .date-label {
+      color: $text-muted;
+      flex-shrink: 0;
     }
+
+    .date-value {
+      color: $accent-primary;
+      font-weight: 600;
+    }
+  }
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -90%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
   }
 }
