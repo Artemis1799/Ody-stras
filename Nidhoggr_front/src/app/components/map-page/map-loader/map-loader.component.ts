@@ -16,12 +16,13 @@ import { Subscription, forkJoin } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, inject } from '@angular/core';
 import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
+import { PointTypePopupComponent } from '../../../shared/point-type-popup/point-type-popup.component';
 import { ToastService } from '../../../services/ToastService';
 
 @Component({
   selector: 'app-map-loader',
   standalone: true,
-  imports: [CommonModule, DeletePopupComponent],
+  imports: [CommonModule, DeletePopupComponent, PointTypePopupComponent],
   templateUrl: './map-loader.component.html',
   styleUrls: ['./map-loader.component.scss'],
 })
@@ -57,6 +58,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   showDeleteGeometryConfirm = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private layerToDelete: any = null;
+
+  // Popup de sélection de type de point
+  showPointTypePopup = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private pendingMarkerLayer: any = null;
 
   constructor(
     private mapService: MapService,
@@ -251,12 +257,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     // Ajouter les nouveaux markers
     points.forEach((point, index) => {
       if (this.map && point.latitude && point.longitude) {
+        // Déterminer le contenu du marker
+        const markerContent = point.isPointOfInterest 
+          ? '!' 
+          : (point.order || index + 1).toString();
+        
         const marker = L.marker([point.latitude, point.longitude], {
           title: this.getPointDisplayName(point),
           icon: L.divIcon({
             className: 'custom-marker',
-            html: `<div class="marker-pin ${point.validated ? 'valid' : 'invalid'}">
-                     <span class="marker-number">${point.order || index + 1}</span>
+            html: `<div class="marker-pin ${point.validated ? 'valid' : 'invalid'} ${point.isPointOfInterest ? 'point-of-interest' : ''}">
+                     <span class="marker-number">${markerContent}</span>
                    </div>`,
             iconSize: [30, 42],
             iconAnchor: [15, 42],
@@ -456,6 +467,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   private onMarkerClick(point: Point): void {
+    // Ne rien faire si c'est un point d'intérêt
+    if (point.isPointOfInterest) {
+      return;
+    }
+
     // Fermer tous les popups ouverts
     this.closeAllPopups();
 
@@ -740,9 +756,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     const type = e.layerType;
     const layer = e.layer;
 
-    // Si c'est un marker, le sauvegarder comme Point
+    // Si c'est un marker, afficher la popup de sélection de type
     if (type === 'marker') {
-      this.saveMarkerAsPoint(layer, L);
+      this.pendingMarkerLayer = layer;
+      this.showPointTypePopup = true;
+      this.cdr.detectChanges();
       return;
     }
 
@@ -754,18 +772,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
    * Sauvegarde un marker Leaflet comme Point dans la base de données
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private saveMarkerAsPoint(layer: any, L: any): void {
+  private saveMarkerAsPoint(layer: any, L: any, isPointOfInterest: boolean = false): void {
     const latlng = layer.getLatLng();
-
-    // Mettre à jour l'icône du marker
-    layer.setIcon(
-      L.divIcon({
-        className: 'custom-marker',
-        html: `<div class="marker-pin newly-created"></div>`,
-        iconSize: [30, 42],
-        iconAnchor: [15, 42],
-      })
-    );
 
     // Ajouter au groupe
     this.drawnItems.addLayer(layer);
@@ -777,16 +785,38 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     const pointData: Partial<Point> = {
       eventId: this.selectedEvent!.uuid,
-      name: `Point ${currentPoints + 1}`,
+      name: isPointOfInterest ? `Point d'intérêt ${currentPoints + 1}` : `Point ${currentPoints + 1}`,
       latitude: latlng.lat,
       longitude: latlng.lng,
-      order: currentPoints + 1,
+      order: isPointOfInterest ? undefined : currentPoints + 1,
       validated: false,
-      comment: ''
+      comment: '',
+      isPointOfInterest: isPointOfInterest
     };
 
     this.pointService.create(pointData).subscribe({
       next: (point) => {
+        console.log('Point créé reçu du backend:', point);
+        console.log('isPointOfInterest:', point.isPointOfInterest);
+        
+        // Si le backend ne renvoie pas isPointOfInterest, utiliser la valeur locale
+        if (point.isPointOfInterest === undefined && pointData.isPointOfInterest !== undefined) {
+          point.isPointOfInterest = pointData.isPointOfInterest;
+        }
+        
+        // Mettre à jour l'icône du marker avec le bon contenu
+        const markerContent = point.isPointOfInterest ? '!' : (point.order || currentPoints + 1).toString();
+        layer.setIcon(
+          L.divIcon({
+            className: 'custom-marker',
+            html: `<div class="marker-pin ${point.validated ? 'valid' : 'invalid'} ${point.isPointOfInterest ? 'point-of-interest' : ''}">
+                     <span class="marker-number">${markerContent}</span>
+                   </div>`,
+            iconSize: [30, 42],
+            iconAnchor: [15, 42],
+          })
+        );
+
         // Associer l'UUID au layer
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (layer as any).pointUuid = point.uuid;
@@ -795,14 +825,16 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.markers.set(point.uuid, layer);
 
         // Mettre à jour les points dans le MapService
-        const currentPoints = [...this.mapService['pointsSubject'].value, point];
-        this.mapService.setPoints(currentPoints);
+        const updatedPoints = [...this.mapService['pointsSubject'].value, point];
+        this.mapService.setPoints(updatedPoints);
 
         // Rendre le marker interactif
         this.makeMarkerInteractive(layer, point);
 
-        // Ouvrir le drawer du point créé
-        this.mapService.selectPoint(point);
+        // Ouvrir le drawer du point créé (sauf si c'est un point d'intérêt)
+        if (!point.isPointOfInterest) {
+          this.mapService.selectPoint(point);
+        }
       },
       error: (error) => {
         console.error('Erreur lors de la sauvegarde du point:', error);
@@ -904,8 +936,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       const L: any = (window as any).L;
       L.DomEvent.stopPropagation(e);
 
-      // Sélectionner le point
-      this.mapService.selectPoint(point);
+      // Ne pas sélectionner les points d'intérêt
+      if (!point.isPointOfInterest) {
+        this.mapService.selectPoint(point);
+      }
     });
   }
 
@@ -1339,6 +1373,39 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.mapService.selectSecurityZone(currentZone);
       }
     });
+  }
+
+  /**
+   * Gère la sélection du type de point dans la popup
+   */
+  onPointTypeSelected(isPointOfInterest: boolean): void {
+    if (!this.pendingMarkerLayer || typeof window === 'undefined') return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+
+    // Sauvegarder le marker avec le type choisi
+    this.saveMarkerAsPoint(this.pendingMarkerLayer, L, isPointOfInterest);
+
+    // Réinitialiser l'état de la popup
+    this.showPointTypePopup = false;
+    this.pendingMarkerLayer = null;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Gère l'annulation de la popup de type de point
+   */
+  onPointTypePopupCancelled(): void {
+    // Supprimer le marker temporaire
+    if (this.pendingMarkerLayer && this.map) {
+      this.map.removeLayer(this.pendingMarkerLayer);
+    }
+
+    // Réinitialiser l'état de la popup
+    this.showPointTypePopup = false;
+    this.pendingMarkerLayer = null;
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {

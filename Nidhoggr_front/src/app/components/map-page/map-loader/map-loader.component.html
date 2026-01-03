@@ -9,3 +9,10 @@
     (close)="cancelDeleteGeometry()"
   ></app-delete-popup>
 }
+
+@if (showPointTypePopup) {
+  <app-point-type-popup
+    (pointTypeSelected)="onPointTypeSelected($event)"
+    (cancelled)="onPointTypePopupCancelled()"
+  ></app-point-type-popup>
+}

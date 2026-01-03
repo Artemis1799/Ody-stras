@@ -559,8 +559,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   applyPointsFiltersAndPagination(): void {
+    // Filtrer d'abord les points d'intérêt
+    const regularPoints = this.allPoints.filter(point => !point.isPointOfInterest);
+    
     // Filtrer les points selon la recherche
-    const filtered = this.filterPoints(this.allPoints, this.pointsSearchQuery);
+    const filtered = this.filterPoints(regularPoints, this.pointsSearchQuery);
     
     // Trier les points par date d'installation
     this.filteredPoints = this.sortPointsByInstalledDate(filtered);
