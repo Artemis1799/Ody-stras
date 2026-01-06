@@ -94,7 +94,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   allSecurityZones: SecurityZone[] = [];
   filteredSecurityZones: SecurityZone[] = [];
   paginatedSecurityZones: SecurityZone[] = [];
-  zonesSearchQuery = '';
+  selectedZoneType = 'all'; // Filtre par type d'équipement
+  availableZoneTypes: string[] = []; // Types d'équipements disponibles
   zonesCurrentPage = 1;
   zonesTotalPages = 1;
 
@@ -130,6 +131,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     // S'abonner aux changements de security zones
     this.securityZonesSubscription = this.securityZones$.subscribe((zones) => {
       this.allSecurityZones = zones;
+      // Mettre à jour les types disponibles dynamiquement
+      this.extractAvailableZoneTypes(zones);
       this.applyZonesFiltersAndPagination();
       this.cdr.markForCheck();
     });
@@ -233,6 +236,9 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         this.mapService.setPaths(paths);
         this.mapService.setSecurityZones(securityZones);
         this.emptyMessage = 'Aucun point pour cet événement';
+
+        // Extraire les types d'équipements disponibles pour le filtre
+        this.extractAvailableZoneTypes(securityZones);
 
         // Centrer la carte sur les points, areas et paths
         this.centerMapOnEventData(sortedPoints, areas, paths);
@@ -682,14 +688,25 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.mapService.selectSecurityZone(zone);
   }
 
-  onZonesSearchChange(): void {
+  onZoneTypeChange(type: string): void {
+    this.selectedZoneType = type;
     this.zonesCurrentPage = 1;
     this.applyZonesFiltersAndPagination();
   }
 
+  extractAvailableZoneTypes(zones: SecurityZone[]): void {
+    const typesSet = new Set<string>();
+    zones.forEach(zone => {
+      if (zone.equipment?.type) {
+        typesSet.add(zone.equipment.type);
+      }
+    });
+    this.availableZoneTypes = Array.from(typesSet).sort();
+  }
+
   applyZonesFiltersAndPagination(): void {
-    // Filtrer les zones
-    this.filteredSecurityZones = this.filterZones(this.allSecurityZones, this.zonesSearchQuery);
+    // Filtrer les zones par type
+    this.filteredSecurityZones = this.filterZonesByType(this.allSecurityZones, this.selectedZoneType);
 
     // Calculer la pagination
     this.zonesTotalPages = Math.max(1, Math.ceil(this.filteredSecurityZones.length / this.itemsPerPage));
@@ -705,18 +722,13 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.paginatedSecurityZones = this.filteredSecurityZones.slice(startIndex, endIndex);
   }
 
-  private filterZones(zones: SecurityZone[], query: string): SecurityZone[] {
-    if (!query || query.trim() === '') {
+  private filterZonesByType(zones: SecurityZone[], type: string): SecurityZone[] {
+    if (type === 'all' || !type) {
       return zones;
     }
 
-    const lowerQuery = query.toLowerCase().trim();
     return zones.filter((zone) => {
-      // Recherche dans l'équipement
-      if (zone.equipment?.type && zone.equipment.type.toLowerCase().includes(lowerQuery)) {
-        return true;
-      }
-      return false;
+      return zone.equipment?.type === type;
     });
   }
 

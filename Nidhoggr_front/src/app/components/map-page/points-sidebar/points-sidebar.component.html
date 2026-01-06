@@ -108,19 +108,20 @@
 
   <!-- Zones Tab Content -->
   @if (activeTab === 'zones') {
-    <!-- Zones search -->
+    <!-- Zones type filter -->
     @if (allSecurityZones.length > 0) {
-      <div class="points-search-container">
-        <input
-          type="text"
-          class="points-search-input"
-          placeholder="Rechercher une zone..."
-          [(ngModel)]="zonesSearchQuery"
-          (ngModelChange)="onZonesSearchChange()"
-        />
-        @if (zonesSearchQuery) {
-          <button class="clear-points-search" (click)="zonesSearchQuery = ''; onZonesSearchChange()">✕</button>
-        }
+      <div class="zone-type-filter">
+        <label class="filter-label">Filtrer par type</label>
+        <select 
+          class="type-filter-select"
+          [(ngModel)]="selectedZoneType"
+          (ngModelChange)="onZoneTypeChange($event)"
+        >
+          <option value="all">Tous les types</option>
+          @for (type of availableZoneTypes; track type) {
+            <option [value]="type">{{ type }}</option>
+          }
+        </select>
       </div>
     }
 

@@ -309,11 +309,47 @@ $danger: #f87171;
   }
 }
 
-// Points search container
-.points-search-container {
+// Points search container & Zone type filter
+.points-search-container,
+.zone-type-filter {
   position: relative;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid $border-primary;
+
+  .filter-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $text-muted;
+    margin-bottom: 0.5rem;
+  }
+
+  .type-filter-select {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background: $bg-elevated;
+    border: 1px solid $border-primary;
+    border-radius: 8px;
+    color: $text-primary;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+
+    &:focus {
+      outline: none;
+      border-color: $accent-primary;
+      background: $bg-card;
+      box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.1);
+    }
+
+    option {
+      background: $bg-elevated;
+      color: $text-primary;
+      padding: 0.5rem;
+    }
+  }
 
   .points-search-input {
     width: 100%;
