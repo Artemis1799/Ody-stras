@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace t5_back.Models;
 
-public class Event
+public class Event : IValidatableObject
 {
     [Key]
     public Guid UUID { get; set; }
@@ -23,6 +23,12 @@ public class Event
     
     [Required]
     public EventStatus Status { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "La durée minimale doit être supérieure à 0")]
+    public int MinDurationMinutes { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "La durée maximale doit être supérieure à 0")]
+    public int MaxDurationMinutes { get; set; }
     
     [JsonIgnore]
     public ICollection<Team>? Teams { get; set; }
@@ -38,4 +44,15 @@ public class Event
     
     [JsonIgnore]
     public ICollection<SecurityZone>? SecurityZones { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (MinDurationMinutes > MaxDurationMinutes)
+        {
+            yield return new ValidationResult(
+                "La durée minimale ne peut pas être supérieure à la durée maximale",
+                new[] { nameof(MinDurationMinutes), nameof(MaxDurationMinutes) }
+            );
+        }
+    }
 }
