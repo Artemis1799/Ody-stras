@@ -5,10 +5,12 @@ import { TeamService } from '../../../services/TeamService';
 import { EmployeeService } from '../../../services/EmployeeService';
 import { TeamEmployeeService } from '../../../services/TeamEmployeeService';
 import { EventService } from '../../../services/EventService';
+import { SecurityZoneService } from '../../../services/SecurityZoneService';
 import { Team } from '../../../models/teamModel';
 import { Employee } from '../../../models/employeeModel';
 import { TeamEmployee } from '../../../models/teamEmployeeModel';
 import { Event } from '../../../models/eventModel';
+import { SecurityZone } from '../../../models/securityZoneModel';
 import { forkJoin } from 'rxjs';
 import { TeamPopupComponent, TeamFormData } from '../../../shared/team-popup/team-popup';
 import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
@@ -32,7 +34,11 @@ export class TeamsComponent implements OnInit {
   private employeeService = inject(EmployeeService);
   private teamEmployeeService = inject(TeamEmployeeService);
   private eventService = inject(EventService);
+  private securityZoneService = inject(SecurityZoneService);
   private toastService = inject(ToastService);
+  
+  // Security zones signal
+  securityZones = signal<SecurityZone[]>([]);
   
   // Signals calculés pour combiner les données
   readonly teams = computed<TeamWithEmployees[]>(() => {
@@ -95,6 +101,7 @@ export class TeamsComponent implements OnInit {
     this.employeeService.load();
     this.teamEmployeeService.load();
     this.eventService.load();
+    this.securityZoneService.getAll().subscribe(zones => this.securityZones.set(zones));
   }
 
   openCreateDialog(): void {
