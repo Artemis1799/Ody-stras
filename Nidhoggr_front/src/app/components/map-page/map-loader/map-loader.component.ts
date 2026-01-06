@@ -475,23 +475,32 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   private onMarkerClick(point: Point): void {
-    // Ne rien faire si c'est un point d'intérêt
-    if (point.isPointOfInterest) {
-      return;
-    }
-
     // Fermer tous les popups ouverts
     this.closeAllPopups();
 
-    // Sélectionner le point (ouvrira automatiquement le drawer)
-    this.mapService.selectPoint(point);
+    // Traiter différemment selon le type de point
+    if (point.isPointOfInterest) {
+      // Pour un point d'intérêt, ouvrir le drawer spécifique
+      this.mapService.selectPointOfInterest(point);
+      
+      // Zoomer et centrer sur le point
+      if (this.map && point.latitude && point.longitude) {
+        this.map.setView([point.latitude, point.longitude], 18, {
+          animate: true,
+          duration: 0.5,
+        });
+      }
+    } else {
+      // Pour un point normal, ouvrir le drawer classique
+      this.mapService.selectPoint(point);
 
-    // Zoomer et centrer sur le point
-    if (this.map && point.latitude && point.longitude) {
-      this.map.setView([point.latitude, point.longitude], 18, {
-        animate: true,
-        duration: 0.5,
-      });
+      // Zoomer et centrer sur le point
+      if (this.map && point.latitude && point.longitude) {
+        this.map.setView([point.latitude, point.longitude], 18, {
+          animate: true,
+          duration: 0.5,
+        });
+      }
     }
   }
 
@@ -884,8 +893,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         // Rendre le marker interactif
         this.makeMarkerInteractive(layer, point);
 
-        // Ouvrir le drawer du point créé (sauf si c'est un point d'intérêt)
-        if (!point.isPointOfInterest) {
+        // Ouvrir le drawer approprié selon le type de point
+        if (point.isPointOfInterest) {
+          this.mapService.selectPointOfInterest(point);
+        } else {
           this.mapService.selectPoint(point);
         }
       },

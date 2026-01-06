@@ -1,0 +1,97 @@
+<p-drawer 
+  [(visible)]="visible"
+  position="right" 
+  [modal]="false" 
+  [closeOnEscape]="false" 
+  [dismissible]="false"
+  [closable]="false"
+>
+  <ng-template #header class="drawer-header-template">
+    <div class="drawer-header">
+      <div class="header-content">
+        <h3>Point d'intérêt</h3>
+        <span class="point-status interest">!</span>
+      </div>
+      <button 
+        type="button" 
+        class="close-button"
+        (click)="closeDrawer()"
+        title="Fermer"
+      >✕</button>
+    </div>
+  </ng-template>
+
+  <ng-container *ngIf="selectedPoint" class="drawer-content">
+    <div class="unified-section">
+      <!-- Nom du point -->
+      <div class="info-row">
+        <div class="info-item">
+          <span class="info-label">Nom</span>
+          <span class="info-value">
+            {{ selectedPoint.name || 'Point d\'intérêt' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Coordonnées -->
+      <div class="info-row">
+        <div class="info-item">
+          <span class="info-label">Position</span>
+          <span class="info-value" *ngIf="selectedPoint.latitude && selectedPoint.longitude">
+            {{ selectedPoint.latitude.toFixed(6) }}, {{ selectedPoint.longitude.toFixed(6) }}
+          </span>
+          <span class="info-value empty" *ngIf="!selectedPoint.latitude || !selectedPoint.longitude">
+            Non définie
+          </span>
+        </div>
+      </div>
+
+      <!-- Commentaire (éditable) -->
+      <div class="form-row">
+        <label for="comment">Commentaire</label>
+        <input 
+          id="comment" 
+          type="text" 
+          pInputText 
+          [(ngModel)]="editedComment"
+          placeholder="Ajouter un commentaire..."
+          class="w-full input-comment"
+        />
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #footer>
+    <div class="drawer-footer">
+      <div class="main-actions">
+        <button 
+          type="button" 
+          class="btn btn-danger"
+          (click)="confirmDeletePoint()"
+        >
+          <span class="pi pi-trash"></span>
+          Supprimer
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary"
+          [disabled]="!hasChanges()"
+          (click)="saveChanges()"
+        >
+          <span class="pi pi-save"></span>
+          Sauvegarder
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</p-drawer>
+
+@if (showDeleteConfirm && selectedPoint) {
+  <app-delete-popup
+    [title]="'Supprimer le point d\'intérêt'"
+    [itemName]="selectedPoint.name || 'Point d\'intérêt'"
+    [warningMessage]="'Cette action est irréversible. Le point d\'intérêt et toutes ses photos seront supprimés.'"
+    (confirm)="deletePoint()"
+    (close)="cancelDeletePoint()"
+  ></app-delete-popup>
+}

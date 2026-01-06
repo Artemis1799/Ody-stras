@@ -34,7 +34,7 @@
         >
           <span class="tab-icon">📍</span>
           Points
-          <span class="tab-count">{{ allPoints.length }}</span>
+          <span class="tab-count">{{ getRegularPointsCount() }}</span>
         </button>
         <button 
           class="tab-btn" 
@@ -51,7 +51,7 @@
     <!-- Points Tab Content -->
     @if (activeTab === 'points') {
       <!-- Points search -->
-      @if (allPoints.length > 0) {
+      @if (getRegularPointsCount() > 0) {
         <div class="points-search-container">
           <input
             type="text"

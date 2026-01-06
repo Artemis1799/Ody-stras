@@ -23,6 +23,7 @@ export class MapService {
   private mapInstanceSubject = new BehaviorSubject<any>(null);
   private selectedPointSubject = new BehaviorSubject<Point | null>(null);
   private selectedPointIndexSubject = new BehaviorSubject<number | null>(null);
+  private selectedPointOfInterestSubject = new BehaviorSubject<Point | null>(null);
   private reloadPointsSubject = new Subject<void>();
   private selectedEventSubject = new BehaviorSubject<Event | null>(null);
   private reloadEventSubject = new Subject<void>();
@@ -42,6 +43,7 @@ export class MapService {
   mapInstance$: Observable<any> = this.mapInstanceSubject.asObservable();
   selectedPoint$: Observable<Point | null> = this.selectedPointSubject.asObservable();
   selectedPointIndex$: Observable<number | null> = this.selectedPointIndexSubject.asObservable();
+  selectedPointOfInterest$: Observable<Point | null> = this.selectedPointOfInterestSubject.asObservable();
   reloadPoints$: Observable<void> = this.reloadPointsSubject.asObservable();
   selectedEvent$: Observable<Event | null> = this.selectedEventSubject.asObservable();
   reloadEvent$: Observable<void> = this.reloadEventSubject.asObservable();
@@ -58,6 +60,10 @@ export class MapService {
     this.pointsSubject.next(points);
   }
 
+  getPoints(): Point[] {
+    return this.pointsSubject.value;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setMapInstance(map: any): void {
     this.mapInstanceSubject.next(map);
@@ -66,9 +72,21 @@ export class MapService {
   selectPoint(point: Point | null, index?: number): void {
     if (point) {
       this.timelineVisibleSubject.next(false);
+      // Fermer le drawer des points d'intérêt si un point normal est sélectionné
+      this.selectedPointOfInterestSubject.next(null);
     }
     this.selectedPointSubject.next(point);
     this.selectedPointIndexSubject.next(index ?? null);
+  }
+
+  selectPointOfInterest(point: Point | null): void {
+    if (point) {
+      this.timelineVisibleSubject.next(false);
+      // Fermer le drawer des points normaux si un point d'intérêt est sélectionné
+      this.selectedPointSubject.next(null);
+      this.selectedPointIndexSubject.next(null);
+    }
+    this.selectedPointOfInterestSubject.next(point);
   }
 
   getSelectedPointIndex(): number | null {

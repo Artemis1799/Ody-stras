@@ -774,4 +774,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     const removal = zone.removalDate ? new Date(zone.removalDate).toLocaleDateString('fr-FR') : '?';
     return `${install} - ${removal}`;
   }
+
+  // ============= Point Count Methods =============
+  
+  getRegularPointsCount(): number {
+    // Compter uniquement les points qui ne sont pas des points d'intérêt
+    return this.allPoints.filter(point => !point.isPointOfInterest).length;
+  }
 }
