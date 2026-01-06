@@ -80,6 +80,46 @@
 				</div>
 			</div>
 			
+			<div class="form-row">
+				<div class="form-group">
+					<label for="minDuration">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="12" r="10"></circle>
+							<polyline points="12 6 12 12 16 14"></polyline>
+						</svg>
+						Durée min (minutes)
+					</label>
+					<input 
+						type="number" 
+						id="minDuration" 
+						[(ngModel)]="presenter.formData.minDuration" 
+						name="minDuration"
+						placeholder="Ex: 30"
+						min="0"
+						[class.has-value]="presenter.formData.minDuration !== null"
+					/>
+				</div>
+				
+				<div class="form-group">
+					<label for="maxDuration">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="12" r="10"></circle>
+							<polyline points="12 6 12 12 16 14"></polyline>
+						</svg>
+						Durée max (minutes)
+					</label>
+					<input 
+						type="number" 
+						id="maxDuration" 
+						[(ngModel)]="presenter.formData.maxDuration" 
+						name="maxDuration"
+						placeholder="Ex: 120"
+						min="0"
+						[class.has-value]="presenter.formData.maxDuration !== null"
+					/>
+				</div>
+			</div>
+			
 			<div class="form-group">
 				<label for="status">
 					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

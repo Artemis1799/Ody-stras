@@ -7,6 +7,8 @@ export interface EventFormData {
   startDate: string;
   endDate: string;
   status: EventStatus;
+  minDuration: number | null;
+  maxDuration: number | null;
 }
 
 @Injectable()
@@ -15,7 +17,9 @@ export class EventCreatePopupPresenter {
     title: '',
     startDate: '',
     endDate: '',
-    status: EventStatus.ToOrganize
+    status: EventStatus.ToOrganize,
+    minDuration: null,
+    maxDuration: null
   };
 
   isSubmitting = false;
@@ -36,7 +40,9 @@ export class EventCreatePopupPresenter {
       title: '',
       startDate: '',
       endDate: '',
-      status: EventStatus.ToOrganize
+      status: EventStatus.ToOrganize,
+      minDuration: null,
+      maxDuration: null
     };
     this.isSubmitting = false;
     this.errorMessage = '';
@@ -54,6 +60,25 @@ export class EventCreatePopupPresenter {
       const endDate = new Date(this.formData.endDate);
       if (endDate < startDate) {
         this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
+        return false;
+      }
+    }
+    
+    // Vérifier que les durées sont positives
+    if (this.formData.minDuration !== null && this.formData.minDuration < 0) {
+      this.errorMessage = 'La durée minimale doit être supérieure ou égale à 0.';
+      return false;
+    }
+    
+    if (this.formData.maxDuration !== null && this.formData.maxDuration < 0) {
+      this.errorMessage = 'La durée maximale doit être supérieure ou égale à 0.';
+      return false;
+    }
+    
+    // Vérifier que la durée max est supérieure à la durée min
+    if (this.formData.minDuration !== null && this.formData.maxDuration !== null) {
+      if (this.formData.maxDuration < this.formData.minDuration) {
+        this.errorMessage = 'La durée maximale ne peut pas être inférieure à la durée minimale.';
         return false;
       }
     }
@@ -77,7 +102,9 @@ export class EventCreatePopupPresenter {
         title: this.formData.title.trim(),
         startDate: this.formData.startDate ? new Date(this.formData.startDate) : new Date(),
         endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date(),
-        status: this.formData.status
+        status: this.formData.status,
+        minDuration: this.formData.minDuration ?? undefined,
+        maxDuration: this.formData.maxDuration ?? undefined
       };
 
       this.eventService.create(event).subscribe({
