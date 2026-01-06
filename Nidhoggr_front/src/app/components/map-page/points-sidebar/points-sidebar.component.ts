@@ -42,6 +42,8 @@ import { TimelineDrawerComponent } from '../../../shared/timeline-drawer/timelin
   styleUrls: ['./points-sidebar.component.scss'],
 })
 export class PointsSidebarComponent implements OnInit, OnDestroy {
+  isCollapsed = false;
+
   // Observable pour la liste des points - utilise directement le MapService pour la réactivité
   points$!: Observable<Point[]>;
   securityZones$!: Observable<SecurityZone[]>;
@@ -660,6 +662,12 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     }
 
     return pages;
+  }
+
+  // ============= Sidebar Toggle =============
+
+  toggleSidebar(): void {
+    this.isCollapsed = !this.isCollapsed;
   }
 
   // ============= Security Zones Methods =============

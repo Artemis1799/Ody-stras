@@ -1,63 +1,66 @@
-<aside class="sidebar">
-  <!-- Event selector autocomplete -->
-  <div class="event-selector">
-    <p-autoComplete
-      [(ngModel)]="selectedEventName"
-      [suggestions]="filteredEvents"
-      (completeMethod)="filterEvents($event)"
-      (onSelect)="onEventSelect($event)"
-      placeholder="Sélectionner un événement..."
-      [dropdown]="true"
-      [forceSelection]="true"
-      [showEmptyMessage]="true"
-      emptyMessage="Aucun événement trouvé"
-    />
-  </div>
-
-  <!-- Search results autocomplete -->
-  <div class="search-results" *ngIf="searchResults.length > 0">
-    <div *ngFor="let result of searchResults" class="result-item" (click)="goToLocation(result)">
-      {{ result.display_name }}
+<div class="sidebar-wrapper" [class.collapsed]="isCollapsed">
+  <aside class="sidebar" [class.collapsed]="isCollapsed">
+    <!-- Sidebar content (hidden when collapsed) -->
+    <div class="sidebar-content" *ngIf="!isCollapsed">
+    <!-- Event selector autocomplete -->
+    <div class="event-selector">
+      <p-autoComplete
+        [(ngModel)]="selectedEventName"
+        [suggestions]="filteredEvents"
+        (completeMethod)="filterEvents($event)"
+        (onSelect)="onEventSelect($event)"
+        placeholder="Sélectionner un événement..."
+        [dropdown]="true"
+        [forceSelection]="true"
+        [showEmptyMessage]="true"
+        emptyMessage="Aucun événement trouvé"
+      />
     </div>
-  </div>
 
-  <!-- Tabs: Points / Zones de sécurité -->
-  @if (selectedEvent) {
-    <div class="sidebar-tabs">
-      <button 
-        class="tab-btn" 
-        [class.active]="activeTab === 'points'"
-        (click)="switchTab('points')"
-      >
-        <span class="tab-icon">📍</span>
-        Points
-        <span class="tab-count">{{ allPoints.length }}</span>
-      </button>
-      <button 
-        class="tab-btn" 
-        [class.active]="activeTab === 'zones'"
-        (click)="switchTab('zones')"
-      >
-        <span class="tab-icon">🛡️</span>
-        Zones
-        <span class="tab-count">{{ allSecurityZones.length }}</span>
-      </button>
+    <!-- Search results autocomplete -->
+    <div class="search-results" *ngIf="searchResults.length > 0">
+      <div *ngFor="let result of searchResults" class="result-item" (click)="goToLocation(result)">
+        {{ result.display_name }}
+      </div>
     </div>
-  }
 
-  <!-- Points Tab Content -->
-  @if (activeTab === 'points') {
-    <!-- Points search -->
-    @if (allPoints.length > 0) {
-      <div class="points-search-container">
-        <input
-          type="text"
-          class="points-search-input"
-          placeholder="Rechercher un point..."
-          [(ngModel)]="pointsSearchQuery"
-          (ngModelChange)="onPointsSearchChange()"
-        />
-        @if (pointsSearchQuery) {
+    <!-- Tabs: Points / Zones de sécurité -->
+    @if (selectedEvent) {
+      <div class="sidebar-tabs">
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'points'"
+          (click)="switchTab('points')"
+        >
+          <span class="tab-icon">📍</span>
+          Points
+          <span class="tab-count">{{ allPoints.length }}</span>
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'zones'"
+          (click)="switchTab('zones')"
+        >
+          <span class="tab-icon">🛡️</span>
+          Zones
+          <span class="tab-count">{{ allSecurityZones.length }}</span>
+        </button>
+      </div>
+    }
+
+    <!-- Points Tab Content -->
+    @if (activeTab === 'points') {
+      <!-- Points search -->
+      @if (allPoints.length > 0) {
+        <div class="points-search-container">
+          <input
+            type="text"
+            class="points-search-input"
+            placeholder="Rechercher un point..."
+            [(ngModel)]="pointsSearchQuery"
+            (ngModelChange)="onPointsSearchChange()"
+          />
+          @if (pointsSearchQuery) {
           <button class="clear-points-search" (click)="pointsSearchQuery = ''; onPointsSearchChange()">✕</button>
         }
       </div>
@@ -204,7 +207,18 @@
     </button>
     <button class="import-btn" (click)="openImport()">Importer</button>
   </div>
-</aside>
+    </div>
+  </aside>
+
+  <!-- Toggle button (outside sidebar) -->
+  <button class="toggle-btn" (click)="toggleSidebar()" [attr.aria-label]="isCollapsed ? 'Ouvrir le menu' : 'Fermer le menu'">
+    <span class="toggle-icon" [class.open]="!isCollapsed">
+      <span></span>
+      <span></span>
+      <span></span>
+    </span>
+  </button>
+</div>
 
 @if (showImportPopup) {
 <app-import-popup (close)="closeImport()"></app-import-popup>

@@ -163,6 +163,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     this.initialComment = this.editedComment;
 
     this.visible = true;
+    this.cdr.detectChanges();
   }
 
   /**
@@ -281,7 +282,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
   }
 
   canSave(): boolean {
-    return this.installationDate !== null && this.removalDate !== null && this.quantity > 0;
+    return this.installationDate !== null && this.removalDate !== null && this.quantity > 0 && this.hasChanges();
   }
 
   saveChanges(): void {

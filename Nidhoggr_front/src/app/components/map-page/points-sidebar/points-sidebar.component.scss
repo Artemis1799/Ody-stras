@@ -24,6 +24,24 @@ $border-subtle: #21262d;
 
 $danger: #f87171;
 
+// Sidebar wrapper to contain sidebar and toggle button
+.sidebar-wrapper {
+  display: flex;
+  height: 100%;
+  position: relative;
+  
+  &.collapsed {
+    .sidebar {
+      width: 0;
+      border-right: none;
+      
+      &::before {
+        display: none;
+      }
+    }
+  }
+}
+
 .sidebar {
   width: 320px;
   padding: 0;
@@ -33,7 +51,9 @@ $danger: #f87171;
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
+  transition: width 0.3s ease;
   
   // Subtle shimmer accent at top
   &::before {
@@ -54,6 +74,70 @@ $danger: #f87171;
     color: $text-primary;
     letter-spacing: -0.01em;
   }
+}
+
+// Toggle button (burger) - positioned outside sidebar
+.toggle-btn {
+  position: fixed;
+  top: 4.5rem; // Below navbar
+  left: 325px; // Position right after sidebar (320px + 5px gap)
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: $bg-elevated;
+  border: 1px solid $border-primary;
+  cursor: pointer;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.2s ease, left 0.3s ease;
+  
+  .collapsed & {
+    left: 0.5rem;
+  }
+  
+  &:hover {
+    background: $bg-hover;
+  }
+}
+
+.toggle-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 18px;
+  
+  span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: $text-secondary;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+  
+  // X icon when sidebar is open
+  &.open {
+    span:nth-child(1) {
+      transform: translateY(6px) rotate(45deg);
+    }
+    span:nth-child(2) {
+      opacity: 0;
+    }
+    span:nth-child(3) {
+      transform: translateY(-6px) rotate(-45deg);
+    }
+  }
+}
+
+// Sidebar content wrapper
+.sidebar-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
 // Search box

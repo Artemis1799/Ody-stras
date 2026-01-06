@@ -246,8 +246,14 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   proceedToDrawing(): void {
     if (!this.selectedPoint || !this.selectedEquipment) return;
 
-    // Lancer le mode dessin avec le point source et l'équipement sélectionné
-    this.mapService.startDrawingMode(this.selectedPoint, this.selectedEquipment);
+    // Créer une copie du point avec le commentaire édité
+    const pointWithComment = {
+      ...this.selectedPoint,
+      comment: this.editedComment
+    };
+
+    // Lancer le mode dessin avec le point source (incluant le commentaire édité) et l'équipement sélectionné
+    this.mapService.startDrawingMode(pointWithComment, this.selectedEquipment);
     
     // Le drawer se ferme automatiquement via la subscription au selectedPoint$
     this.toastService.showInfo(

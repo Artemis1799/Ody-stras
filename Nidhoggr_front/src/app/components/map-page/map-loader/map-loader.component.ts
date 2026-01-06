@@ -104,7 +104,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         minZoom: 13,  
         maxZoom: 18,    
         maxBounds: bounds,           
-        maxBoundsViscosity: 1.0      
+        maxBoundsViscosity: 1.0,
+        zoomControl: false  
       });
 
       // Partager l'instance de map avec le service
@@ -221,6 +222,13 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // S'abonner au mode dessin pour les SecurityZones
       this.drawingModeSubscription = this.mapService.drawingMode$.subscribe((mode) => {
         this.handleDrawingModeChange(mode);
+      });
+
+      // S'abonner aux SecurityZones pour les afficher sur la carte
+      this.securityZonesSubscription = this.mapService.securityZones$.subscribe((zones) => {
+        zones.forEach(zone => {
+          this.addSecurityZoneToMap(zone);
+        });
       });
 
       // Forcer Leaflet à recalculer la taille
@@ -735,6 +743,51 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       this.makeLayerInteractive(layer);
     } catch (error) {
       console.error('Erreur lors de l\'ajout du path à la carte:', error);
+    }
+  }
+
+  /**
+   * Ajoute une SecurityZone (polyline) à la carte
+   */
+  private addSecurityZoneToMap(zone: SecurityZone): void {
+    if (!this.map || !this.drawnItems || typeof window === 'undefined') return;
+
+    // Éviter de dupliquer si déjà présente
+    if (this.geometryLayers.has(zone.uuid)) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+
+    try {
+      const geoJson = typeof zone.geoJson === 'string' ? JSON.parse(zone.geoJson) : zone.geoJson;
+
+      if (!geoJson || !geoJson.coordinates) {
+        console.warn('GeoJSON invalide pour la security zone:', zone.uuid);
+        return;
+      }
+
+      // Convertir les coordonnées [lng, lat] en [lat, lng] pour Leaflet
+      const lineCoords = geoJson.coordinates.map((c: [number, number]) => [c[1], c[0]]);
+
+      const layer = L.polyline(lineCoords, {
+        color: '#ff6b6b',
+        weight: 4
+      });
+
+      // Associer l'UUID à la couche
+      layer.securityZoneUuid = zone.uuid;
+      layer.shapeType = 'securityZone';
+
+      // Ajouter au groupe drawnItems
+      this.drawnItems.addLayer(layer);
+
+      // Stocker dans la map
+      this.geometryLayers.set(zone.uuid, layer);
+
+      // Rendre interactive (avec comportement spécifique aux SecurityZones)
+      this.makeSecurityZoneInteractive(layer, zone);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de la security zone à la carte:', error);
     }
   }
 
