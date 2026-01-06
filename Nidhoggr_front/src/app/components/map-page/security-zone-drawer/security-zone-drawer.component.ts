@@ -4,9 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { Drawer } from 'primeng/drawer';
 import { DatePicker } from 'primeng/datepicker';
 import { InputText } from 'primeng/inputtext';
+import { AutoComplete, AutoCompleteCompleteEvent, AutoCompleteSelectEvent } from 'primeng/autocomplete';
 import { MapService } from '../../../services/MapService';
 import { SecurityZoneService } from '../../../services/SecurityZoneService';
 import { EquipmentService } from '../../../services/EquipmentService';
+import { TeamService } from '../../../services/TeamService';
 import { SecurityZone } from '../../../models/securityZoneModel';
 import { Equipment } from '../../../models/equipmentModel';
 import { Subscription } from 'rxjs';
@@ -23,6 +25,7 @@ import { PhotoViewer } from '../../../shared/photo-viewer/photo-viewer';
     Drawer,
     DatePicker,
     InputText,
+    AutoComplete,
     DeletePopupComponent,
     PhotoViewer
   ],
@@ -56,17 +59,34 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
   // Gestion des photos
   showPhotoViewer = false;
 
+  // AutoComplete pour équipe de pose
+  selectedInstallationTeamName = '';
+  filteredInstallationTeams: string[] = [];
+  selectedInstallationTeamId: string | null = null;
+
+  // AutoComplete pour équipe de dépose
+  selectedRemovalTeamName = '';
+  filteredRemovalTeams: string[] = [];
+  selectedRemovalTeamId: string | null = null;
+
   private selectedZoneSubscription?: Subscription;
 
   constructor(
     private mapService: MapService,
     private securityZoneService: SecurityZoneService,
     private equipmentService: EquipmentService,
+    private teamService: TeamService,
     private cdr: ChangeDetectorRef,
     private toastService: ToastService
   ) {}
 
+  get teams() {
+    return this.teamService.teams();
+  }
+
   ngOnInit(): void {
+    this.loadTeams();
+    
     // S'abonner aux changements de SecurityZone sélectionnée
     this.selectedZoneSubscription = this.mapService.selectedSecurityZone$.subscribe(zone => {
       if (zone && zone.uuid !== this.selectedZone?.uuid) {
@@ -83,6 +103,10 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     this.selectedZoneSubscription?.unsubscribe();
   }
 
+  loadTeams(): void {
+    this.teamService.load();
+  }
+
   openDrawer(zone: SecurityZone): void {
     // Fermer le drawer des points s'il est ouvert
     this.mapService.selectPoint(null);
@@ -93,6 +117,24 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     this.installationDate = zone.installationDate ? new Date(zone.installationDate) : null;
     this.removalDate = zone.removalDate ? new Date(zone.removalDate) : null;
     this.editedComment = zone.comment || '';
+
+    // Charger l'équipe de pose actuelle si présente
+    this.selectedInstallationTeamId = zone.installationTeamId || null;
+    if (zone.installationTeamId) {
+      const currentTeam = this.teams.find(t => t.uuid === zone.installationTeamId);
+      this.selectedInstallationTeamName = currentTeam ? currentTeam.teamName : '';
+    } else {
+      this.selectedInstallationTeamName = '';
+    }
+
+    // Charger l'équipe de dépose actuelle si présente
+    this.selectedRemovalTeamId = zone.removalTeamId || null;
+    if (zone.removalTeamId) {
+      const currentTeam = this.teams.find(t => t.uuid === zone.removalTeamId);
+      this.selectedRemovalTeamName = currentTeam ? currentTeam.teamName : '';
+    } else {
+      this.selectedRemovalTeamName = '';
+    }
 
     // Calculer la longueur de la géométrie
     this.geometryLength = this.calculateGeometryLength(zone.geoJson);
@@ -232,8 +274,10 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     const removalDateChanged = this.removalDate?.getTime() !== this.initialRemovalDate?.getTime();
     const quantityChanged = this.quantity !== this.initialQuantity;
     const commentChanged = this.editedComment !== this.initialComment;
+    const installationTeamChanged = this.selectedInstallationTeamId !== this.selectedZone?.installationTeamId;
+    const removalTeamChanged = this.selectedRemovalTeamId !== this.selectedZone?.removalTeamId;
     
-    return installDateChanged || removalDateChanged || quantityChanged || commentChanged;
+    return installDateChanged || removalDateChanged || quantityChanged || commentChanged || installationTeamChanged || removalTeamChanged;
   }
 
   canSave(): boolean {
@@ -251,20 +295,96 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
       comment: this.editedComment || undefined
     };
 
+    // Déterminer si les équipes ont changé
+    const installationTeamChanged = this.selectedInstallationTeamId !== this.selectedZone.installationTeamId;
+    const removalTeamChanged = this.selectedRemovalTeamId !== this.selectedZone.removalTeamId;
+
     this.securityZoneService.update(this.selectedZone.uuid, updatedZone).subscribe({
       next: (savedZone) => {
-        // Mettre à jour le MapService
-        this.mapService.updateSecurityZone(savedZone);
-        
-        this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
-        
-        // Fermer le drawer
-        this.closeDrawer();
+        // Gérer les changements d'équipes en séquence
+        this.handleTeamAssignments(savedZone, installationTeamChanged, removalTeamChanged);
       },
       error: () => {
         this.toastService.showError('Erreur', 'Impossible de modifier la zone de sécurité');
       }
     });
+  }
+
+  private handleTeamAssignments(zone: SecurityZone, installationTeamChanged: boolean, removalTeamChanged: boolean): void {
+    // Si aucun changement d'équipe, on termine
+    if (!installationTeamChanged && !removalTeamChanged) {
+      this.mapService.updateSecurityZone(zone);
+      this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+      this.closeDrawer();
+      return;
+    }
+
+    // Gérer l'équipe de pose d'abord
+    if (installationTeamChanged) {
+      if (this.selectedInstallationTeamId) {
+        this.securityZoneService.assignInstallationTeam(zone.uuid, this.selectedInstallationTeamId).subscribe({
+          next: (updatedZone) => {
+            if (removalTeamChanged) {
+              this.handleRemovalTeamAssignment(updatedZone);
+            } else {
+              this.mapService.updateSecurityZone(updatedZone);
+              this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+              this.closeDrawer();
+            }
+          },
+          error: () => {
+            this.toastService.showError('Erreur', 'Impossible d\'assigner l\'équipe de pose');
+            this.closeDrawer();
+          }
+        });
+      } else {
+        this.securityZoneService.unassignInstallationTeam(zone.uuid).subscribe({
+          next: (updatedZone) => {
+            if (removalTeamChanged) {
+              this.handleRemovalTeamAssignment(updatedZone);
+            } else {
+              this.mapService.updateSecurityZone(updatedZone);
+              this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+              this.closeDrawer();
+            }
+          },
+          error: () => {
+            this.toastService.showError('Erreur', 'Impossible de retirer l\'équipe de pose');
+            this.closeDrawer();
+          }
+        });
+      }
+    } else if (removalTeamChanged) {
+      this.handleRemovalTeamAssignment(zone);
+    }
+  }
+
+  private handleRemovalTeamAssignment(zone: SecurityZone): void {
+    if (this.selectedRemovalTeamId) {
+      this.securityZoneService.assignRemovalTeam(zone.uuid, this.selectedRemovalTeamId).subscribe({
+        next: (finalZone) => {
+          this.mapService.updateSecurityZone(finalZone);
+          this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+          this.closeDrawer();
+        },
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible d\'assigner l\'équipe de dépose');
+          this.closeDrawer();
+        }
+      });
+    } else {
+      this.securityZoneService.unassignRemovalTeam(zone.uuid).subscribe({
+        next: (finalZone) => {
+          this.mapService.updateSecurityZone(finalZone);
+          this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+          this.closeDrawer();
+        },
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible de retirer l\'équipe de dépose');
+          this.closeDrawer();
+        }
+      });
+    }
   }
 
   // Gestion des photos
@@ -279,6 +399,82 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
   getEquipmentDisplayName(): string {
     if (!this.equipment) return 'Non défini';
     return this.equipment.type || 'Équipement sans type';
+  }
+
+  // Méthode pour filtrer les équipes de pose (AutoComplete)
+  filterInstallationTeams(event: AutoCompleteCompleteEvent): void {
+    const query = event.query.toLowerCase();
+    const teamNames = this.teams.map(t => t.teamName);
+
+    // Ajouter l'option "Aucune" en premier
+    const aucuneOption = 'Aucune';
+
+    if (query) {
+      const filtered = teamNames.filter(name =>
+        name.toLowerCase().includes(query)
+      );
+      // Ajouter "Aucune" si la recherche correspond
+      if (aucuneOption.toLowerCase().includes(query)) {
+        this.filteredInstallationTeams = [aucuneOption, ...filtered];
+      } else {
+        this.filteredInstallationTeams = filtered;
+      }
+    } else {
+      this.filteredInstallationTeams = [aucuneOption, ...teamNames];
+    }
+  }
+
+  // Méthode appelée lors de la sélection d'une équipe de pose (AutoComplete)
+  onInstallationTeamSelect(event: AutoCompleteSelectEvent): void {
+    const selectedName = event.value;
+
+    // Si "Aucune" est sélectionné, on met l'équipe à null
+    if (selectedName === 'Aucune') {
+      this.selectedInstallationTeamId = null;
+      this.selectedInstallationTeamName = 'Aucune';
+      return;
+    }
+
+    const newTeam = this.teams.find(t => t.teamName === selectedName) || null;
+    this.selectedInstallationTeamId = newTeam?.uuid || null;
+  }
+
+  // Méthode pour filtrer les équipes de dépose (AutoComplete)
+  filterRemovalTeams(event: AutoCompleteCompleteEvent): void {
+    const query = event.query.toLowerCase();
+    const teamNames = this.teams.map(t => t.teamName);
+
+    // Ajouter l'option "Aucune" en premier
+    const aucuneOption = 'Aucune';
+
+    if (query) {
+      const filtered = teamNames.filter(name =>
+        name.toLowerCase().includes(query)
+      );
+      // Ajouter "Aucune" si la recherche correspond
+      if (aucuneOption.toLowerCase().includes(query)) {
+        this.filteredRemovalTeams = [aucuneOption, ...filtered];
+      } else {
+        this.filteredRemovalTeams = filtered;
+      }
+    } else {
+      this.filteredRemovalTeams = [aucuneOption, ...teamNames];
+    }
+  }
+
+  // Méthode appelée lors de la sélection d'une équipe de dépose (AutoComplete)
+  onRemovalTeamSelect(event: AutoCompleteSelectEvent): void {
+    const selectedName = event.value;
+
+    // Si "Aucune" est sélectionné, on met l'équipe à null
+    if (selectedName === 'Aucune') {
+      this.selectedRemovalTeamId = null;
+      this.selectedRemovalTeamName = 'Aucune';
+      return;
+    }
+
+    const newTeam = this.teams.find(t => t.teamName === selectedName) || null;
+    this.selectedRemovalTeamId = newTeam?.uuid || null;
   }
 
   confirmDeleteZone(): void {

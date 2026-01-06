@@ -84,3 +84,237 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
     padding: 0.875rem 1rem;
   }
 }
+
+// ======================================
+// Security Zone Drawer - Global Styles
+// ======================================
+// Ces styles doivent être globaux car les overlays PrimeNG sont rendus en dehors du composant
+
+// Variables
+$drawer-bg-primary: #0d1117;
+$drawer-bg-secondary: #161b22;
+$drawer-bg-elevated: #1a2028;
+$drawer-bg-hover: #20272f;
+$drawer-accent-primary: #2ad783;
+$drawer-accent-secondary: #22c55e;
+$drawer-text-primary: #ffffff;
+$drawer-text-secondary: #c9d1d9;
+$drawer-text-disabled: #6e7681;
+$drawer-border-primary: #30363d;
+$drawer-border-hover: #484f58;
+
+// DatePicker Input & Button dans le drawer
+.p-drawer {
+  .p-datepicker {
+    width: 100%;
+    display: flex;
+    
+    .p-inputtext {
+      flex: 1;
+      padding: 0.875rem 1rem !important;
+      border: 1px solid $drawer-border-primary !important;
+      border-radius: 10px 0 0 10px !important;
+      font-size: 0.9375rem !important;
+      transition: all 0.25s ease !important;
+      background-color: $drawer-bg-primary !important;
+      color: $drawer-text-secondary !important;
+      
+      &::placeholder {
+        color: $drawer-text-disabled !important;
+      }
+      
+      &:hover {
+        border-color: $drawer-border-hover !important;
+      }
+      
+      &:focus {
+        border-color: $drawer-accent-primary !important;
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.15) !important;
+        background: $drawer-bg-secondary !important;
+      }
+    }
+    
+    .p-datepicker-dropdown {
+      background: $drawer-border-primary !important;
+      border: 1px solid $drawer-border-primary !important;
+      border-left: none !important;
+      color: $drawer-text-secondary !important;
+      border-radius: 0 10px 10px 0 !important;
+      transition: all 0.2s ease !important;
+      
+      &:hover {
+        background: linear-gradient(135deg, $drawer-accent-primary 0%, $drawer-accent-secondary 100%) !important;
+        border-color: $drawer-accent-primary !important;
+        color: $drawer-bg-primary !important;
+      }
+    }
+  }
+  
+  // AutoComplete dans le drawer
+  .p-autocomplete {
+    width: 100%;
+    display: flex;
+    
+    .p-autocomplete-input {
+      flex: 1;
+      padding: 0.875rem 1rem !important;
+      border: 1px solid $drawer-border-primary !important;
+      border-radius: 10px 0 0 10px !important;
+      font-size: 0.9375rem !important;
+      transition: all 0.25s ease !important;
+      background-color: $drawer-bg-primary !important;
+      color: $drawer-text-secondary !important;
+      
+      &::placeholder {
+        color: $drawer-text-disabled !important;
+      }
+      
+      &:hover {
+        border-color: $drawer-border-hover !important;
+      }
+      
+      &:focus {
+        border-color: $drawer-accent-primary !important;
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.15) !important;
+        background: $drawer-bg-secondary !important;
+      }
+    }
+    
+    .p-autocomplete-dropdown {
+      background: $drawer-border-primary !important;
+      border: 1px solid $drawer-border-primary !important;
+      border-left: none !important;
+      color: $drawer-text-secondary !important;
+      border-radius: 0 10px 10px 0 !important;
+      transition: all 0.2s ease !important;
+      
+      &:hover {
+        background: linear-gradient(135deg, $drawer-accent-primary 0%, $drawer-accent-secondary 100%) !important;
+        border-color: $drawer-accent-primary !important;
+        color: $drawer-bg-primary !important;
+      }
+    }
+  }
+}
+
+// DatePicker Panel (overlay global)
+.p-datepicker-panel {
+  background-color: $drawer-bg-elevated !important;
+  border: 1px solid $drawer-border-primary !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 12px !important;
+  
+  .p-datepicker-calendar-container {
+    .p-datepicker-calendar {
+      th {
+        color: $drawer-text-disabled !important;
+      }
+      
+      td {
+        span, button {
+          color: $drawer-text-secondary !important;
+          border-radius: 8px !important;
+          transition: all 0.15s ease !important;
+          
+          &:hover {
+            background-color: rgba(42, 215, 131, 0.1) !important;
+            color: $drawer-text-primary !important;
+          }
+        }
+        
+        &.p-datepicker-today span,
+        &.p-datepicker-today button {
+          background-color: rgba(42, 215, 131, 0.2) !important;
+          color: $drawer-accent-primary !important;
+        }
+      }
+    }
+  }
+  
+  .p-datepicker-header {
+    background: transparent !important;
+    border-bottom: 1px solid $drawer-border-primary !important;
+    color: $drawer-text-primary !important;
+    
+    button, .p-datepicker-prev, .p-datepicker-next {
+      color: $drawer-text-secondary !important;
+      
+      &:hover {
+        background-color: rgba(42, 215, 131, 0.1) !important;
+        color: $drawer-accent-primary !important;
+      }
+    }
+    
+    .p-datepicker-title {
+      button {
+        color: $drawer-text-primary !important;
+        
+        &:hover {
+          background-color: rgba(42, 215, 131, 0.1) !important;
+          color: $drawer-accent-primary !important;
+        }
+      }
+    }
+  }
+  
+  .p-timepicker {
+    border-top: 1px solid $drawer-border-primary !important;
+    
+    span {
+      color: $drawer-text-secondary !important;
+    }
+    
+    button {
+      color: $drawer-text-secondary !important;
+      
+      &:hover {
+        background-color: rgba(42, 215, 131, 0.1) !important;
+        color: $drawer-accent-primary !important;
+      }
+    }
+    
+    .p-inputtext {
+      background-color: $drawer-bg-primary !important;
+      border: 1px solid $drawer-border-primary !important;
+      color: $drawer-text-secondary !important;
+    }
+  }
+}
+
+// AutoComplete Overlay (global)
+.p-autocomplete-overlay {
+  background-color: $drawer-bg-elevated !important;
+  border: 1px solid $drawer-border-primary !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 12px !important;
+  margin-top: 6px !important;
+  overflow: hidden;
+  
+  .p-autocomplete-list {
+    background-color: $drawer-bg-elevated !important;
+    padding: 0.5rem !important;
+    
+    .p-autocomplete-option {
+      background-color: transparent !important;
+      color: $drawer-text-secondary !important;
+      padding: 0.875rem 1rem !important;
+      border-radius: 8px !important;
+      margin: 2px 0 !important;
+      transition: all 0.15s ease !important;
+      
+      &:hover {
+        background-color: rgba(42, 215, 131, 0.1) !important;
+        color: $drawer-text-primary !important;
+        transform: translateX(4px);
+      }
+      
+      &.p-autocomplete-option-selected,
+      &.p-focus {
+        background: linear-gradient(135deg, $drawer-accent-primary 0%, $drawer-accent-secondary 100%) !important;
+        color: $drawer-bg-primary !important;
+      }
+    }
+  }
+}

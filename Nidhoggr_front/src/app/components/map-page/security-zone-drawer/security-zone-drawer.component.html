@@ -63,6 +63,21 @@
         />
       </div>
 
+      <!-- Équipe de pose -->
+      <div class="form-row team-selector">
+        <label for="installationTeam">Équipe de pose</label>
+        <p-autoComplete
+          inputId="installationTeam"
+          [(ngModel)]="selectedInstallationTeamName"
+          [suggestions]="filteredInstallationTeams"
+          (completeMethod)="filterInstallationTeams($event)"
+          (onSelect)="onInstallationTeamSelect($event)"
+          placeholder="Sélectionner une équipe..."
+          [dropdown]="true"
+          [forceSelection]="true"
+        />
+      </div>
+
       <!-- Date de dépose -->
       <div class="form-row">
         <label for="removalDate">Date de dépose <span class="required">*</span></label>
@@ -75,6 +90,21 @@
           placeholder="Sélectionner la date de dépose..."
           appendTo="body"
           class="w-full"
+        />
+      </div>
+
+      <!-- Équipe de dépose -->
+      <div class="form-row team-selector">
+        <label for="removalTeam">Équipe de dépose</label>
+        <p-autoComplete
+          inputId="removalTeam"
+          [(ngModel)]="selectedRemovalTeamName"
+          [suggestions]="filteredRemovalTeams"
+          (completeMethod)="filterRemovalTeams($event)"
+          (onSelect)="onRemovalTeamSelect($event)"
+          placeholder="Sélectionner une équipe..."
+          [dropdown]="true"
+          [forceSelection]="true"
         />
       </div>
     </div>
