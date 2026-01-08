@@ -1,12 +1,8 @@
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace t5_back.Models;
-
-public class Event : IValidatableObject
+public class Event
 {
     [Key]
     public Guid UUID { get; set; }
@@ -24,10 +20,10 @@ public class Event : IValidatableObject
     [Required]
     public EventStatus Status { get; set; }
 
-    [Range(1, int.MaxValue, ErrorMessage = "La durée minimale doit être supérieure à 0")]
+    [Required]
     public int MinDurationMinutes { get; set; }
 
-    [Range(1, int.MaxValue, ErrorMessage = "La durée maximale doit être supérieure à 0")]
+    [Required]
     public int MaxDurationMinutes { get; set; }
     
     [JsonIgnore]
@@ -44,15 +40,4 @@ public class Event : IValidatableObject
     
     [JsonIgnore]
     public ICollection<SecurityZone>? SecurityZones { get; set; }
-
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    {
-        if (MinDurationMinutes > MaxDurationMinutes)
-        {
-            yield return new ValidationResult(
-                "La durée minimale ne peut pas être supérieure à la durée maximale",
-                new[] { nameof(MinDurationMinutes), nameof(MaxDurationMinutes) }
-            );
-        }
-    }
 }
