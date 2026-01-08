@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MapService, DrawingMode } from '../../../services/MapService';
+import { MapService, DrawingMode, EventCreationMode } from '../../../services/MapService';
 import { AreaService } from '../../../services/AreaService';
 import { PathService } from '../../../services/PathService';
 import { PointService } from '../../../services/PointService';
@@ -17,12 +17,14 @@ import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, inject } from '@angular/core';
 import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
 import { PointTypePopupComponent } from '../../../shared/point-type-popup/point-type-popup.component';
+import { EventCreationGuide } from '../../../shared/event-creation-guide/event-creation-guide';
+import { EventConfirmPopup } from '../../../shared/event-confirm-popup/event-confirm-popup';
 import { ToastService } from '../../../services/ToastService';
 
 @Component({
   selector: 'app-map-loader',
   standalone: true,
-  imports: [CommonModule, DeletePopupComponent, PointTypePopupComponent],
+  imports: [CommonModule, DeletePopupComponent, PointTypePopupComponent, EventCreationGuide, EventConfirmPopup],
   templateUrl: './map-loader.component.html',
   styleUrls: ['./map-loader.component.scss'],
 })
@@ -46,7 +48,13 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private drawControl: any = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private polylineDrawHandler: any = null; // Handler pour le mode dessin polyline
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private polygonDrawHandler: any = null; // Handler pour le mode dessin polygon (event creation)
   private currentDrawingMode: DrawingMode = { active: false, sourcePoint: null, equipment: null };
+  private currentEventCreationMode: EventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null };
+  private eventCreationModeSubscription?: Subscription;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private eventCreationTempLayers: any[] = []; // Layers temporaires pour zone/path en création
   private platformId = inject(PLATFORM_ID);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private selectedLayer: any = null;
@@ -222,6 +230,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // S'abonner au mode dessin pour les SecurityZones
       this.drawingModeSubscription = this.mapService.drawingMode$.subscribe((mode) => {
         this.handleDrawingModeChange(mode);
+      });
+
+      // S'abonner au mode création d'événement (zone puis chemin)
+      this.eventCreationModeSubscription = this.mapService.eventCreationMode$.subscribe((mode) => {
+        this.handleEventCreationModeChange(mode);
       });
 
       // S'abonner aux SecurityZones pour les afficher sur la carte
@@ -807,14 +820,29 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private onGeometryCreated(e: any): void {
     if (!this.drawnItems || typeof window === 'undefined') return;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+
+    // Si on est en mode création d'événement, rediriger vers les handlers appropriés
+    if (this.mapService.isEventCreationActive()) {
+      const creationMode = this.mapService.getEventCreationMode();
+      
+      if (creationMode.step === 'drawing-zone') {
+        this.onEventZoneDrawn(e, L);
+        return;
+      } else if (creationMode.step === 'drawing-path') {
+        this.onEventPathDrawn(e, L);
+        return;
+      }
+      return;
+    }
+
     // Vérifier qu'un événement est sélectionné
     if (!this.selectedEvent) {
       console.warn('Aucun événement sélectionné - élément non sauvegardé');
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const L: any = (window as any).L;
     const type = e.layerType;
     const layer = e.layer;
 
@@ -1472,6 +1500,196 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  /**
+   * Gère les changements du mode création d'événement (zone puis chemin)
+   */
+  private handleEventCreationModeChange(mode: EventCreationMode): void {
+    if (!this.map || typeof window === 'undefined') return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+    this.currentEventCreationMode = mode;
+    if (this.drawControl && this.map) {
+      this.map.removeControl(this.drawControl);
+    }
+
+    if (mode.step === 'drawing-zone') {
+      this.clearEventCreationTempLayers();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.polygonDrawHandler = new (L.Draw as any).Polygon(this.map, {
+        allowIntersection: false,
+        drawError: {
+          color: '#e1e100',
+          message: '<strong>Erreur:</strong> Les bords ne doivent pas se croiser!',
+        },
+        shapeOptions: {
+          color: '#3388ff',
+          fillOpacity: 0.2,
+          weight: 3
+        }
+      });
+
+      this.polygonDrawHandler.enable();
+
+    } else if (mode.step === 'drawing-path') {
+      // Désactiver le handler polygon s'il existe
+      if (this.polygonDrawHandler) {
+        this.polygonDrawHandler.disable();
+        this.polygonDrawHandler = null;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.polylineDrawHandler = new (L.Draw as any).Polyline(this.map, {
+        shapeOptions: {
+          color: '#a91a1a',
+          weight: 4,
+          opacity: 0.8
+        }
+      });
+
+      this.polylineDrawHandler.enable();
+
+    } else if (mode.step === 'confirm' || mode.step === 'idle') {
+      // Désactiver les handlers si actifs
+      if (this.polygonDrawHandler) {
+        this.polygonDrawHandler.disable();
+        this.polygonDrawHandler = null;
+      }
+      if (this.polylineDrawHandler) {
+        this.polylineDrawHandler.disable();
+        this.polylineDrawHandler = null;
+      }
+
+      // Réafficher le contrôle de dessin standard si un événement est sélectionné
+      if (mode.step === 'idle' && this.selectedEvent && this.drawControl) {
+        this.map.addControl(this.drawControl);
+      }
+    }
+  }
+
+  /**
+   * Callback quand la zone de l'événement est dessinée
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private onEventZoneDrawn(e: any, L: any): void {
+    const layer = e.layer;
+
+    const geoJson = this.leafletToGeoJSON(layer);
+    if (!geoJson) {
+      this.toastService.showError('Erreur', 'Impossible de créer la zone');
+      this.mapService.cancelEventCreation();
+      return;
+    }
+
+    layer.setStyle({
+      color: '#3388ff',
+      fillOpacity: 0.15,
+      weight: 2
+    });
+    layer.addTo(this.map);
+    
+    // Mettre le layer en arrière-plan pour qu'il soit sous les autres éléments
+    if (layer.bringToBack) {
+      layer.bringToBack();
+    }
+    
+    this.eventCreationTempLayers.push(layer);
+
+    // Passer à l'étape suivante
+    const geoJsonString = JSON.stringify(geoJson);
+    this.mapService.setEventZoneGeoJson(geoJsonString);
+  }
+
+  /**
+   * Callback quand le chemin de l'événement est dessiné
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private onEventPathDrawn(e: any, L: any): void {
+    const layer = e.layer;
+
+    const geoJson = this.leafletToGeoJSON(layer);
+    if (!geoJson) {
+      this.toastService.showError('Erreur', 'Impossible de créer le tracé');
+      this.mapService.cancelEventCreation();
+      return;
+    }
+
+    layer.setStyle({
+      color: '#a91a1a',
+      weight: 3,
+      opacity: 0.7
+    });
+    layer.addTo(this.map);
+    
+    // Mettre le layer en arrière-plan pour qu'il soit sous les autres éléments
+    if (layer.bringToBack) {
+      layer.bringToBack();
+    }
+    
+    this.eventCreationTempLayers.push(layer);
+
+    // Passer à l'étape de confirmation
+    const geoJsonString = JSON.stringify(geoJson);
+    this.mapService.setEventPathGeoJson(geoJsonString);
+  }
+
+  /**
+   * Nettoie les layers temporaires de création d'événement
+   */
+  private clearEventCreationTempLayers(): void {
+    this.eventCreationTempLayers.forEach(layer => {
+      if (this.map && layer) {
+        this.map.removeLayer(layer);
+      }
+    });
+    this.eventCreationTempLayers = [];
+  }
+
+  /**
+   * Nettoie complètement le mode création d'événement
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private cleanupEventCreationDrawing(L: any): void {
+    // Désactiver les handlers
+    if (this.polygonDrawHandler) {
+      this.polygonDrawHandler.disable();
+      this.polygonDrawHandler = null;
+    }
+    if (this.polylineDrawHandler) {
+      this.polylineDrawHandler.disable();
+      this.polylineDrawHandler = null;
+    }
+
+    this.clearEventCreationTempLayers();
+
+    // Réinitialiser le mode
+    this.currentEventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null };
+
+    // Réafficher le contrôle de dessin standard si un événement est sélectionné
+    if (this.selectedEvent && this.drawControl && this.map) {
+      this.map.addControl(this.drawControl);
+    }
+  }
+
+  /**
+   * Appelé quand l'événement est confirmé depuis le popup
+   */
+  onEventConfirmed(event: Event): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+    this.cleanupEventCreationDrawing(L);
+  }
+
+  /**
+   * Appelé quand la création d'événement est annulée depuis le popup
+   */
+  onEventCreationCancelled(): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+    this.cleanupEventCreationDrawing(L);
+  }
+
   ngOnDestroy(): void {
     // Réinitialiser l'événement sélectionné
     this.mapService.setSelectedEvent(null);
@@ -1497,6 +1715,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     }
     if (this.drawingModeSubscription) {
       this.drawingModeSubscription.unsubscribe();
+    }
+    if (this.eventCreationModeSubscription) {
+      this.eventCreationModeSubscription.unsubscribe();
     }
     if (this.securityZonesSubscription) {
       this.securityZonesSubscription.unsubscribe();

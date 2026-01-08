@@ -82,7 +82,7 @@
 			
 			<div class="form-row">
 				<div class="form-group">
-					<label for="minDuration">
+					<label for="minDurationMinutes">
 						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 							<circle cx="12" cy="12" r="10"></circle>
 							<polyline points="12 6 12 12 16 14"></polyline>
@@ -91,17 +91,17 @@
 					</label>
 					<input 
 						type="number" 
-						id="minDuration" 
-						[(ngModel)]="presenter.formData.minDuration" 
-						name="minDuration"
+						id="minDurationMinutes" 
+						[(ngModel)]="presenter.formData.minDurationMinutes" 
+						name="minDurationMinutes"
 						placeholder="Ex: 30"
 						min="0"
-						[class.has-value]="presenter.formData.minDuration !== null"
+						[class.has-value]="presenter.formData.minDurationMinutes !== null"
 					/>
 				</div>
 				
 				<div class="form-group">
-					<label for="maxDuration">
+					<label for="maxDurationMinutes">
 						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 							<circle cx="12" cy="12" r="10"></circle>
 							<polyline points="12 6 12 12 16 14"></polyline>
@@ -110,12 +110,12 @@
 					</label>
 					<input 
 						type="number" 
-						id="maxDuration" 
-						[(ngModel)]="presenter.formData.maxDuration" 
-						name="maxDuration"
+						id="maxDurationMinutes" 
+						[(ngModel)]="presenter.formData.maxDurationMinutes" 
+						name="maxDurationMinutes"
 						placeholder="Ex: 120"
 						min="0"
-						[class.has-value]="presenter.formData.maxDuration !== null"
+						[class.has-value]="presenter.formData.maxDurationMinutes !== null"
 					/>
 				</div>
 			</div>

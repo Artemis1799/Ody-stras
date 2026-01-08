@@ -160,10 +160,10 @@ export class TeamPopupComponent {
     }
 
     // Section Installation
-    yPosition = this.renderSection(doc, 'Équipements à poser', installationZones, 'installation', yPosition, margin, pageWidth, pageHeight);
+    yPosition = this.renderSection(doc, 'Équipement(s) à poser', installationZones, 'installation', yPosition, margin, pageWidth, pageHeight);
 
     // Section Dépose
-    yPosition = this.renderSection(doc, 'Équipements à récupérer', removalZones, 'removal', yPosition, margin, pageWidth, pageHeight);
+    yPosition = this.renderSection(doc, 'Équipement(s) à récupérer', removalZones, 'removal', yPosition, margin, pageWidth, pageHeight);
 
     // Si aucune zone assignée
     if (installationZones.length === 0 && removalZones.length === 0) {

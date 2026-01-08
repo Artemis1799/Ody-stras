@@ -24,8 +24,8 @@ export class EventEditPopup implements OnInit {
     startDate: '',
     endDate: '',
     status: EventStatus.ToOrganize,
-    minDuration: null as number | null,
-    maxDuration: null as number | null
+    minDurationMinutes: null as number | null,
+    maxDurationMinutes: null as number | null
   };
 
   isSubmitting = false;
@@ -41,8 +41,8 @@ export class EventEditPopup implements OnInit {
     if (this.event) {
       this.formData.title = this.event.title || '';
       this.formData.status = this.event.status;
-      this.formData.minDuration = this.event.minDuration ?? null;
-      this.formData.maxDuration = this.event.maxDuration ?? null;
+      this.formData.minDurationMinutes = this.event.minDurationMinutes ?? null;
+      this.formData.maxDurationMinutes = this.event.maxDurationMinutes ?? null;
       
       if (this.event.startDate) {
         const date = new Date(this.event.startDate);
@@ -72,19 +72,19 @@ export class EventEditPopup implements OnInit {
     }
 
     // Vérifier que les durées sont positives
-    if (this.formData.minDuration !== null && this.formData.minDuration < 0) {
+    if (this.formData.minDurationMinutes !== null && this.formData.minDurationMinutes < 0) {
       this.errorMessage = 'La durée minimale doit être supérieure ou égale à 0.';
       return;
     }
     
-    if (this.formData.maxDuration !== null && this.formData.maxDuration < 0) {
+    if (this.formData.maxDurationMinutes !== null && this.formData.maxDurationMinutes < 0) {
       this.errorMessage = 'La durée maximale doit être supérieure ou égale à 0.';
       return;
     }
     
     // Vérifier que la durée max est supérieure à la durée min
-    if (this.formData.minDuration !== null && this.formData.maxDuration !== null) {
-      if (this.formData.maxDuration < this.formData.minDuration) {
+    if (this.formData.minDurationMinutes !== null && this.formData.maxDurationMinutes !== null) {
+      if (this.formData.maxDurationMinutes < this.formData.minDurationMinutes) {
         this.errorMessage = 'La durée maximale ne peut pas être inférieure à la durée minimale.';
         return;
       }
@@ -99,8 +99,8 @@ export class EventEditPopup implements OnInit {
       status: this.formData.status,
       startDate: this.formData.startDate ? new Date(this.formData.startDate) : new Date(),
       endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date(),
-      minDuration: this.formData.minDuration ?? undefined,
-      maxDuration: this.formData.maxDuration ?? undefined
+      minDurationMinutes: this.formData.minDurationMinutes ?? undefined,
+      maxDurationMinutes: this.formData.maxDurationMinutes ?? undefined
     };
 
     this.eventService.update(this.event.uuid, updatedEvent).subscribe({

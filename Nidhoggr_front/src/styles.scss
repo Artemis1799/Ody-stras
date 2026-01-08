@@ -52,7 +52,7 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   .p-autocomplete-list {
     background-color: #1a2028 !important;
     padding: 0.5rem !important;
-    max-height: 300px !important;
+    max-height: 30px !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     
@@ -291,6 +291,11 @@ $drawer-border-hover: #484f58;
   border-radius: 12px !important;
   margin-top: 6px !important;
   overflow: hidden;
+  
+  .p-autocomplete-list-container {
+    max-height: 12.5rem !important;
+    overflow-y: auto !important;
+  }
   
   .p-autocomplete-list {
     background-color: $drawer-bg-elevated !important;

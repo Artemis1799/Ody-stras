@@ -16,3 +16,10 @@
     (cancelled)="onPointTypePopupCancelled()"
   ></app-point-type-popup>
 }
+
+<!-- Composants de création d'événement -->
+<app-event-creation-guide></app-event-creation-guide>
+<app-event-confirm-popup
+  (eventConfirmed)="onEventConfirmed($event)"
+  (cancelled)="onEventCreationCancelled()"
+></app-event-confirm-popup>

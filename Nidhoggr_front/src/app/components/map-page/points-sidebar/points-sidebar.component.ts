@@ -47,6 +47,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Observable pour la liste des points - utilise directement le MapService pour la réactivité
   points$!: Observable<Point[]>;
   securityZones$!: Observable<SecurityZone[]>;
+  events$!: Observable<Event[]>;
 
   selectedPointUuid: string | null = null;
   isLoading = false;
@@ -54,6 +55,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   emptyMessage = 'Sélectionnez un évènement pour voir ses points';
   private pointsSubscription?: Subscription;
   private securityZonesSubscription?: Subscription;
+  private selectedEventSubscription?: Subscription;
+  private eventsSubscription?: Subscription;
 
   // Onglet actif: 'points' ou 'zones'
   activeTab: 'points' | 'zones' = 'points';
@@ -113,6 +116,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     // Initialiser points$ après l'injection de mapService
     this.points$ = this.mapService.points$;
     this.securityZones$ = this.mapService.securityZones$;
+    this.events$ = this.mapService.events$;
     // Initialiser showTimeline$
     this.showTimeline$ = this.mapService.timelineVisible$;
   }
@@ -120,6 +124,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Charger la liste des événements
     this.loadEvents();
+
+    this.eventsSubscription = this.events$.subscribe((events) => {
+      this.events = events;
+      this.cdr.markForCheck();
+    });
 
     // S'abonner aux changements de points pour déclencher la détection de changements
     this.pointsSubscription = this.points$.subscribe((points) => {
@@ -140,6 +149,23 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     // Initialiser les points à vide APRÈS la subscription (aucun événement sélectionné)
     this.mapService.setPoints([]);
     this.mapService.setSecurityZones([]);
+
+    this.selectedEventSubscription = this.mapService.selectedEvent$.subscribe((event) => {
+      if (event) {
+        this.selectedEvent = event;
+        this.selectedEventName = event.title;
+      } else {
+        this.selectedEvent = null;
+        this.selectedEventName = '';
+        this.allPoints = [];
+        this.filteredPoints = [];
+        this.paginatedPoints = [];
+        this.allSecurityZones = [];
+        this.filteredSecurityZones = [];
+        this.paginatedSecurityZones = [];
+      }
+      this.cdr.markForCheck();
+    });
 
     // Setup debounced search (300ms)
     this.searchSubscription = this.searchSubject
@@ -168,6 +194,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.pointsSubscription?.unsubscribe();
     this.securityZonesSubscription?.unsubscribe();
+    this.selectedEventSubscription?.unsubscribe();
+    this.eventsSubscription?.unsubscribe();
     this.searchSubscription?.unsubscribe();
   }
 
@@ -177,7 +205,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         const uniqueEvents = events.filter(
           (event, index, self) => index === self.findIndex((e) => e.uuid === event.uuid)
         );
-        this.events = uniqueEvents;
+        this.mapService.setEvents(uniqueEvents);
       },
       error: (error) => {
         console.error('Erreur lors du chargement des événements:', error);
@@ -474,6 +502,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.mapService.setSelectedEvent(event);
     // Charger les points (vide pour un nouvel événement)
     this.loadPointsForEvent(event.uuid);
+    // Démarrer le mode création d'événement (dessin zone puis chemin)
+    this.mapService.startEventCreation(event);
   }
 
   openEventEdit(): void {
@@ -508,6 +538,28 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     // Vider les points
     this.mapService.setPoints([]);
     this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
+  }
+
+  onEventCreationConfirmed(event: Event): void {
+    this.mapService.triggerReloadEvent();
+  }
+
+  onEventCreationCancelled(): void {
+    if (this.selectedEvent) {
+      this.eventService.delete(this.selectedEvent.uuid).subscribe({
+        next: () => {
+          this.events = this.events.filter((e) => e.uuid !== this.selectedEvent?.uuid);
+          this.selectedEvent = null;
+          this.selectedEventName = '';
+          this.mapService.setSelectedEvent(null);
+          this.mapService.setPoints([]);
+          this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
+        },
+        error: (error) => {
+          console.error('Erreur lors de la suppression de l\'événement annulé:', error);
+        }
+      });
+    }
   }
 
   openGantt(): void {

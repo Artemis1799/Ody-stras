@@ -14,6 +14,18 @@ export interface DrawingMode {
   equipment: Equipment | null;
 }
 
+// Étapes de création d'événement
+export type EventCreationStep = 'idle' | 'drawing-zone' | 'drawing-path' | 'confirm';
+
+// Mode de création d'événement
+export interface EventCreationMode {
+  active: boolean;
+  step: EventCreationStep;
+  event: Event | null;
+  zoneGeoJson: string | null;
+  pathGeoJson: string | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -26,6 +38,7 @@ export class MapService {
   private selectedPointOfInterestSubject = new BehaviorSubject<Point | null>(null);
   private reloadPointsSubject = new Subject<void>();
   private selectedEventSubject = new BehaviorSubject<Event | null>(null);
+  private eventsSubject = new BehaviorSubject<Event[]>([]);
   private reloadEventSubject = new Subject<void>();
   private areasSubject = new BehaviorSubject<Area[]>([]);
   private pathsSubject = new BehaviorSubject<RoutePath[]>([]);
@@ -38,6 +51,15 @@ export class MapService {
   // Mode dessin pour SecurityZone
   private drawingModeSubject = new BehaviorSubject<DrawingMode>({ active: false, sourcePoint: null, equipment: null });
 
+  // Mode création d'événement
+  private eventCreationModeSubject = new BehaviorSubject<EventCreationMode>({
+    active: false,
+    step: 'idle',
+    event: null,
+    zoneGeoJson: null,
+    pathGeoJson: null
+  });
+
   points$: Observable<Point[]> = this.pointsSubject.asObservable();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapInstance$: Observable<any> = this.mapInstanceSubject.asObservable();
@@ -46,6 +68,7 @@ export class MapService {
   selectedPointOfInterest$: Observable<Point | null> = this.selectedPointOfInterestSubject.asObservable();
   reloadPoints$: Observable<void> = this.reloadPointsSubject.asObservable();
   selectedEvent$: Observable<Event | null> = this.selectedEventSubject.asObservable();
+  events$: Observable<Event[]> = this.eventsSubject.asObservable();
   reloadEvent$: Observable<void> = this.reloadEventSubject.asObservable();
   areas$: Observable<Area[]> = this.areasSubject.asObservable();
   paths$: Observable<RoutePath[]> = this.pathsSubject.asObservable();
@@ -55,6 +78,7 @@ export class MapService {
   focusSecurityZone$: Observable<SecurityZone> = this.focusSecurityZoneSubject.asObservable();
   timelineVisible$: Observable<boolean> = this.timelineVisibleSubject.asObservable();
   drawingMode$: Observable<DrawingMode> = this.drawingModeSubject.asObservable();
+  eventCreationMode$: Observable<EventCreationMode> = this.eventCreationModeSubject.asObservable();
 
   setPoints(points: Point[]): void {
     this.pointsSubject.next(points);
@@ -108,6 +132,38 @@ export class MapService {
 
   getSelectedEvent(): Event | null {
     return this.selectedEventSubject.value;
+  }
+
+  // ============= Events =============
+  
+  setEvents(events: Event[]): void {
+    this.eventsSubject.next(events);
+  }
+
+  getEvents(): Event[] {
+    return this.eventsSubject.value;
+  }
+
+  addEvent(event: Event): void {
+    const current = this.eventsSubject.value;
+    if (!current.find(e => e.uuid === event.uuid)) {
+      this.eventsSubject.next([...current, event]);
+    }
+  }
+
+  removeEvent(eventUuid: string): void {
+    const current = this.eventsSubject.value;
+    this.eventsSubject.next(current.filter(e => e.uuid !== eventUuid));
+  }
+
+  updateEvent(event: Event): void {
+    const current = this.eventsSubject.value;
+    const index = current.findIndex(e => e.uuid === event.uuid);
+    if (index !== -1) {
+      const updated = [...current];
+      updated[index] = event;
+      this.eventsSubject.next(updated);
+    }
   }
 
   // ============= Areas =============
@@ -281,5 +337,104 @@ export class MapService {
 
   isDrawingModeActive(): boolean {
     return this.drawingModeSubject.value.active;
+  }
+
+  // ============= Close All Drawers =============
+  closeAllDrawers(): void {
+    this.selectedPointSubject.next(null);
+    this.selectedPointIndexSubject.next(null);
+    this.selectedPointOfInterestSubject.next(null);
+    this.selectedSecurityZoneSubject.next(null);
+    this.timelineVisibleSubject.next(false);
+  }
+
+  // ============= Event Creation Mode =============
+  
+  startEventCreation(event: Event): void {
+    this.closeAllDrawers();
+    
+    this.eventCreationModeSubject.next({
+      active: true,
+      step: 'drawing-zone',
+      event,
+      zoneGeoJson: null,
+      pathGeoJson: null
+    });
+  }
+
+  setEventZoneGeoJson(geoJson: string): void {
+    const current = this.eventCreationModeSubject.value;
+    if (!current.active) return;
+    
+    this.eventCreationModeSubject.next({
+      ...current,
+      step: 'drawing-path',
+      zoneGeoJson: geoJson
+    });
+  }
+
+  setEventPathGeoJson(geoJson: string): void {
+    const current = this.eventCreationModeSubject.value;
+    if (!current.active) return;
+    
+    const newMode = {
+      ...current,
+      step: 'confirm' as const,
+      pathGeoJson: geoJson
+    };
+    this.eventCreationModeSubject.next(newMode);
+  }
+
+  getEventCreationMode(): EventCreationMode {
+    return this.eventCreationModeSubject.value;
+  }
+
+  isEventCreationActive(): boolean {
+    return this.eventCreationModeSubject.value.active;
+  }
+
+  cancelEventCreation(): void {
+    this.eventCreationModeSubject.next({
+      active: false,
+      step: 'idle',
+      event: null,
+      zoneGeoJson: null,
+      pathGeoJson: null
+    });
+  }
+
+  completeEventCreation(): void {
+    this.eventCreationModeSubject.next({
+      active: false,
+      step: 'idle',
+      event: null,
+      zoneGeoJson: null,
+      pathGeoJson: null
+    });
+  }
+
+  // Permet de revenir à l'étape de dessin de zone pour modifier
+  backToZoneDrawing(): void {
+    const current = this.eventCreationModeSubject.value;
+    if (!current.active) return;
+    
+    this.eventCreationModeSubject.next({
+      ...current,
+      step: 'drawing-zone',
+      zoneGeoJson: null,
+      pathGeoJson: null
+    });
+  }
+
+  // Permet de revenir à l'étape de dessin du chemin pour modifier
+  backToPathDrawing(): void {
+    const current = this.eventCreationModeSubject.value;
+    if (!current.active) return;
+    
+    this.eventCreationModeSubject.next({
+      ...current,
+      step: 'drawing-path',
+      pathGeoJson: null
+    });
   }
 }

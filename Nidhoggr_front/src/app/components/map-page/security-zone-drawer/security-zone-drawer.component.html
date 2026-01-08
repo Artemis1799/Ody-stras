@@ -105,6 +105,8 @@
           placeholder="Sélectionner une équipe..."
           [dropdown]="true"
           [forceSelection]="true"
+          appendTo="body"
+          [overlayOptions]="{ mode: 'overlay', appendTo: 'body', autoZIndex: true }"
         />
       </div>
     </div>
