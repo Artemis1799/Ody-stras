@@ -1044,43 +1044,64 @@ $danger: #f87171;
     .p-autocomplete {
       width: 100%;
       
+      // Supprimer le contour de focus sur le wrapper et tous ses enfants
+      &:focus,
+      &:focus-within,
+      &.p-focus {
+        outline: none !important;
+        box-shadow: none !important;
+        border-color: transparent !important;
+      }
+      
+      // Supprimer le focus ring sur tous les éléments du composant
+      *:focus,
+      *:focus-visible {
+        outline: none !important;
+      }
+      
       .p-autocomplete-input {
         width: 100%;
-        padding: 0.875rem 1rem;
-        border: 1px solid $border-primary;
-        border-radius: 10px 0 0 10px;
-        font-size: 0.9375rem;
-        transition: all 0.25s ease;
-        background-color: $bg-primary;
-        color: $text-secondary;
+        padding: 0.875rem 1rem !important;
+        border: 1px solid $border-primary !important;
+        border-radius: 10px 0 0 10px !important;
+        font-size: 0.9375rem !important;
+        transition: all 0.25s ease !important;
+        background-color: $bg-primary !important;
+        color: $text-secondary !important;
         
         &::placeholder {
-          color: $text-disabled;
+          color: $text-disabled !important;
         }
         
         &:hover {
-          border-color: $border-hover;
+          border-color: $border-hover !important;
         }
         
         &:focus {
-          border-color: $accent-primary;
-          outline: none;
-          box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.15);
-          background: $bg-secondary;
+          border-color: $accent-primary !important;
+          outline: none !important;
+          box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.15) !important;
+          background: $bg-secondary !important;
         }
       }
       
       .p-autocomplete-dropdown {
-        background: $border-primary;
-        border-color: $border-primary;
-        color: $text-secondary;
-        border-radius: 0 10px 10px 0;
-        transition: all 0.2s ease;
+        background: $border-primary !important;
+        border-color: $border-primary !important;
+        color: $text-secondary !important;
+        border-radius: 0 10px 10px 0 !important;
+        transition: all 0.2s ease !important;
         
         &:hover {
-          background: $accent-gradient;
-          border-color: $accent-primary;
-          color: $bg-card;
+          background: $accent-gradient !important;
+          border-color: $accent-primary !important;
+          color: $bg-card !important;
+        }
+        
+        &:focus,
+        &:focus-visible {
+          outline: none !important;
+          box-shadow: none !important;
         }
       }
     }

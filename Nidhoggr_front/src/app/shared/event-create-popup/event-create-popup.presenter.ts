@@ -107,8 +107,8 @@ export class EventCreatePopupPresenter {
         startDate: this.formData.startDate ? new Date(this.formData.startDate) : new Date(),
         endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date(),
         status: this.formData.status,
-        minDurationMinutes: this.formData.minDurationMinutes ?? 1,
-        maxDurationMinutes: this.formData.maxDurationMinutes ?? 1
+        minDurationMinutes: this.formData.minDurationMinutes ?? 0,
+        maxDurationMinutes: this.formData.maxDurationMinutes ?? 0
       };
 
       this.eventService.create(event).subscribe({

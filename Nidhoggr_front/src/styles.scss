@@ -323,3 +323,21 @@ $drawer-border-hover: #484f58;
     }
   }
 }
+
+// Supprimer le focus ring jaune/orange de PrimeNG sur tous les autocomplete
+.p-autocomplete {
+  &:focus,
+  &.p-focus,
+  &:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  .p-autocomplete-dropdown {
+    &:focus,
+    &:focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+  }
+}
