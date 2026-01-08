@@ -138,8 +138,16 @@ export class EventConfirmPopup implements OnInit, OnDestroy {
       area: this.areaService.create(areaData),
       path: this.pathService.create(pathData)
     }).subscribe({
-      next: () => {
+      next: ({ area, path }) => {
         this.isSaving = false;
+        
+        // Ajouter les géométries créées au MapService pour qu'elles soient affichées
+        this.mapService.addArea(area);
+        this.mapService.addPath(path);
+        
+        // Sélectionner l'événement pour que la carte charge ses géométries
+        this.mapService.setSelectedEvent(event);
+        
         this.toastService.showSuccess(
           'Événement créé',
           `L'événement "${event.title}" a été créé avec sa zone et son tracé`

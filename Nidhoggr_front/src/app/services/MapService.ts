@@ -24,6 +24,7 @@ export interface EventCreationMode {
   event: Event | null;
   zoneGeoJson: string | null;
   pathGeoJson: string | null;
+  zoneModificationMode: boolean; 
 }
 
 @Injectable({
@@ -57,7 +58,8 @@ export class MapService {
     step: 'idle',
     event: null,
     zoneGeoJson: null,
-    pathGeoJson: null
+    pathGeoJson: null,
+    zoneModificationMode: false
   });
 
   points$: Observable<Point[]> = this.pointsSubject.asObservable();
@@ -358,7 +360,8 @@ export class MapService {
       step: 'drawing-zone',
       event,
       zoneGeoJson: null,
-      pathGeoJson: null
+      pathGeoJson: null,
+      zoneModificationMode: false
     });
   }
 
@@ -366,11 +369,22 @@ export class MapService {
     const current = this.eventCreationModeSubject.value;
     if (!current.active) return;
     
-    this.eventCreationModeSubject.next({
-      ...current,
-      step: 'drawing-path',
-      zoneGeoJson: geoJson
-    });
+    // Si on est en mode modification de zone et que le path existe déjà, aller directement à confirm
+    if (current.zoneModificationMode && current.pathGeoJson) {
+      this.eventCreationModeSubject.next({
+        ...current,
+        step: 'confirm',
+        zoneGeoJson: geoJson,
+        zoneModificationMode: false 
+      });
+    } else {
+      this.eventCreationModeSubject.next({
+        ...current,
+        step: 'drawing-path',
+        zoneGeoJson: geoJson,
+        zoneModificationMode: false
+      });
+    }
   }
 
   setEventPathGeoJson(geoJson: string): void {
@@ -399,7 +413,8 @@ export class MapService {
       step: 'idle',
       event: null,
       zoneGeoJson: null,
-      pathGeoJson: null
+      pathGeoJson: null,
+      zoneModificationMode: false
     });
   }
 
@@ -409,11 +424,12 @@ export class MapService {
       step: 'idle',
       event: null,
       zoneGeoJson: null,
-      pathGeoJson: null
+      pathGeoJson: null,
+      zoneModificationMode: false
     });
   }
 
-  // Permet de revenir à l'étape de dessin de zone pour modifier
+  // Permet de revenir à l'étape de dessin de zone pour modifier (garde le path existant)
   backToZoneDrawing(): void {
     const current = this.eventCreationModeSubject.value;
     if (!current.active) return;
@@ -422,7 +438,7 @@ export class MapService {
       ...current,
       step: 'drawing-zone',
       zoneGeoJson: null,
-      pathGeoJson: null
+      zoneModificationMode: true 
     });
   }
 

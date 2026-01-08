@@ -51,10 +51,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private polygonDrawHandler: any = null; // Handler pour le mode dessin polygon (event creation)
   private currentDrawingMode: DrawingMode = { active: false, sourcePoint: null, equipment: null };
-  private currentEventCreationMode: EventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null };
+  private currentEventCreationMode: EventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null, zoneModificationMode: false };
   private eventCreationModeSubscription?: Subscription;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private eventCreationTempLayers: any[] = []; // Layers temporaires pour zone/path en création
+  private eventCreationZoneLayer: any = null; // Layer temporaire pour la zone en création
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private eventCreationPathLayer: any = null; // Layer temporaire pour le path en création
   private platformId = inject(PLATFORM_ID);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private selectedLayer: any = null;
@@ -1514,7 +1516,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     }
 
     if (mode.step === 'drawing-zone') {
-      this.clearEventCreationTempLayers();
+      // Supprimer uniquement le layer zone existant (garder le path s'il existe)
+      this.clearEventCreationZoneLayer();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.polygonDrawHandler = new (L.Draw as any).Polygon(this.map, {
@@ -1538,6 +1541,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.polygonDrawHandler.disable();
         this.polygonDrawHandler = null;
       }
+
+      // Supprimer uniquement le layer path existant (garder la zone)
+      this.clearEventCreationPathLayer();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.polylineDrawHandler = new (L.Draw as any).Polyline(this.map, {
@@ -1594,7 +1600,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       layer.bringToBack();
     }
     
-    this.eventCreationTempLayers.push(layer);
+    this.eventCreationZoneLayer = layer;
 
     // Passer à l'étape suivante
     const geoJsonString = JSON.stringify(geoJson);
@@ -1627,7 +1633,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       layer.bringToBack();
     }
     
-    this.eventCreationTempLayers.push(layer);
+    this.eventCreationPathLayer = layer;
 
     // Passer à l'étape de confirmation
     const geoJsonString = JSON.stringify(geoJson);
@@ -1635,15 +1641,31 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Nettoie les layers temporaires de création d'événement
+   * Nettoie uniquement le layer zone de création d'événement
    */
-  private clearEventCreationTempLayers(): void {
-    this.eventCreationTempLayers.forEach(layer => {
-      if (this.map && layer) {
-        this.map.removeLayer(layer);
-      }
-    });
-    this.eventCreationTempLayers = [];
+  private clearEventCreationZoneLayer(): void {
+    if (this.map && this.eventCreationZoneLayer) {
+      this.map.removeLayer(this.eventCreationZoneLayer);
+      this.eventCreationZoneLayer = null;
+    }
+  }
+
+  /**
+   * Nettoie uniquement le layer path de création d'événement
+   */
+  private clearEventCreationPathLayer(): void {
+    if (this.map && this.eventCreationPathLayer) {
+      this.map.removeLayer(this.eventCreationPathLayer);
+      this.eventCreationPathLayer = null;
+    }
+  }
+
+  /**
+   * Nettoie tous les layers temporaires de création d'événement
+   */
+  private clearAllEventCreationLayers(): void {
+    this.clearEventCreationZoneLayer();
+    this.clearEventCreationPathLayer();
   }
 
   /**
@@ -1661,10 +1683,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       this.polylineDrawHandler = null;
     }
 
-    this.clearEventCreationTempLayers();
+    this.clearAllEventCreationLayers();
 
     // Réinitialiser le mode
-    this.currentEventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null };
+    this.currentEventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null, zoneModificationMode: false };
 
     // Réafficher le contrôle de dessin standard si un événement est sélectionné
     if (this.selectedEvent && this.drawControl && this.map) {
