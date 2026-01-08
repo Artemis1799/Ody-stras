@@ -56,8 +56,6 @@ public class PathService : IPathService
         existing.Name = path.Name;
         existing.ColorHex = path.ColorHex;
         existing.StartDate = path.StartDate;
-        existing.FastestEstimatedSpeed = path.FastestEstimatedSpeed;
-        existing.SlowestEstimatedSpeed = path.SlowestEstimatedSpeed;
         existing.GeoJson = path.GeoJson;
         existing.EventId = path.EventId;
 
