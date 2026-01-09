@@ -42,6 +42,18 @@
       background: #2196f3;
     }
 
+    &.point-of-interest {
+      background: #ff9800;
+      
+      &.valid {
+        background: #ff9800;
+      }
+      
+      &.invalid {
+        background: #ff9800;
+      }
+    }
+
     &:hover {
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     }

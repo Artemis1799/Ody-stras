@@ -12,6 +12,7 @@ import { PictureService } from '../../services/PictureService';
 })
 export class PhotoViewer implements OnInit {
   @Input() pointId: string | null = null;
+  @Input() securityZoneId: string | null = null;
   @Output() close = new EventEmitter<void>();
   
   showPhotoDialog = false;
@@ -26,6 +27,8 @@ export class PhotoViewer implements OnInit {
     this.showPhotoDialog = true;
     if (this.pointId) {
       this.loadPicturesForPoint();
+    } else if (this.securityZoneId) {
+      this.loadPicturesForSecurityZone();
     }
   }
 
@@ -39,6 +42,27 @@ export class PhotoViewer implements OnInit {
 
     // Récupérer les pictures pour ce point directement
     this.pictureService.getByPointId(this.pointId).subscribe({
+      next: (pictures) => {
+        this.pictures = pictures;
+        this.loadingPictures = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loadingPictures = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadPicturesForSecurityZone(): void {
+    if (!this.securityZoneId) return;
+
+    this.loadingPictures = true;
+    this.pictures = [];
+    this.currentPictureIndex = 0;
+    this.cdr.detectChanges();
+
+    this.pictureService.getBySecurityZoneId(this.securityZoneId).subscribe({
       next: (pictures) => {
         this.pictures = pictures;
         this.loadingPictures = false;

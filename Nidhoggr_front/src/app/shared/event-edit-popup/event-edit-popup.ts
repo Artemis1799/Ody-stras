@@ -23,7 +23,9 @@ export class EventEditPopup implements OnInit {
     title: '',
     startDate: '',
     endDate: '',
-    status: EventStatus.ToOrganize
+    status: EventStatus.ToOrganize,
+    minDurationMinutes: null as number | null,
+    maxDurationMinutes: null as number | null
   };
 
   isSubmitting = false;
@@ -39,6 +41,8 @@ export class EventEditPopup implements OnInit {
     if (this.event) {
       this.formData.title = this.event.title || '';
       this.formData.status = this.event.status;
+      this.formData.minDurationMinutes = this.event.minDurationMinutes ?? null;
+      this.formData.maxDurationMinutes = this.event.maxDurationMinutes ?? null;
       
       if (this.event.startDate) {
         const date = new Date(this.event.startDate);
@@ -67,6 +71,25 @@ export class EventEditPopup implements OnInit {
       }
     }
 
+    // Vérifier que les durées sont positives
+    if (this.formData.minDurationMinutes !== null && this.formData.minDurationMinutes < 0) {
+      this.errorMessage = 'La durée minimale doit être supérieure ou égale à 0.';
+      return;
+    }
+    
+    if (this.formData.maxDurationMinutes !== null && this.formData.maxDurationMinutes < 0) {
+      this.errorMessage = 'La durée maximale doit être supérieure ou égale à 0.';
+      return;
+    }
+    
+    // Vérifier que la durée max est supérieure à la durée min
+    if (this.formData.minDurationMinutes !== null && this.formData.maxDurationMinutes !== null) {
+      if (this.formData.maxDurationMinutes < this.formData.minDurationMinutes) {
+        this.errorMessage = 'La durée maximale ne peut pas être inférieure à la durée minimale.';
+        return;
+      }
+    }
+
     this.isSubmitting = true;
     this.errorMessage = '';
 
@@ -75,7 +98,9 @@ export class EventEditPopup implements OnInit {
       title: this.formData.title.trim(),
       status: this.formData.status,
       startDate: this.formData.startDate ? new Date(this.formData.startDate) : new Date(),
-      endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date()
+      endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date(),
+      minDurationMinutes: this.formData.minDurationMinutes ?? undefined,
+      maxDurationMinutes: this.formData.maxDurationMinutes ?? undefined
     };
 
     this.eventService.update(this.event.uuid, updatedEvent).subscribe({

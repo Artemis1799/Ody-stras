@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { EventService } from '../../services/EventService';
+import { MapService } from '../../services/MapService';
 import { Event, EventStatus } from '../../models/eventModel';
 
 export interface EventFormData {
@@ -7,6 +8,8 @@ export interface EventFormData {
   startDate: string;
   endDate: string;
   status: EventStatus;
+  minDurationMinutes: number | null;
+  maxDurationMinutes: number | null;
 }
 
 @Injectable()
@@ -15,13 +18,18 @@ export class EventCreatePopupPresenter {
     title: '',
     startDate: '',
     endDate: '',
-    status: EventStatus.ToOrganize
+    status: EventStatus.ToOrganize,
+    minDurationMinutes: null,
+    maxDurationMinutes: null
   };
 
   isSubmitting = false;
   errorMessage = '';
 
-  constructor(private eventService: EventService) {}
+  constructor(
+    private eventService: EventService,
+    private mapService: MapService
+  ) {}
 
   private generateUuid(): string {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -36,7 +44,9 @@ export class EventCreatePopupPresenter {
       title: '',
       startDate: '',
       endDate: '',
-      status: EventStatus.ToOrganize
+      status: EventStatus.ToOrganize,
+      minDurationMinutes: null,
+      maxDurationMinutes: null
     };
     this.isSubmitting = false;
     this.errorMessage = '';
@@ -54,6 +64,25 @@ export class EventCreatePopupPresenter {
       const endDate = new Date(this.formData.endDate);
       if (endDate < startDate) {
         this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
+        return false;
+      }
+    }
+    
+    // Vérifier que les durées sont positives
+    if (this.formData.minDurationMinutes !== null && this.formData.minDurationMinutes < 0) {
+      this.errorMessage = 'La durée minimale doit être supérieure ou égale à 0.';
+      return false;
+    }
+    
+    if (this.formData.maxDurationMinutes !== null && this.formData.maxDurationMinutes < 0) {
+      this.errorMessage = 'La durée maximale doit être supérieure ou égale à 0.';
+      return false;
+    }
+    
+    // Vérifier que la durée max est supérieure à la durée min
+    if (this.formData.minDurationMinutes !== null && this.formData.maxDurationMinutes !== null) {
+      if (this.formData.maxDurationMinutes < this.formData.minDurationMinutes) {
+        this.errorMessage = 'La durée maximale ne peut pas être inférieure à la durée minimale.';
         return false;
       }
     }
@@ -77,12 +106,16 @@ export class EventCreatePopupPresenter {
         title: this.formData.title.trim(),
         startDate: this.formData.startDate ? new Date(this.formData.startDate) : new Date(),
         endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date(),
-        status: this.formData.status
+        status: this.formData.status,
+        minDurationMinutes: this.formData.minDurationMinutes ?? 0,
+        maxDurationMinutes: this.formData.maxDurationMinutes ?? 0
       };
 
       this.eventService.create(event).subscribe({
         next: (createdEvent) => {
           this.isSubmitting = false;
+          // Ajouter l'événement à la liste observable
+          this.mapService.addEvent(createdEvent);
           this.reset();
           resolve(createdEvent);
         },

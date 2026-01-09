@@ -67,4 +67,56 @@ export class SecurityZoneService {
       tap(() => this._securityZones$.next([]))
     );
   }
+
+  assignInstallationTeam(zoneId: string, teamId: string): Observable<SecurityZone> {
+    return this.http.put<SecurityZone>(`${this.apiUrl}/${zoneId}/assign-installation-team`, { teamId }).pipe(
+      tap(updated => {
+        const current = this._securityZones$.value;
+        const index = current.findIndex(z => z.uuid === zoneId);
+        if (index !== -1) {
+          current[index] = updated;
+          this._securityZones$.next([...current]);
+        }
+      })
+    );
+  }
+
+  unassignInstallationTeam(zoneId: string): Observable<SecurityZone> {
+    return this.http.put<SecurityZone>(`${this.apiUrl}/${zoneId}/unassign-installation-team`, {}).pipe(
+      tap(updated => {
+        const current = this._securityZones$.value;
+        const index = current.findIndex(z => z.uuid === zoneId);
+        if (index !== -1) {
+          current[index] = updated;
+          this._securityZones$.next([...current]);
+        }
+      })
+    );
+  }
+
+  assignRemovalTeam(zoneId: string, teamId: string): Observable<SecurityZone> {
+    return this.http.put<SecurityZone>(`${this.apiUrl}/${zoneId}/assign-removal-team`, { teamId }).pipe(
+      tap(updated => {
+        const current = this._securityZones$.value;
+        const index = current.findIndex(z => z.uuid === zoneId);
+        if (index !== -1) {
+          current[index] = updated;
+          this._securityZones$.next([...current]);
+        }
+      })
+    );
+  }
+
+  unassignRemovalTeam(zoneId: string): Observable<SecurityZone> {
+    return this.http.put<SecurityZone>(`${this.apiUrl}/${zoneId}/unassign-removal-team`, {}).pipe(
+      tap(updated => {
+        const current = this._securityZones$.value;
+        const index = current.findIndex(z => z.uuid === zoneId);
+        if (index !== -1) {
+          current[index] = updated;
+          this._securityZones$.next([...current]);
+        }
+      })
+    );
+  }
 }

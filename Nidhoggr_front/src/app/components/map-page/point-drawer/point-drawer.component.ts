@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { Drawer } from 'primeng/drawer';
 import { InputText } from 'primeng/inputtext';
 import { AutoComplete, AutoCompleteCompleteEvent, AutoCompleteSelectEvent } from 'primeng/autocomplete';
-import { Checkbox } from 'primeng/checkbox';
 import { MapService } from '../../../services/MapService';
 import { PointService } from '../../../services/PointService';
 import { EquipmentService } from '../../../services/EquipmentService';
@@ -24,7 +23,6 @@ import { ToastService } from '../../../services/ToastService';
     Drawer,
     InputText,
     AutoComplete,
-    Checkbox,
     PhotoViewer,
     DeletePopupComponent
   ],
@@ -45,14 +43,11 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   selectedEquipmentName = '';
   filteredEquipments: string[] = [];
   
-  // Copie locale pour l'édition
+  // Copie locale pour l'édition (commentaire seulement en étape 1)
   editedComment = '';
-  editedValidated = false;
-  previousEquipmentId: string | undefined = undefined;
 
   // Valeurs initiales pour détecter les modifications
   initialComment = '';
-  initialValidated = false;
   initialEquipmentId: string | undefined = undefined;
 
   // Gestion des photos
@@ -143,14 +138,14 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   }
 
   openDrawer(point: Point): void {
+    // Fermer le drawer des security zones s'il est ouvert
+    this.mapService.selectSecurityZone(null);
+    
     this.selectedPoint = point;
     this.editedComment = point.comment || '';
-    this.editedValidated = point.validated;
-    this.previousEquipmentId = point.equipmentId;
 
     // Sauvegarder les valeurs initiales pour détecter les modifications
     this.initialComment = this.editedComment;
-    this.initialValidated = this.editedValidated;
     this.initialEquipmentId = point.equipmentId;
 
     // Charger l'équipement actuel si présent
@@ -218,50 +213,71 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     if (selectedName === 'Aucun') {
       this.selectedEquipment = null;
       this.selectedEquipmentName = 'Aucun';
-      this.previousEquipmentId = undefined;
       return;
     }
     
     const newEquipment = this.equipments.find(e => this.getEquipmentDisplayName(e) === selectedName) || null;
     this.selectedEquipment = newEquipment;
-    this.previousEquipmentId = newEquipment?.uuid;
   }
 
   onEquipmentChange(event: { value: Equipment | null }): void {
     const newEquipment = event.value;
     this.selectedEquipment = newEquipment;
-    this.previousEquipmentId = newEquipment?.uuid;
   }
 
   hasChanges(): boolean {
     const currentEquipmentId = this.selectedEquipment?.uuid;
     return (
       this.editedComment !== this.initialComment ||
-      this.editedValidated !== this.initialValidated ||
       currentEquipmentId !== this.initialEquipmentId
+    );
+  }
+
+  /**
+   * Vérifie si un équipement a été sélectionné pour passer à l'étape 2
+   */
+  canProceedToDrawing(): boolean {
+    return this.selectedEquipment !== null && this.selectedEquipment?.uuid !== undefined;
+  }
+
+  /**
+   * Lance le mode dessin pour placer la SecurityZone sur la carte
+   */
+  proceedToDrawing(): void {
+    if (!this.selectedPoint || !this.selectedEquipment) return;
+
+    // Créer une copie du point avec le commentaire édité
+    const pointWithComment = {
+      ...this.selectedPoint,
+      comment: this.editedComment
+    };
+
+    // Lancer le mode dessin avec le point source (incluant le commentaire édité) et l'équipement sélectionné
+    this.mapService.startDrawingMode(pointWithComment, this.selectedEquipment);
+    
+    // Le drawer se ferme automatiquement via la subscription au selectedPoint$
+    this.toastService.showInfo(
+      'Mode dessin activé', 
+      'Dessinez une ligne sur la carte pour définir l\'emplacement exact de l\'équipement'
     );
   }
 
   saveChanges(): void {
     if (!this.selectedPoint) return;
 
-    // Préparer les données pour la mise à jour
+    // Préparer les données pour la mise à jour (commentaire seulement en étape 1)
     const updatedPoint: Point = {
       ...this.selectedPoint,
       comment: this.editedComment,
-      validated: this.editedValidated,
       equipmentId: this.selectedEquipment?.uuid || ''
     };
 
     // Sauvegarder le point
     this.pointService.update(this.selectedPoint.uuid, updatedPoint).subscribe({
       next: (savedPoint) => {
-        this.previousEquipmentId = this.selectedEquipment?.uuid || null;
-        
         // Mettre à jour le point local immédiatement
         if (this.selectedPoint) {
           this.selectedPoint.comment = this.editedComment;
-          this.selectedPoint.validated = this.editedValidated;
           this.selectedPoint.equipmentId = this.selectedEquipment?.uuid || '';
         }
         

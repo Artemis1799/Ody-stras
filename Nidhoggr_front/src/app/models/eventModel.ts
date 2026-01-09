@@ -12,4 +12,6 @@ export interface Event {
   startDate: Date;
   endDate: Date;
   status: EventStatus;
+  minDurationMinutes?: number;
+  maxDurationMinutes?: number;
 }

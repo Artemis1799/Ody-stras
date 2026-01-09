@@ -9,8 +9,8 @@
   <ng-template #header class="drawer-header-template">
     <div class="drawer-header">
       <div class="header-content">
-        <h3>Point #{{ selectedPointIndex || selectedPoint?.order || '?' }}</h3>
-        <span class="step-indicator">Étape 1/2</span>
+        <h3>Point d'intérêt</h3>
+        <span class="point-status interest">!</span>
       </div>
       <button 
         type="button" 
@@ -23,7 +23,17 @@
 
   <ng-container *ngIf="selectedPoint" class="drawer-content">
     <div class="unified-section">
-      <!-- Informations de position -->
+      <!-- Nom du point -->
+      <div class="info-row">
+        <div class="info-item">
+          <span class="info-label">Nom</span>
+          <span class="info-value">
+            {{ selectedPoint.name || 'Point d\'intérêt' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Coordonnées -->
       <div class="info-row">
         <div class="info-item">
           <span class="info-label">Position</span>
@@ -36,12 +46,7 @@
         </div>
       </div>
 
-      <!-- Instructions pour l'étape 1 -->
-      <div class="step-instructions">
-        <p>Sélectionnez le type d'équipement pour ce point, puis placez-le sur la carte.</p>
-      </div>
-
-      <!-- Commentaire -->
+      <!-- Commentaire (éditable) -->
       <div class="form-row">
         <label for="comment">Commentaire</label>
         <input 
@@ -53,39 +58,11 @@
           class="w-full input-comment"
         />
       </div>
-
-      <!-- Équipement -->
-      <div class="form-row equipment-selector">
-        <label for="equipment">Équipement <span class="required">*</span></label>
-        <p-autoComplete
-          inputId="equipment"
-          [(ngModel)]="selectedEquipmentName"
-          [suggestions]="filteredEquipments"
-          (completeMethod)="filterEquipments($event)"
-          (onSelect)="onEquipmentSelect($event)"
-          placeholder="Sélectionner un équipement..."
-          [dropdown]="true"
-          [forceSelection]="true"
-          [showEmptyMessage]="true"
-          emptyMessage="Aucun équipement trouvé"
-          appendTo="body"
-          panelStyleClass="equipment-dropdown-panel"
-          class="w-full"
-        />
-      </div>
     </div>
   </ng-container>
 
   <ng-template #footer>
     <div class="drawer-footer">
-      <button 
-        type="button" 
-        class="btn btn-secondary"
-        (click)="openPhotoViewer()"
-      >
-        <span class="pi pi-image"></span>
-        Photos
-      </button>
       <div class="main-actions">
         <button 
           type="button" 
@@ -98,26 +75,22 @@
         <button 
           type="button" 
           class="btn btn-primary"
-          [disabled]="!canProceedToDrawing()"
-          (click)="proceedToDrawing()"
+          [disabled]="!hasChanges()"
+          (click)="saveChanges()"
         >
-          <span class="pi pi-map-marker"></span>
-          Placer sur la carte
+          <span class="pi pi-save"></span>
+          Sauvegarder
         </button>
       </div>
     </div>
   </ng-template>
 </p-drawer>
 
-@if (showPhotoViewer && selectedPoint) {
-  <app-photo-viewer [pointId]="selectedPoint.uuid" (close)="closePhotoViewer()"></app-photo-viewer>
-}
-
 @if (showDeleteConfirm && selectedPoint) {
   <app-delete-popup
-    [title]="'Supprimer le point'"
-    [itemName]="'Point #' + (selectedPointIndex || selectedPoint.order)"
-    [warningMessage]="'Cette action est irréversible. Le point et toutes ses photos seront supprimés.'"
+    [title]="'Supprimer le point d\'intérêt'"
+    [itemName]="selectedPoint.name || 'Point d\'intérêt'"
+    [warningMessage]="'Cette action est irréversible. Le point d\'intérêt et toutes ses photos seront supprimés.'"
     (confirm)="deletePoint()"
     (close)="cancelDeletePoint()"
   ></app-delete-popup>

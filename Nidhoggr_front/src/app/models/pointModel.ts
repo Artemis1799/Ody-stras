@@ -11,4 +11,5 @@ export interface Point {
   validated: boolean;
   equipmentId?: string;
   equipment?: Equipment;
+  isPointOfInterest?: boolean;
 }
