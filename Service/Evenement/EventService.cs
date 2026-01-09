@@ -50,6 +50,8 @@ public class EventService : IEventService
         existingEvent.StartDate = eventModel.StartDate;
         existingEvent.EndDate = eventModel.EndDate;
         existingEvent.Status = eventModel.Status;
+        existingEvent.MinDurationMinutes = eventModel.MinDurationMinutes;
+        existingEvent.MaxDurationMinutes = eventModel.MaxDurationMinutes;
 
         await _context.SaveChangesAsync();
 

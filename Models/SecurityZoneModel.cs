@@ -20,6 +20,8 @@ public class SecurityZone
     [Required]
     public int Quantity { get; set; }
     
+    public string? Comment { get; set; }
+    
     [Required]
     public DateTime InstallationDate { get; set; }
     
@@ -30,14 +32,26 @@ public class SecurityZone
     [Column(TypeName = "TEXT")]
     public string GeoJson { get; set; } = string.Empty;
     
+    public Guid? InstallationTeamId { get; set; }
+    
+    public Guid? RemovalTeamId { get; set; }
+    
     [ForeignKey("EventId")]
     [JsonIgnore]
     public Event? Event { get; set; }
     
     [ForeignKey("EquipmentId")]
-    [JsonIgnore]
     public Equipment? Equipment { get; set; }
+    
+    [ForeignKey("InstallationTeamId")]
+    public Team? InstallationTeam { get; set; }
+    
+    [ForeignKey("RemovalTeamId")]
+    public Team? RemovalTeam { get; set; }
     
     [JsonIgnore]
     public ICollection<Action>? Actions { get; set; }
+    
+    [JsonIgnore]
+    public ICollection<Picture>? Pictures { get; set; }
 }

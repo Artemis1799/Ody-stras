@@ -50,7 +50,16 @@ public class AppDbContext : DbContext
             .HasOne(p => p.Point)
             .WithMany(pt => pt.Pictures)
             .HasForeignKey(p => p.PointId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        // Picture -> SecurityZone relationship
+        modelBuilder.Entity<Picture>()
+            .HasOne(p => p.SecurityZone)
+            .WithMany(sz => sz.Pictures)
+            .HasForeignKey(p => p.SecurityZoneId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired(false);
 
         // Team -> Event relationship
         modelBuilder.Entity<Team>()
@@ -100,6 +109,22 @@ public class AppDbContext : DbContext
             .WithMany(e => e.SecurityZones)
             .HasForeignKey(sz => sz.EquipmentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // SecurityZone -> InstallationTeam relationship
+        modelBuilder.Entity<SecurityZone>()
+            .HasOne(sz => sz.InstallationTeam)
+            .WithMany()
+            .HasForeignKey(sz => sz.InstallationTeamId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        // SecurityZone -> RemovalTeam relationship
+        modelBuilder.Entity<SecurityZone>()
+            .HasOne(sz => sz.RemovalTeam)
+            .WithMany()
+            .HasForeignKey(sz => sz.RemovalTeamId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
 
         // Planning -> Team relationship (one-to-one)
         modelBuilder.Entity<Planning>()

@@ -25,12 +25,6 @@ public class RoutePath
     public DateTime StartDate { get; set; }
     
     [Required]
-    public float FastestEstimatedSpeed { get; set; }
-    
-    [Required]
-    public float SlowestEstimatedSpeed { get; set; }
-    
-    [Required]
     [Column(TypeName = "TEXT")]
     public string GeoJson { get; set; } = string.Empty;
     

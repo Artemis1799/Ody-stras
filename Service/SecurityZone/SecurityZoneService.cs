@@ -17,6 +17,8 @@ public class SecurityZoneService : ISecurityZoneService
     {
         return await _context.SecurityZones
             .Include(sz => sz.Equipment)
+            .Include(sz => sz.InstallationTeam)
+            .Include(sz => sz.RemovalTeam)
             .ToListAsync();
     }
 
@@ -24,6 +26,8 @@ public class SecurityZoneService : ISecurityZoneService
     {
         return await _context.SecurityZones
             .Include(sz => sz.Equipment)
+            .Include(sz => sz.InstallationTeam)
+            .Include(sz => sz.RemovalTeam)
             .FirstOrDefaultAsync(sz => sz.UUID == id);
     }
 
@@ -32,6 +36,8 @@ public class SecurityZoneService : ISecurityZoneService
         return await _context.SecurityZones
             .Where(sz => sz.EventId == eventId)
             .Include(sz => sz.Equipment)
+            .Include(sz => sz.InstallationTeam)
+            .Include(sz => sz.RemovalTeam)
             .ToListAsync();
     }
 
@@ -45,7 +51,10 @@ public class SecurityZoneService : ISecurityZoneService
         _context.SecurityZones.Add(securityZone);
         await _context.SaveChangesAsync();
 
-        return securityZone;
+        // Recharger avec l'équipement inclus
+        return await _context.SecurityZones
+            .Include(sz => sz.Equipment)
+            .FirstAsync(sz => sz.UUID == securityZone.UUID);
     }
 
     public async Task<SecurityZone?> UpdateAsync(Guid id, SecurityZone securityZone)
@@ -59,6 +68,7 @@ public class SecurityZoneService : ISecurityZoneService
 
         existing.EquipmentId = securityZone.EquipmentId;
         existing.Quantity = securityZone.Quantity;
+        existing.Comment = securityZone.Comment;
         existing.InstallationDate = securityZone.InstallationDate;
         existing.RemovalDate = securityZone.RemovalDate;
         existing.GeoJson = securityZone.GeoJson;
@@ -66,7 +76,10 @@ public class SecurityZoneService : ISecurityZoneService
 
         await _context.SaveChangesAsync();
 
-        return existing;
+        // Recharger avec l'équipement inclus
+        return await _context.SecurityZones
+            .Include(sz => sz.Equipment)
+            .FirstOrDefaultAsync(sz => sz.UUID == id);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -91,5 +104,81 @@ public class SecurityZoneService : ISecurityZoneService
         _context.SecurityZones.RemoveRange(securityZones);
         await _context.SaveChangesAsync();
         return count;
+    }
+
+    public async Task<SecurityZone?> AssignInstallationTeamAsync(Guid id, Guid teamId)
+    {
+        var existing = await _context.SecurityZones.FindAsync(id);
+
+        if (existing == null)
+        {
+            return null;
+        }
+
+        existing.InstallationTeamId = teamId;
+        await _context.SaveChangesAsync();
+
+        return await _context.SecurityZones
+            .Include(sz => sz.Equipment)
+            .Include(sz => sz.InstallationTeam)
+            .Include(sz => sz.RemovalTeam)
+            .FirstOrDefaultAsync(sz => sz.UUID == id);
+    }
+
+    public async Task<SecurityZone?> UnassignInstallationTeamAsync(Guid id)
+    {
+        var existing = await _context.SecurityZones.FindAsync(id);
+
+        if (existing == null)
+        {
+            return null;
+        }
+
+        existing.InstallationTeamId = null;
+        await _context.SaveChangesAsync();
+
+        return await _context.SecurityZones
+            .Include(sz => sz.Equipment)
+            .Include(sz => sz.InstallationTeam)
+            .Include(sz => sz.RemovalTeam)
+            .FirstOrDefaultAsync(sz => sz.UUID == id);
+    }
+
+    public async Task<SecurityZone?> AssignRemovalTeamAsync(Guid id, Guid teamId)
+    {
+        var existing = await _context.SecurityZones.FindAsync(id);
+
+        if (existing == null)
+        {
+            return null;
+        }
+
+        existing.RemovalTeamId = teamId;
+        await _context.SaveChangesAsync();
+
+        return await _context.SecurityZones
+            .Include(sz => sz.Equipment)
+            .Include(sz => sz.InstallationTeam)
+            .Include(sz => sz.RemovalTeam)
+            .FirstOrDefaultAsync(sz => sz.UUID == id);
+    }
+
+    public async Task<SecurityZone?> UnassignRemovalTeamAsync(Guid id)
+    {
+        var existing = await _context.SecurityZones.FindAsync(id);
+
+        if (existing == null)
+        {
+            return null;
+        }
+
+        existing.RemovalTeamId = null;
+        await _context.SaveChangesAsync();
+
+        return await _context.SecurityZones
+            .Include(sz => sz.Equipment)
+            .Include(sz => sz.InstallationTeam)
+            .Include(sz => sz.RemovalTeam)
+            .FirstOrDefaultAsync(sz => sz.UUID == id);
     }
 }

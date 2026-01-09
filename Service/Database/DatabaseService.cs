@@ -173,8 +173,6 @@ public class DatabaseService : IDatabaseService
             Name = "Course 5km",
             ColorHex = "#33FF57",
             StartDate = DateTime.UtcNow.AddHours(2),
-            FastestEstimatedSpeed = 15.0f,
-            SlowestEstimatedSpeed = 5.0f,
             GeoJson = "{\"type\":\"LineString\",\"coordinates\":[[7.75,48.57],[7.76,48.575],[7.755,48.58]]}"
         });
 

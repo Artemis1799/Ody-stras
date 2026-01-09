@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using t5_back.Data;
 
@@ -10,9 +11,11 @@ using t5_back.Data;
 namespace t5_back.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260103202416_AddIsPointOfInterestToPoint")]
+    partial class AddIsPointOfInterestToPoint
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -141,12 +144,6 @@ namespace t5_back.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("MaxDurationMinutes")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("MinDurationMinutes")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("TEXT");
 
@@ -263,6 +260,9 @@ namespace t5_back.Migrations
                     b.Property<Guid>("EventId")
                         .HasColumnType("TEXT");
 
+                    b.Property<float>("FastestEstimatedSpeed")
+                        .HasColumnType("REAL");
+
                     b.Property<string>("GeoJson")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -271,6 +271,9 @@ namespace t5_back.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
+
+                    b.Property<float>("SlowestEstimatedSpeed")
+                        .HasColumnType("REAL");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("TEXT");
@@ -304,16 +307,10 @@ namespace t5_back.Migrations
                     b.Property<DateTime>("InstallationDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("InstallationTeamId")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("RemovalDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("RemovalTeamId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("UUID");
@@ -321,10 +318,6 @@ namespace t5_back.Migrations
                     b.HasIndex("EquipmentId");
 
                     b.HasIndex("EventId");
-
-                    b.HasIndex("InstallationTeamId");
-
-                    b.HasIndex("RemovalTeamId");
 
                     b.ToTable("SecurityZones");
                 });
@@ -425,12 +418,11 @@ namespace t5_back.Migrations
                     b.HasOne("t5_back.Models.Point", "Point")
                         .WithMany("Pictures")
                         .HasForeignKey("PointId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("t5_back.Models.SecurityZone", "SecurityZone")
                         .WithMany("Pictures")
-                        .HasForeignKey("SecurityZoneId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("SecurityZoneId");
 
                     b.Navigation("Point");
 
@@ -491,23 +483,9 @@ namespace t5_back.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("t5_back.Models.Team", "InstallationTeam")
-                        .WithMany()
-                        .HasForeignKey("InstallationTeamId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("t5_back.Models.Team", "RemovalTeam")
-                        .WithMany()
-                        .HasForeignKey("RemovalTeamId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Equipment");
 
                     b.Navigation("Event");
-
-                    b.Navigation("InstallationTeam");
-
-                    b.Navigation("RemovalTeam");
                 });
 
             modelBuilder.Entity("t5_back.Models.Team", b =>

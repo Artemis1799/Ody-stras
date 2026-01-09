@@ -11,4 +11,8 @@ public interface ISecurityZoneService
     Task<SecurityZone?> UpdateAsync(Guid id, SecurityZone securityZone);
     Task<bool> DeleteAsync(Guid id);
     Task<int> DeleteAllAsync();
+    Task<SecurityZone?> AssignInstallationTeamAsync(Guid id, Guid teamId);
+    Task<SecurityZone?> UnassignInstallationTeamAsync(Guid id);
+    Task<SecurityZone?> AssignRemovalTeamAsync(Guid id, Guid teamId);
+    Task<SecurityZone?> UnassignRemovalTeamAsync(Guid id);
 }

@@ -24,6 +24,20 @@ public class PictureService : IPictureService
             .FirstOrDefaultAsync(p => p.UUID == id);
     }
 
+    public async Task<IEnumerable<Picture>> GetByPointIdAsync(Guid pointId)
+    {
+        return await _context.Pictures
+            .Where(p => p.PointId == pointId)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Picture>> GetBySecurityZoneIdAsync(Guid securityZoneId)
+    {
+        return await _context.Pictures
+            .Where(p => p.SecurityZoneId == securityZoneId)
+            .ToListAsync();
+    }
+
     public async Task<Picture> CreateAsync(Picture picture)
     {
         if (picture.UUID == Guid.Empty)
@@ -75,5 +89,21 @@ public class PictureService : IPictureService
         _context.Pictures.RemoveRange(pictures);
         await _context.SaveChangesAsync();
         return count;
+    }
+
+    public async Task<int> TransferFromPointToSecurityZoneAsync(Guid pointId, Guid securityZoneId)
+    {
+        var pictures = await _context.Pictures
+            .Where(p => p.PointId == pointId)
+            .ToListAsync();
+
+        foreach (var picture in pictures)
+        {
+            picture.SecurityZoneId = securityZoneId;
+            // Garder aussi le PointId pour l'éventuel historique
+        }
+
+        await _context.SaveChangesAsync();
+        return pictures.Count;
     }
 }

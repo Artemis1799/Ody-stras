@@ -75,4 +75,53 @@ public class SecurityZoneController : ControllerBase
         var count = await _securityZoneService.DeleteAllAsync();
         return Ok(new { deletedCount = count });
     }
+
+    [HttpPut("{id}/assign-installation-team")]
+    public async Task<ActionResult<SecurityZone>> AssignInstallationTeam(Guid id, [FromBody] AssignTeamRequest request)
+    {
+        var updated = await _securityZoneService.AssignInstallationTeamAsync(id, request.TeamId);
+
+        if (updated == null)
+            return NotFound();
+
+        return Ok(updated);
+    }
+
+    [HttpPut("{id}/unassign-installation-team")]
+    public async Task<ActionResult<SecurityZone>> UnassignInstallationTeam(Guid id)
+    {
+        var updated = await _securityZoneService.UnassignInstallationTeamAsync(id);
+
+        if (updated == null)
+            return NotFound();
+
+        return Ok(updated);
+    }
+
+    [HttpPut("{id}/assign-removal-team")]
+    public async Task<ActionResult<SecurityZone>> AssignRemovalTeam(Guid id, [FromBody] AssignTeamRequest request)
+    {
+        var updated = await _securityZoneService.AssignRemovalTeamAsync(id, request.TeamId);
+
+        if (updated == null)
+            return NotFound();
+
+        return Ok(updated);
+    }
+
+    [HttpPut("{id}/unassign-removal-team")]
+    public async Task<ActionResult<SecurityZone>> UnassignRemovalTeam(Guid id)
+    {
+        var updated = await _securityZoneService.UnassignRemovalTeamAsync(id);
+
+        if (updated == null)
+            return NotFound();
+
+        return Ok(updated);
+    }
+}
+
+public class AssignTeamRequest
+{
+    public Guid TeamId { get; set; }
 }

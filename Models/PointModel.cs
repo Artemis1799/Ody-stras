@@ -30,6 +30,8 @@ public class Point
     
     public bool Validated { get; set; } = false;
     
+    public bool IsPointOfInterest { get; set; } = false;
+    
     public Guid? EquipmentId { get; set; }
     
     [ForeignKey("EventId")]

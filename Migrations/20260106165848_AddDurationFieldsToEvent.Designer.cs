@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using t5_back.Data;
 
@@ -10,9 +11,11 @@ using t5_back.Data;
 namespace t5_back.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260106165848_AddDurationFieldsToEvent")]
+    partial class AddDurationFieldsToEvent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -263,6 +266,9 @@ namespace t5_back.Migrations
                     b.Property<Guid>("EventId")
                         .HasColumnType("TEXT");
 
+                    b.Property<float>("FastestEstimatedSpeed")
+                        .HasColumnType("REAL");
+
                     b.Property<string>("GeoJson")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -271,6 +277,9 @@ namespace t5_back.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
+
+                    b.Property<float>("SlowestEstimatedSpeed")
+                        .HasColumnType("REAL");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("TEXT");
