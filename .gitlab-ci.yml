@@ -37,7 +37,7 @@ test_job:
     - install_job
   script:
     - npm install --no-save jest-junit
-    - npm test -- --ci --coverage --coverageReporters=text --coverageReporters=lcov --coverageReporters=cobertura --reporters=default --reporters=jest-junit || true
+    - npm test -- --ci --coverage --coverageReporters=cobertura --reporters=default --reporters=jest-junit || true
   artifacts:
     when: always
     reports:
@@ -55,6 +55,7 @@ build_job:
   stage: build
   needs:
     - install_job
+    - test_job
   script:
     - npm install -g eas-cli
     - eas build -p android --profile preview --non-interactive

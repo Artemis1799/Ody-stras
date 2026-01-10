@@ -44,6 +44,8 @@ export async function setupDatabase(db: SQLiteDatabase) {
         Comment TEXT,
         Validated INTEGER DEFAULT 0,
         EquipmentID TEXT,
+        EquipmentQuantity INTEGER,
+        Ordre INTEGER,
         FOREIGN KEY(EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE,
         FOREIGN KEY(EquipmentID) REFERENCES Equipment(UUID) ON DELETE SET NULL
       );

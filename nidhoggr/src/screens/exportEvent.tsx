@@ -25,6 +25,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Strings } from "../../types/strings";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
+import { NO_EQUIPMENT_ID } from "../constants/constants";
 
 export default function ExportEventScreen() {
   const { theme } = useTheme();
@@ -163,13 +164,20 @@ export default function ExportEventScreen() {
 
             // Envoyer les données du point sans les photos
             const { photos, ...pointWithoutPhotos } = point;
+            
+            // Gérer le cas "Aucun équipement" pour l'export
+            const pointToExport = {
+                ...pointWithoutPhotos,
+                Equipement_ID: pointWithoutPhotos.Equipement_ID === NO_EQUIPMENT_ID ? null : pointWithoutPhotos.Equipement_ID
+            };
+
             const pointData = {
               type: "point",
               eventUUID: eventUUID,
               pointIndex: i,
               totalPoints: pointsWithPhotos.length,
               point: {
-                ...pointWithoutPhotos,
+                ...pointToExport,
                 photoCount: photos.length,
               },
             };

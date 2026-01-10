@@ -21,6 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Strings } from "../../types/strings";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
+import { NO_EQUIPMENT_ID } from "../constants/constants";
 
 // Interfaces pour le nouveau format JSON
 interface ImportedPhoto {
@@ -207,20 +208,23 @@ export default function ImportEventScreen() {
       Equipement_ID: point.equipmentId,
       Equipement_quantite: point.equipmentQuantity,
     };
-    await insertOrReplace(db, "Point", pointData);
-    console.log(`Point ${point.uuid} sauvegardé`);
-  };
 
-  // Sauvegarder une photo et son lien avec le point
-  const savePhotoToDatabase = async (
-    photo: ImportedPhoto,
-    pointUuid: string
-  ) => {
-    // Sauvegarder la photo
-    const photoData = {
-      UUID: photo.uuid,
-      Picture: photo.picture,
-      Picture_name: photo.pictureName,
+    // Sauvegarder un point
+    const savePointToDatabase = async (point: ImportedPoint) => {
+      const pointData = {
+        UUID: point.uuid,
+        Event_ID: point.eventId,
+        Latitude: point.latitude,
+        Longitude: point.longitude,
+        Commentaire: point.comment,
+        Ordre: point.order,
+        Valide: point.isValid ? 1 : 0,
+        Equipement_ID:
+          point.equipmentId === null ? NO_EQUIPMENT_ID : point.equipmentId,
+        Equipement_quantite: point.equipmentQuantity,
+      };
+      await insertOrReplace(db, "Point", pointData);
+      console.log(`Point ${point.uuid} sauvegardé`);
     };
     await insertOrReplace(db, "Photo", photoData);
 

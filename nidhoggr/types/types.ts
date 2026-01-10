@@ -70,6 +70,7 @@ export interface Point {
   Comment?: string;
   Validated: boolean;
   EquipmentID?: string;
+  EquipmentQuantity?: number;
 }
 
 export interface PointOnMap {
@@ -78,6 +79,9 @@ export interface PointOnMap {
   Longitude: number;
   EquipmentType?: string;
   Name?: string;
+  EquipType: string;
+  Equipement_quantite: number;
+  Equipement_ID: string;
 }
 
 export interface pointPhotoParams {
