@@ -19,8 +19,8 @@ import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import { useSQLiteContext } from "expo-sqlite";
 import DropDownPicker from "react-native-dropdown-picker";
 import {
-  Equipement,
-  EquipementList,
+  Equipment,
+  EquipmentListItem,
   EventScreenNavigationProp,
   Point,
   UserLocation,
@@ -44,8 +44,7 @@ export function CreatePointScreen() {
   const [open, setOpen] = useState(false);
   const navigation = useNavigation<EventScreenNavigationProp>();
   const [comment, setComment] = useState("");
-  const [qty, setQty] = useState("");
-  const [equipmentList, setEquipmentList] = useState<EquipementList[]>([]);
+  const [equipmentList, setEquipmentList] = useState<EquipmentListItem[]>([]);
   const [equipment, setEquipment] = useState<string | null>(null);
   const [pointId, setPointId] = useState("");
   const mapRef = useRef<MapView>(null);
@@ -108,22 +107,14 @@ export function CreatePointScreen() {
         alert(Strings.createPoint.addComment);
         return;
       }
-      if (!equipment) {
-        alert(Strings.createPoint.selectEquipment);
-        return;
-      }
-      if (!qty || Number(qty) < 1) {
-        alert(Strings.createPoint.enterQuantity);
-        return;
-      }
 
-      await update<Point>(db, "Point", { Commentaire: comment }, "UUID = ?", [
+      await update<Point>(db, "Point", { Comment: comment }, "UUID = ?", [
         pointId,
       ]);
       await update<Point>(
         db,
         "Point",
-        { Equipement_quantite: Number(qty), Equipement_ID: equipment },
+        { EquipmentID: equipment || undefined },
         "UUID = ?",
         [pointId]
       );
@@ -167,27 +158,23 @@ export function CreatePointScreen() {
           const existingPoints = await getAllWhere<Point>(
             db,
             "Point",
-            ["Event_ID"],
+            ["EventID"],
             [eventId]
           );
           const nextOrdre = existingPoints.length + 1;
 
           await insert<Point>(db, "Point", {
             UUID: newId,
-            Event_ID: eventId,
+            EventID: eventId,
             Latitude: coords.latitude,
             Longitude: coords.longitude,
-            Equipement_ID: "f50252ce-31bb-4c8b-a70c-51b7bb630bc3",
-            Equipement_quantite: 0,
-            Ordre: nextOrdre,
+            EquipmentID: undefined,
           });
         } else {
           const res = await getAllWhere<Point>(db, "Point", ["UUID"], [newId]);
           if (res[0]) {
-            setComment(res[0].Commentaire);
-            if (res[0]?.Equipement_ID) setEquipment(res[0].Equipement_ID);
-            if (res[0]?.Equipement_quantite)
-              setQty(res[0].Equipement_quantite.toString());
+            setComment(res[0].Comment || "");
+            if (res[0]?.EquipmentID) setEquipment(res[0].EquipmentID);
             // Charger la position du point existant
             if (res[0].Latitude && res[0].Longitude) {
               const existingCoords = {
@@ -207,7 +194,7 @@ export function CreatePointScreen() {
           }
         }
 
-        const equipments = await getAll<Equipement>(db, "Equipement");
+        const equipments = await getAll<Equipment>(db, "Equipment");
         setEquipmentList(
           equipments.map((e) => ({
             label: e.Type,
@@ -280,6 +267,13 @@ export function CreatePointScreen() {
           </TouchableOpacity>
 
           <TextInput
+            placeholder="Nom"
+            style={styles.input}
+            value={name}
+            onChangeText={setComment}
+          />
+
+          <TextInput
             placeholder="Commentaire"
             style={styles.inputComment}
             multiline
@@ -306,13 +300,6 @@ export function CreatePointScreen() {
             placeholder={Strings.createPoint.selectEquipmentPlaceholder}
             listMode="SCROLLVIEW"
             style={styles.dropdown}
-          />
-          <TextInput
-            placeholder="Quantité"
-            style={styles.inputCreatePoint}
-            keyboardType="numeric"
-            value={qty}
-            onChangeText={setQty}
           />
 
           <TouchableOpacity style={styles.validateButton} onPress={validate}>

@@ -11,10 +11,14 @@ import {
 import {
   EventScreenNavigationProp,
   PointOnMap,
-  Photos,
+  Picture,
 } from "../../types/types";
 import { useSQLiteContext } from "expo-sqlite";
-import { getPointsForEvent, getPhotosForPoint, flushDatabase } from "../../database/queries";
+import {
+  getPointsForEvent,
+  getPhotosForPoint,
+  flushDatabase,
+} from "../../database/queries";
 import { useEffect, useState, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
@@ -89,13 +93,13 @@ export default function ExportEventScreen() {
       const pointsWithPhotos = await Promise.all(
         points.map(async (point) => {
           try {
-            const photos = await getPhotosForPoint<Photos>(db, point.UUID);
+            const photos = await getPhotosForPoint<Picture>(db, point.UUID);
             return {
               ...point,
               photos: photos.map((photo) => ({
                 UUID: photo.UUID,
                 Picture: photo.Picture,
-                Picture_name: photo.Picture_name,
+                PictureName: photo.PictureName,
               })),
             };
           } catch (error) {
@@ -193,7 +197,7 @@ export default function ExportEventScreen() {
                 photo: {
                   UUID: photo.UUID,
                   Picture: photo.Picture,
-                  Picture_name: photo.Picture_name,
+                  PictureName: photo.PictureName,
                 },
               };
 
@@ -362,24 +366,24 @@ export default function ExportEventScreen() {
                 isSending
                   ? "cloud-upload"
                   : sendStatus === "Transfert terminé"
-                    ? "checkmark-circle"
-                    : "alert-circle"
+                  ? "checkmark-circle"
+                  : "alert-circle"
               }
               size={60}
               color={
                 isSending
                   ? "#0E47A1"
                   : sendStatus === "Transfert terminé"
-                    ? "#43A047"
-                    : "#E53935"
+                  ? "#43A047"
+                  : "#E53935"
               }
             />
             <Text style={styles.headerTitle}>
               {isSending
                 ? Strings.exportEvent.exportInProgress
                 : sendStatus === Strings.exportEvent.transferComplete
-                  ? Strings.exportEvent.exportSuccess
-                  : Strings.exportEvent.export}
+                ? Strings.exportEvent.exportSuccess
+                : Strings.exportEvent.export}
             </Text>
           </View>
 

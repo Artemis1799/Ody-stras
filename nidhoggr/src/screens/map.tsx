@@ -18,8 +18,9 @@ import {
 import { useSQLiteContext } from "expo-sqlite";
 import * as Location from "expo-location";
 import {
+  Area,
   EventScreenNavigationProp,
-  Geometries,
+  Path,
   Point,
   PointOnMap,
   mapParams,
@@ -29,7 +30,8 @@ import { Strings } from "../../types/strings";
 import { Header } from "../components/header";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
-import RenderGeometries from "../utils/RenderGeometry";
+import RenderAreas from "../utils/RenderAreas";
+import RenderPaths from "../utils/RenderPaths";
 
 export function MapScreen() {
   const { theme } = useTheme();
@@ -40,7 +42,8 @@ export function MapScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const mapRef = useRef<MapView>(null);
-  const [geometries, setGeometries] = useState<string[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [paths, setPaths] = useState<Path[]>([]);
 
   const { eventId, eventName } = route.params as mapParams;
 
@@ -64,24 +67,27 @@ export function MapScreen() {
     try {
       console.log("calling loadPoints");
       console.log(eventId);
-      const geoms = await getAllWhere<Geometries>(
+      const areasDB = await getAllWhere<Area>(
         db,
-        "EventGeometries",
+        "Area",
         ["EventID"],
         [eventId]
       );
-      console.log("geoms");
-      console.log(geoms);
-      const geojsonList = geoms.map((g) => g.GeoJSON);
-      setGeometries(geojsonList);
+      const pathsDB = await getAllWhere<Path>(
+        db,
+        "Path",
+        ["EventID"],
+        [eventId]
+      );
+      setAreas(areasDB);
+      setPaths(pathsDB);
       const sql: PointOnMap[] = await getPointsForEvent(db, eventId);
 
       const pts: PointOnMap[] = sql.map((row: PointOnMap) => ({
         UUID: row.UUID,
         Latitude: row.Latitude,
         Longitude: row.Longitude,
-        EquipType: row.EquipType,
-        Equipement_quantite: row.Equipement_quantite,
+        EquipType: row.EquipmentType,
       }));
       console.log("sql===");
       console.log(sql);
@@ -167,7 +173,8 @@ export function MapScreen() {
           longitudeDelta: 0.01,
         }}
       >
-        <RenderGeometries geometries={geometries} />
+        <RenderAreas areas={areas} />
+        <RenderPaths paths={paths} />
 
         {points.map((point) => (
           <Marker
@@ -180,11 +187,8 @@ export function MapScreen() {
             anchor={{ x: 0.5, y: 1 }}
           >
             <View style={styles.markerContainer}>
-              <Text style={styles.markerQty}>
-                {point.Equipement_quantite ?? 0}
-              </Text>
               <Text style={styles.markerType}>
-                {point.EquipType ?? Strings.map.noEquipment}
+                {point.EquipmentType ?? Strings.map.noEquipment}
               </Text>
             </View>
           </Marker>

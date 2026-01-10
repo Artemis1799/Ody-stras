@@ -41,7 +41,7 @@ export default function PointsScreen() {
           const data: Point[] = await getAllWhere<Point>(
             db,
             "Point",
-            ["Event_ID"],
+            ["EventID"],
             [eventUUID],
             "Ordre ASC"
           );
@@ -72,9 +72,7 @@ export default function PointsScreen() {
     console.log("=== AVANT DÉPLACEMENT ===");
     points.forEach((p, i) =>
       console.log(
-        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
-          p.Ordre
-        }, Commentaire=${p.Commentaire}`
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Commentaire=${p.Comment}`
       )
     );
 
@@ -96,14 +94,12 @@ export default function PointsScreen() {
     console.log("=== APRÈS DÉPLACEMENT ===");
     updatedPoints.forEach((p, i) =>
       console.log(
-        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
-          p.Ordre
-        }, Commentaire=${p.Commentaire}`
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Commentaire=${p.Comment}`
       )
     );
 
     setPoints(updatedPoints);
-
+    /*
     // Mettre à jour l'ordre dans la base de données
     try {
       console.log("=== MISE À JOUR BDD ===");
@@ -126,33 +122,33 @@ export default function PointsScreen() {
       );
     }
   };
-
-  const deletePoint = async (point: Point) => {
-    Alert.alert(
-      "Supprimer le point",
-      `Êtes-vous sûr de vouloir supprimer ${point.Commentaire || `Point ${point.Ordre}`} ?`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteWhere(db, "Point", ["UUID"], [point.UUID]);
-              setPoints((prev) => prev.filter((p) => p.UUID !== point.UUID));
-            } catch (err) {
-              console.error("Erreur lors de la suppression:", err);
-              Alert.alert("Erreur", "Impossible de supprimer le point");
-            }
+*/
+    const deletePoint = async (point: Point) => {
+      Alert.alert(
+        "Supprimer le point",
+        `Êtes-vous sûr de vouloir supprimer ${point.Name} ?`,
+        [
+          { text: "Annuler", style: "cancel" },
+          {
+            text: "Supprimer",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await deleteWhere(db, "Point", ["UUID"], [point.UUID]);
+                setPoints((prev) => prev.filter((p) => p.UUID !== point.UUID));
+              } catch (err) {
+                console.error("Erreur lors de la suppression:", err);
+                Alert.alert("Erreur", "Impossible de supprimer le point");
+              }
+            },
           },
-        },
-      ]
-    );
-  };
+        ]
+      );
+    };
 
-  const renderItem = ({ item, index }: { item: Point; index: number }) => (
-    <View style={styles.pointItemContainer}>
-      {/*Pour l'instant on désactive les boutons de réordonnancement
+    const renderItem = ({ item, index }: { item: Point; index: number }) => (
+      <View style={styles.pointItemContainer}>
+        {/*Pour l'instant on désactive les boutons de réordonnancement
 
       <View style={styles.reorderButtons}>
         <TouchableOpacity
@@ -178,45 +174,40 @@ export default function PointsScreen() {
           />
         </TouchableOpacity>
       </View>*/}
-      <TouchableOpacity
-        style={styles.pointItem}
-        onPress={() =>
-          navigation.navigate("AddPoint", {
-            eventId: eventUUID,
-            pointIdParam: item.UUID,
-          })
-        }
-      >
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{item.Ordre}</Text>
-        </View>
-        <Text style={[styles.pointName, { flex: 1 }]}>
-          {item.Commentaire || Strings.points.pointLabel(item.Ordre ?? 0)}
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity
-            style={{ padding: 10 }}
-            onPress={() => deletePoint(item)}
-          >
-            <Ionicons name="trash-outline" size={24} color="red" />
-          </TouchableOpacity>
-          <Ionicons name="chevron-forward-outline" size={20} color="#000" />
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
+        <TouchableOpacity
+          style={styles.pointItem}
+          onPress={() =>
+            navigation.navigate("AddPoint", {
+              eventId: eventUUID,
+              pointIdParam: item.UUID,
+            })
+          }
+        >
+          <Text style={[styles.pointName, { flex: 1 }]}>{item.Name}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity
+              style={{ padding: 10 }}
+              onPress={() => deletePoint(item)}
+            >
+              <Ionicons name="trash-outline" size={24} color="red" />
+            </TouchableOpacity>
+            <Ionicons name="chevron-forward-outline" size={20} color="#000" />
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <Header />
-      <FlatList
-        data={points}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.UUID}
-        contentContainerStyle={styles.listContainer}
-      />
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header />
+        <FlatList
+          data={points}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.UUID}
+          contentContainerStyle={styles.listContainer}
+        />
 
-      {/* On commente le bouton de simulation pour l'instant
+        {/* On commente le bouton de simulation pour l'instant
       
       <View style={styles.bottomButtonContainer}>
         <TouchableOpacity
@@ -232,6 +223,7 @@ export default function PointsScreen() {
           <Text style={styles.simulateButtonText}>Simuler l'itinéraire</Text>
         </TouchableOpacity>
       </View>*/}
-    </SafeAreaView>
-  );
+      </SafeAreaView>
+    );
+  };
 }

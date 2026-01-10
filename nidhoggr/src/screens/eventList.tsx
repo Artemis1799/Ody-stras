@@ -65,20 +65,20 @@ export function EventListScreen() {
       onPress={() =>
         navigation.navigate("Event", {
           UUID: item.UUID,
-          Nom: item.Nom,
-          Description: item.Description,
-          Date_debut: item.Date_debut,
+          Title: item.Title,
+          StartDate: item.StartDate,
+          EndDate: item.EndDate,
           Status: item.Status,
         })
       }
     >
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>
-          {item.Nom?.[0]?.toUpperCase() ?? "?"}
+          {item.Title?.[0]?.toUpperCase() ?? "?"}
         </Text>
       </View>
 
-      <Text style={styles.eventName}>{item.Nom}</Text>
+      <Text style={styles.eventName}>{item.Title}</Text>
 
       <Ionicons name="chevron-forward-outline" size={20} />
     </TouchableOpacity>

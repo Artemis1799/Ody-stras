@@ -1,24 +1,5 @@
 import { SQLiteDatabase, useSQLiteContext } from "expo-sqlite";
-
-/*
-export function usePoints(eventId: string) {
-  const [points, setPoints] = useState<Point[]>([]);
-
-  useEffect(() => {
-    load();
-  }, [eventId]);
-
-  const load = async () => {
-    const res: Point[] = await db.getAllAsync(
-      "SELECT * FROM Point WHERE Event_ID = ?",
-      [eventId]
-    );
-    console.log(res);
-    setPoints(res);
-  };
-
-  return points;
-}*/
+import { deleteDatabase } from "./database";
 
 export async function getAll<T>(db: SQLiteDatabase, table: string) {
   return (await db.getAllAsync(`SELECT * FROM ${table}`)) as T[];
@@ -111,10 +92,10 @@ export async function getPointsForEvent<T>(
   eventId: string
 ) {
   return (await db.getAllAsync(
-    `SELECT Point.*, Equipement.Type AS EquipType
+    `SELECT Point.*, Equipment.Type AS EquipType
      FROM Point
-     LEFT JOIN Equipement ON Equipement.UUID = Point.Equipement_ID
-     WHERE Point.Event_ID = ?`,
+     LEFT JOIN Equipment ON Equipment.UUID = Point.EquipmentID
+     WHERE Point.EventID = ?`,
     [eventId]
   )) as T[];
 }
@@ -124,9 +105,8 @@ export async function getPhotosForPoint<T>(
   pointId: string
 ) {
   return (await db.getAllAsync(
-    `SELECT Photo.* FROM Photo
-    JOIN Image_Point ON Photo.UUID = Image_Point.Image_ID
-    WHERE Image_Point.Point_ID = ?`,
+    `SELECT Picture.* FROM Picture
+    WHERE Picture.PointID = ?`,
     [pointId]
   )) as T[];
 }
@@ -139,7 +119,9 @@ export async function deleteWhere(
 ): Promise<number> {
   try {
     if (columns.length === 0) {
-      throw new Error("deleteWhere: columns cannot be empty — refusing full table delete.");
+      throw new Error(
+        "deleteWhere: columns cannot be empty — refusing full table delete."
+      );
     }
 
     const where = columns.map((col) => `${col} = ?`).join(" AND ");
@@ -160,14 +142,23 @@ export async function deleteWhere(
 export async function flushDatabase(db: SQLiteDatabase): Promise<void> {
   try {
     console.log("Flushing database...");
-    await db.runAsync("DELETE FROM Image_Point");
-    await db.runAsync("DELETE FROM Photo");
+    await db.runAsync("DELETE FROM PicturePoint");
+    await db.runAsync("DELETE FROM Picture");
     await db.runAsync("DELETE FROM Point");
-    await db.runAsync("DELETE FROM EventGeometries");
+    await db.runAsync("DELETE FROM Area");
+    await db.runAsync("DELETE FROM Path");
     await db.runAsync("DELETE FROM Evenement");
-    await db.runAsync("DELETE FROM Equipement");
+    await db.runAsync("DELETE FROM Equipment");
+    await db.runAsync("DELETE FROM Employees");
+    await db.runAsync("DELETE FROM Team");
+    await db.runAsync("DELETE FROM TeamEmployees");
+    await db.runAsync("DELETE FROM Planning");
+    await db.runAsync("DELETE FROM Action");
+    await db.runAsync("DELETE FROM SecurityArea");
     console.log("Database flushed successfully.");
   } catch (error) {
     console.error("Error flushing database:", error);
+    console.error("Deleting db instead");
+    await deleteDatabase(db);
   }
 }

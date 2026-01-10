@@ -18,16 +18,19 @@ import {
 } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 import {
+  Area,
   Evenement,
   EventScreenNavigationProp,
-  Geometries,
+  Path,
+  PointOnMap,
 } from "../../types/types";
-import { getAllWhere } from "../../database/queries";
+import { getAllWhere, getPointsForEvent } from "../../database/queries";
 import { Strings } from "../../types/strings";
 import { Header } from "../components/header";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
-import RenderGeometries from "../utils/RenderGeometry";
+import RenderAreas from "../utils/RenderAreas";
+import RenderPaths from "../utils/RenderPaths";
 
 export default function EventScreen() {
   const { theme } = useTheme();
@@ -36,8 +39,10 @@ export default function EventScreen() {
   const db = useSQLiteContext();
   const params = route.params as Evenement;
   const eventUUID = params.UUID;
-  const [geometries, setGeometries] = useState<string[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [paths, setPaths] = useState<Path[]>([]);
   const [eventData, setEventData] = useState<Evenement>(params);
+  const [points, setPoints] = useState<PointOnMap[]>([]);
 
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -86,14 +91,35 @@ export default function EventScreen() {
             setEventData(events[0]);
           }
           //Récupération des géométries
-          const geoms = await getAllWhere<Geometries>(
+          const areasDB = await getAllWhere<Area>(
             db,
-            "EventGeometries",
+            "Area",
             ["EventID"],
             [eventUUID]
           );
-          const geojsonList = geoms.map((g) => g.GeoJSON);
-          setGeometries(geojsonList);
+          const pathsDB = await getAllWhere<Path>(
+            db,
+            "Path",
+            ["EventID"],
+            [eventUUID]
+          );
+          //const areasGeoJsonList = areasDB.map((g) => g.GeoJson);
+          //const pathsGeoJsonList = pathsDB.map((g) => g.GeoJson);
+          setAreas(areasDB);
+          setPaths(pathsDB);
+          const sql: PointOnMap[] = await getPointsForEvent(db, eventUUID);
+
+          const pts: PointOnMap[] = sql.map((row: PointOnMap) => ({
+            UUID: row.UUID,
+            Latitude: row.Latitude,
+            Longitude: row.Longitude,
+            EquipType: row.EquipmentType,
+          }));
+          console.log("sql===");
+          console.log(sql);
+          console.log("pts===");
+          console.log(pts);
+          setPoints(pts);
         } catch (err) {
           console.error("Erreur lors du chargement de l'événement:", err);
         }
@@ -110,7 +136,7 @@ export default function EventScreen() {
       <ScrollView style={styles.content}>
         {/* Event Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.eventTitle}>{eventData.Nom}</Text>
+          <Text style={styles.eventTitle}>{eventData.Title}</Text>
         </View>
 
         {/* Map Container */}
@@ -127,7 +153,24 @@ export default function EventScreen() {
             showsUserLocation={true}
             showsMyLocationButton={true}
           >
-            <RenderGeometries geometries={geometries} />
+            {points.map((point) => (
+              <Marker
+                key={point.UUID}
+                coordinate={{
+                  latitude: point.Latitude,
+                  longitude: point.Longitude,
+                }}
+                anchor={{ x: 0.5, y: 1 }}
+              >
+                <View style={styles.markerContainer}>
+                  <Text style={styles.markerType}>
+                    {point.EquipmentType ?? Strings.map.noEquipment}
+                  </Text>
+                </View>
+              </Marker>
+            ))}
+            <RenderAreas areas={areas} />
+            <RenderPaths paths={paths} />
           </MapView>
         </View>
 
@@ -137,13 +180,13 @@ export default function EventScreen() {
             <Text style={styles.detailLabel}>
               {Strings.event.descriptionLabel}
             </Text>
-            <Text style={styles.detailValue}>{eventData.Description}</Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{Strings.event.dateLabel}</Text>
             <Text style={styles.detailValue}>
-              {new Date(eventData.Date_debut).toLocaleDateString("fr-FR")}
+              {new Date(eventData.StartDate).toLocaleDateString("fr-FR")} -
+              {new Date(eventData.EndDate).toLocaleDateString("fr-FR")}
             </Text>
           </View>
 

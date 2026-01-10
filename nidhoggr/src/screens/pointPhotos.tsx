@@ -13,7 +13,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 import uuid from "react-native-uuid";
-import { Photos, pointPhotoParams } from "../../types/types";
+import { Picture, pointPhotoParams } from "../../types/types";
 import { getPhotosForPoint, insert } from "../../database/queries";
 import { Strings } from "../../types/strings";
 import { Header } from "../components/header";
@@ -28,11 +28,11 @@ export function PointPhotosScreen() {
   const db = useSQLiteContext();
 
   const { pointId } = route.params as pointPhotoParams;
-  const [photos, setPhotos] = useState<Photos[]>([]);
+  const [photos, setPhotos] = useState<Picture[]>([]);
 
   const loadPhotos = async () => {
     try {
-      const result: Photos[] = await getPhotosForPoint(db, pointId);
+      const result: Picture[] = await getPhotosForPoint(db, pointId);
       setPhotos(result);
     } catch (e) {
       console.log(e);
@@ -61,17 +61,16 @@ export function PointPhotosScreen() {
       const base64 = res.assets[0].base64;
       const photoId = uuid.v4();
       if (base64) {
-        await insert<Photos>(db, "Photo", {
+        await insert<Picture>(db, "Picture", {
           UUID: photoId,
+          PointID: pointId,
           Picture: base64,
-          Picture_name: `${photoId}.jpg`,
-        });
-        await insert(db, "Image_Point", {
-          Image_ID: photoId,
-          Point_ID: pointId,
         });
 
-        setPhotos((prev) => [...prev, { UUID: photoId, Picture: base64 }]);
+        setPhotos((prev) => [
+          ...prev,
+          { UUID: photoId, Picture: base64, PointID: pointId },
+        ]);
       }
     } catch (e) {
       console.log(e);
