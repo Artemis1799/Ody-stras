@@ -77,6 +77,7 @@ export interface PointOnMap {
   Latitude: number;
   Longitude: number;
   EquipmentType?: string;
+  Name?: string;
 }
 
 export interface pointPhotoParams {

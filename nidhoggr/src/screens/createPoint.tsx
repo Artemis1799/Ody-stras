@@ -44,6 +44,7 @@ export function CreatePointScreen() {
   const [open, setOpen] = useState(false);
   const navigation = useNavigation<EventScreenNavigationProp>();
   const [comment, setComment] = useState("");
+  const [name, setName] = useState("");
   const [equipmentList, setEquipmentList] = useState<EquipmentListItem[]>([]);
   const [equipment, setEquipment] = useState<string | null>(null);
   const [pointId, setPointId] = useState("");
@@ -107,10 +108,14 @@ export function CreatePointScreen() {
         alert(Strings.createPoint.addComment);
         return;
       }
-
-      await update<Point>(db, "Point", { Comment: comment }, "UUID = ?", [
-        pointId,
-      ]);
+      console.log("updating !");
+      await update<Point>(
+        db,
+        "Point",
+        { Name: name, Comment: comment },
+        "UUID = ?",
+        [pointId]
+      );
       await update<Point>(
         db,
         "Point",
@@ -121,6 +126,7 @@ export function CreatePointScreen() {
 
       navigation.goBack();
     } catch (e) {
+      console.log("Error on updating!");
       console.log(e);
     }
   };
@@ -166,14 +172,18 @@ export function CreatePointScreen() {
           await insert<Point>(db, "Point", {
             UUID: newId,
             EventID: eventId,
+            Name: "",
             Latitude: coords.latitude,
             Longitude: coords.longitude,
+            Comment: "",
+            Validated: false,
             EquipmentID: undefined,
           });
         } else {
           const res = await getAllWhere<Point>(db, "Point", ["UUID"], [newId]);
           if (res[0]) {
             setComment(res[0].Comment || "");
+            setName(res[0].Name || "");
             if (res[0]?.EquipmentID) setEquipment(res[0].EquipmentID);
             // Charger la position du point existant
             if (res[0].Latitude && res[0].Longitude) {
@@ -270,7 +280,7 @@ export function CreatePointScreen() {
             placeholder="Nom"
             style={styles.input}
             value={name}
-            onChangeText={setComment}
+            onChangeText={setName}
           />
 
           <TextInput

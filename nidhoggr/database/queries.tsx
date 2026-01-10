@@ -92,7 +92,7 @@ export async function getPointsForEvent<T>(
   eventId: string
 ) {
   return (await db.getAllAsync(
-    `SELECT Point.*, Equipment.Type AS EquipType
+    `SELECT Point.*, Equipment.Type AS EquipmentType
      FROM Point
      LEFT JOIN Equipment ON Equipment.UUID = Point.EquipmentID
      WHERE Point.EventID = ?`,

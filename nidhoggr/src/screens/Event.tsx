@@ -114,6 +114,7 @@ export default function EventScreen() {
             Latitude: row.Latitude,
             Longitude: row.Longitude,
             EquipType: row.EquipmentType,
+            Name: row.Name,
           }));
           console.log("sql===");
           console.log(sql);
