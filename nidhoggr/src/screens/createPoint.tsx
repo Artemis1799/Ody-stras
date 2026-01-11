@@ -114,7 +114,7 @@ export function CreatePointScreen() {
       await update<Point>(
         db,
         "Point",
-        { Name: name, Comment: comment },
+        { Name: name, Comment: comment, Validated: 1 },
         "UUID = ?",
         [pointId]
       );
@@ -178,9 +178,9 @@ export function CreatePointScreen() {
             Latitude: coords.latitude,
             Longitude: coords.longitude,
             Comment: "",
-            Validated: false,
+            Validated: 0,
             EquipmentID: NO_EQUIPMENT_ID,
-            EquipmentQuantite: 0,
+            EquipmentQuantity: 0,
             Ordre: nextOrdre,
           });
         } else {
@@ -208,7 +208,7 @@ export function CreatePointScreen() {
           }
         }
 
-        const equipments = await getAll<Equipment>(db, "Equipement");
+        const equipments = await getAll<Equipment>(db, "Equipment");
         setEquipmentList([
           { label: "Aucun équipement", value: NO_EQUIPMENT_ID },
           ...equipments.map((e) => ({

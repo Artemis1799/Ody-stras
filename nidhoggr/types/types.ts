@@ -41,11 +41,11 @@ export interface Evenement {
   StartDate: string;
   EndDate: string;
   Status:
-    | "uninstallation"
-    | "completed"
-    | "installation"
-    | "toOrganize"
-    | "inProgress";
+  | "uninstallation"
+  | "completed"
+  | "installation"
+  | "toOrganize"
+  | "inProgress";
 }
 
 export interface Equipment {
@@ -68,9 +68,10 @@ export interface Point {
   Latitude: number;
   Longitude: number;
   Comment?: string;
-  Validated: boolean;
+  Validated?: number; // 0 = false, 1 = true (SQLite INTEGER)
   EquipmentID?: string;
   EquipmentQuantity?: number;
+  Ordre?: number;
 }
 
 export interface PointOnMap {
@@ -79,9 +80,6 @@ export interface PointOnMap {
   Longitude: number;
   EquipmentType?: string;
   Name?: string;
-  EquipType: string;
-  Equipement_quantite: number;
-  Equipement_ID: string;
 }
 
 export interface pointPhotoParams {

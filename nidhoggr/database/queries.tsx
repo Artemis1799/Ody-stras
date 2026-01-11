@@ -142,19 +142,19 @@ export async function deleteWhere(
 export async function flushDatabase(db: SQLiteDatabase): Promise<void> {
   try {
     console.log("Flushing database...");
-    await db.runAsync("DELETE FROM PicturePoint");
+    // Ordre de suppression important pour respecter les contraintes de clés étrangères
     await db.runAsync("DELETE FROM Picture");
     await db.runAsync("DELETE FROM Point");
     await db.runAsync("DELETE FROM Area");
     await db.runAsync("DELETE FROM Path");
-    await db.runAsync("DELETE FROM Evenement");
-    await db.runAsync("DELETE FROM Equipment");
-    await db.runAsync("DELETE FROM Employees");
-    await db.runAsync("DELETE FROM Team");
-    await db.runAsync("DELETE FROM TeamEmployees");
-    await db.runAsync("DELETE FROM Planning");
     await db.runAsync("DELETE FROM Action");
+    await db.runAsync("DELETE FROM Planning");
     await db.runAsync("DELETE FROM SecurityArea");
+    await db.runAsync("DELETE FROM TeamEmployees");
+    await db.runAsync("DELETE FROM Team");
+    await db.runAsync("DELETE FROM Employees");
+    await db.runAsync("DELETE FROM Equipment");
+    await db.runAsync("DELETE FROM Evenement");
     console.log("Database flushed successfully.");
   } catch (error) {
     console.error("Error flushing database:", error);
