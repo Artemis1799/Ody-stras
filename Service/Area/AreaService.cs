@@ -54,6 +54,7 @@ public class AreaService : IAreaService
         }
 
         existing.Name = area.Name;
+        existing.Description = area.Description;
         existing.ColorHex = area.ColorHex;
         existing.GeoJson = area.GeoJson;
         existing.EventId = area.EventId;

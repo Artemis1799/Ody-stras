@@ -54,6 +54,7 @@ public class PathService : IPathService
         }
 
         existing.Name = path.Name;
+        existing.Description = path.Description;
         existing.ColorHex = path.ColorHex;
         existing.StartDate = path.StartDate;
         existing.GeoJson = path.GeoJson;
