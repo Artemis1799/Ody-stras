@@ -156,7 +156,7 @@ export async function setupDatabase(db: SQLiteDatabase) {
         FOREIGN KEY (EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
       );
     `);
-    await insertHardcodedEvent(db);
+    //await insertHardcodedEvent(db);
     const res = await db.getAllAsync("PRAGMA table_info(Evenement);");
     console.log(res);
 
