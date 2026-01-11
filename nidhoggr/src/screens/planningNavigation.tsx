@@ -24,7 +24,7 @@ import { getStyles } from "../utils/theme";
 
 interface PlanningNavigationParams {
     eventId: string;
-    taskType: "installation" | "removal";
+    taskType: "installation" | "removal" | "mixed";
 }
 
 const ARRIVAL_DISTANCE = 15; // mètres (marge pour imprécision GPS)
@@ -145,9 +145,9 @@ export default function PlanningNavigationScreen() {
                     db, "PlanningTask", ["TeamID"], [teams[0].UUID]
                 );
 
-                // Filtrer par type et statut pending
+                // Filtrer selon le mode : mixed = toutes, sinon par type
                 const filteredTasks = allTasks
-                    .filter(t => t.TaskType === taskType && t.Status !== "completed")
+                    .filter(t => t.Status !== "completed" && (taskType === "mixed" || t.TaskType === taskType))
                     .sort((a, b) => new Date(a.ScheduledDate).getTime() - new Date(b.ScheduledDate).getTime());
 
                 setTasks(filteredTasks);
@@ -503,7 +503,7 @@ export default function PlanningNavigationScreen() {
 
                 <View style={localStyles.taskInfo}>
                     <Text style={localStyles.taskTitle}>
-                        {taskType === "installation" ? "🔧 Pose" : "📦 Dépose"}
+                        {currentTask?.TaskType === "installation" ? "🔧 Pose" : "📦 Dépose"}
                     </Text>
                     <Text style={localStyles.taskEquipment}>{currentTask?.EquipmentType}</Text>
                     <Text style={localStyles.taskQuantity}>Quantité: {currentTask?.Quantity}</Text>
@@ -554,7 +554,7 @@ export default function PlanningNavigationScreen() {
                 <View style={localStyles.modalOverlay}>
                     <View style={localStyles.confirmModalContent}>
                         <Text style={localStyles.confirmTitle}>
-                            {taskType === "installation" ? "🔧 Pose" : "📦 Dépose"}
+                            {currentTask?.TaskType === "installation" ? "🔧 Pose" : "📦 Dépose"}
                         </Text>
                         <Text style={localStyles.confirmEquipment}>{currentTask?.EquipmentType}</Text>
                         <Text style={localStyles.confirmQuantity}>Quantité: {currentTask?.Quantity}</Text>

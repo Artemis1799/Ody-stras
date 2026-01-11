@@ -21,7 +21,7 @@ export type RootStackParamList = {
   };
   // Planning routes
   PlanningTimeline: { eventId: string };
-  PlanningNavigation: { eventId: string; taskType: "installation" | "removal" };
+  PlanningNavigation: { eventId: string; taskType: "installation" | "removal" | "mixed" };
 };
 
 export type EventScreenNavigationProp = NativeStackNavigationProp<

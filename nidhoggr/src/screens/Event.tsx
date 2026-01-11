@@ -175,29 +175,7 @@ export default function EventScreen() {
           </MapView>
         </View>
 
-        {/* Event Details */}
-        <View style={styles.detailsContainer}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>
-              {Strings.event.descriptionLabel}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{Strings.event.dateLabel}</Text>
-            <Text style={styles.detailValue}>
-              {new Date(eventData.StartDate).toLocaleDateString("fr-FR")} -
-              {new Date(eventData.EndDate).toLocaleDateString("fr-FR")}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{Strings.event.statusLabel}</Text>
-            <Text style={styles.detailValue}>{eventData.Status}</Text>
-          </View>
-        </View>
-
-        {/* Action Buttons */}
+        {/* Action Buttons - juste après la map */}
         {eventData.Mode === "planning" ? (
           // Mode Planning : Boutons Planning/Pose/Dépose
           <View>
@@ -206,26 +184,33 @@ export default function EventScreen() {
                 style={[styles.pointsButton, { backgroundColor: "#0E47A1" }]}
                 onPress={() => navigation.navigate("PlanningTimeline", { eventId: eventUUID })}
               >
-                <Ionicons name="calendar" size={20} color="#fff" style={{ marginRight: 8 }} />
                 <Text style={styles.buttonText}>📋 Planning</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={[styles.pointsButton, { backgroundColor: "#43A047" }]}
+                style={[styles.pointsButton, { backgroundColor: "#43A047", flex: 1, flexDirection: "column", paddingVertical: 12 }]}
                 onPress={() => navigation.navigate("PlanningNavigation", { eventId: eventUUID, taskType: "installation" })}
               >
-                <Ionicons name="construct" size={20} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={styles.buttonText}>🔧 Pose</Text>
+                <Text style={{ fontSize: 24 }}>🔧</Text>
+                <Text style={styles.buttonText}>Pose</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.pointsButton, { backgroundColor: "#E53935" }]}
+                style={[styles.pointsButton, { backgroundColor: "#FF9800", flex: 1, flexDirection: "column", paddingVertical: 12 }]}
+                onPress={() => navigation.navigate("PlanningNavigation", { eventId: eventUUID, taskType: "mixed" })}
+              >
+                <Text style={{ fontSize: 24 }}>▶️</Text>
+                <Text style={styles.buttonText}>Tout</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.pointsButton, { backgroundColor: "#E53935", flex: 1, flexDirection: "column", paddingVertical: 12 }]}
                 onPress={() => navigation.navigate("PlanningNavigation", { eventId: eventUUID, taskType: "removal" })}
               >
-                <Ionicons name="cube" size={20} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={styles.buttonText}>📦 Dépose</Text>
+                <Text style={{ fontSize: 24 }}>📦</Text>
+                <Text style={styles.buttonText}>Dépose</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -257,6 +242,28 @@ export default function EventScreen() {
             </View>
           </View>
         )}
+
+        {/* Event Details - après les boutons */}
+        <View style={styles.detailsContainer}>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>
+              {Strings.event.descriptionLabel}
+            </Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{Strings.event.dateLabel}</Text>
+            <Text style={styles.detailValue}>
+              {new Date(eventData.StartDate).toLocaleDateString("fr-FR")} -
+              {new Date(eventData.EndDate).toLocaleDateString("fr-FR")}
+            </Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{Strings.event.statusLabel}</Text>
+            <Text style={styles.detailValue}>{eventData.Status}</Text>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
