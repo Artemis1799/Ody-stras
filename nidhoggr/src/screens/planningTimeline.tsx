@@ -7,10 +7,11 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from "react-native";
+import MapView, { Polyline } from "react-native-maps";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import { useSQLiteContext } from "expo-sqlite";
 import { Ionicons } from "@expo/vector-icons";
-import { EventScreenNavigationProp, PlanningTask, PlanningTeam } from "../../types/types";
+import { EventScreenNavigationProp, PlanningTask, PlanningTeam, GeoJSONData } from "../../types/types";
 import { getAllWhere } from "../../database/queries";
 import { Header } from "../components/header";
 import { useTheme } from "../utils/ThemeContext";
@@ -21,7 +22,7 @@ interface PlanningTimelineParams {
 }
 
 export default function PlanningTimelineScreen() {
-    const { theme } = useTheme();
+    const { theme, showMiniMaps } = useTheme();
     const styles = getStyles(theme);
     const db = useSQLiteContext();
     const navigation = useNavigation<EventScreenNavigationProp>();
@@ -88,6 +89,28 @@ export default function PlanningTimelineScreen() {
         });
     };
 
+    const getTaskCoordinates = (task: PlanningTask): { latitude: number; longitude: number }[] => {
+        try {
+            const geoJson: GeoJSONData = JSON.parse(task.GeoJson);
+            if (geoJson.type === "LineString" && Array.isArray(geoJson.coordinates)) {
+                return (geoJson.coordinates as [number, number][]).map(([lng, lat]) => ({
+                    latitude: lat,
+                    longitude: lng,
+                }));
+            }
+            return [];
+        } catch {
+            return [];
+        }
+    };
+
+    const getTaskCenter = (task: PlanningTask): { latitude: number; longitude: number } | null => {
+        const coords = getTaskCoordinates(task);
+        if (coords.length === 0) return null;
+        const midIndex = Math.floor(coords.length / 2);
+        return coords[midIndex];
+    };
+
     const renderTask = ({ item, index }: { item: PlanningTask; index: number }) => (
         <TouchableOpacity
             style={[
@@ -118,6 +141,30 @@ export default function PlanningTimelineScreen() {
                     <Text style={localStyles.taskQuantity}>Qté: {item.Quantity}</Text>
                 </View>
             </View>
+
+            {/* Mini-map avec la ligne GeoJSON */}
+            {showMiniMaps && getTaskCenter(item) && (
+                <View style={localStyles.miniMapContainer}>
+                    <MapView
+                        style={localStyles.miniMap}
+                        scrollEnabled={false}
+                        zoomEnabled={false}
+                        rotateEnabled={false}
+                        pitchEnabled={false}
+                        initialRegion={{
+                            ...getTaskCenter(item)!,
+                            latitudeDelta: 0.002,
+                            longitudeDelta: 0.002,
+                        }}
+                    >
+                        <Polyline
+                            coordinates={getTaskCoordinates(item)}
+                            strokeWidth={4}
+                            strokeColor={getTaskColor(item)}
+                        />
+                    </MapView>
+                </View>
+            )}
             <View style={localStyles.taskFooter}>
                 <Ionicons name="time-outline" size={16} color="#666" />
                 <Text style={localStyles.taskDate}>{formatDate(item.ScheduledDate)}</Text>
@@ -287,5 +334,16 @@ const localStyles = StyleSheet.create({
         fontSize: 16,
         color: "#999",
         marginTop: 16,
+    },
+    miniMapContainer: {
+        marginVertical: 8,
+        borderRadius: 8,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: "#e0e0e0",
+    },
+    miniMap: {
+        height: 100,
+        width: "100%",
     },
 });
