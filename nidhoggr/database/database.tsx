@@ -1,93 +1,302 @@
 import { SQLiteDatabase } from "expo-sqlite";
 import * as SQLite from "expo-sqlite";
-import { EventGeometry } from "../types/types";
 
 export async function setupDatabase(db: SQLiteDatabase) {
   console.log("Initialisation de la base…");
 
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS Evenement (
-      UUID TEXT PRIMARY KEY,
-      Nom TEXT NOT NULL,
-      Description TEXT,
-      Date_debut TIMESTAMP,
-      Status TEXT CHECK(Status IN ('EN_DESINSTALLATION', 'TERMINE', 'EN_INSTALLATION', 'A_ORGANISER', 'EN_COURS')),
-      Responsable TEXT
-    );
-  `);
+  try {
+    /* ===================== EVENEMENT ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Evenement (
+        UUID TEXT PRIMARY KEY,
+        Title TEXT NOT NULL,
+        StartDate TEXT NOT NULL,
+        EndDate TEXT NOT NULL,
+        Status TEXT CHECK(Status IN (
+          'uninstallation',
+          'completed',
+          'installation',
+          'toOrganize',
+          'inProgress'
+        ))
+      );
+    `);
 
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS Point (
-      UUID TEXT PRIMARY KEY,
-      Event_ID TEXT NOT NULL,
-      Latitude FLOAT,
-      Longitude FLOAT,
-      Commentaire TEXT,
-      Image_ID TEXT,
-      Ordre INTEGER,
-      Valide BOOLEAN DEFAULT FALSE,
-      Created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      Modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      Equipement_ID TEXT,
-      Equipement_quantite INTEGER,
-      FOREIGN KEY(Event_ID) REFERENCES Evenement(UUID) ON DELETE CASCADE
-    );
-  `);
+    /* ===================== EQUIPMENT ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Equipment (
+        UUID TEXT PRIMARY KEY,
+        Type TEXT,
+        Length REAL,
+        Description TEXT,
+        StorageType TEXT CHECK(StorageType IN ('single','multiple'))
+      );
+    `);
 
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS Photo (
-      UUID TEXT PRIMARY KEY,
-      Picture TEXT,
-      Picture_name TEXT
-    );
-  `);
+    /* ===================== POINT ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Point (
+        UUID TEXT PRIMARY KEY,
+        EventID TEXT NOT NULL,
+        Name TEXT NOT NULL,
+        Latitude REAL NOT NULL,
+        Longitude REAL NOT NULL,
+        Comment TEXT,
+        Validated INTEGER DEFAULT 0,
+        EquipmentID TEXT,
+        EquipmentQuantity INTEGER,
+        Ordre INTEGER,
+        FOREIGN KEY(EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE,
+        FOREIGN KEY(EquipmentID) REFERENCES Equipment(UUID) ON DELETE SET NULL
+      );
+    `);
 
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS Image_Point (
-      Image_ID TEXT NOT NULL,
-      Point_ID TEXT NOT NULL,
-      PRIMARY KEY (Image_ID, Point_ID),
-      FOREIGN KEY (Image_ID) REFERENCES Photo(UUID) ON DELETE CASCADE,
-      FOREIGN KEY (Point_ID) REFERENCES Point(UUID) ON DELETE CASCADE
-    );
-  `);
+    /* ===================== PICTURE ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Picture (
+        UUID TEXT PRIMARY KEY,
+        PointID TEXT NOT NULL,
+        Picture TEXT,
+        FOREIGN KEY (PointID) REFERENCES Point(UUID) ON DELETE CASCADE
+      );
+    `);
 
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS Equipement (
-      UUID TEXT PRIMARY KEY,
-      Type TEXT,
-      Description TEXT,
-      Unite TEXT,
-      Stock_total FLOAT,
-      Stock_restant FLOAT
-    );
-  `);
+    /* ===================== PATH ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Path (
+        UUID TEXT PRIMARY KEY,
+        EventID TEXT NOT NULL,
+        Name TEXT NOT NULL,
+        ColorHex TEXT NOT NULL,
+        StartDate TEXT NOT NULL,
+        FastestEstimatedSpeed REAL NOT NULL,
+        SlowestEstimatedSpeed REAL NOT NULL,
+        GeoJson TEXT NOT NULL,
+        FOREIGN KEY(EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
+      );
+    `);
 
-  await db.execAsync(`
-  CREATE TABLE IF NOT EXISTS EventGeometries (
-    EventID TEXT NOT NULL,
-    GeometryID TEXT PRIMARY KEY,
-    GeoJSON TEXT NOT NULL,
-    FOREIGN KEY(EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
-  );
-`);
-  console.log("Base initialisée !");
+    /* ===================== EMPLOYEES ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Employees (
+        UUID TEXT PRIMARY KEY,
+        LastName TEXT NOT NULL,
+        FirstName TEXT NOT NULL,
+        Email TEXT,
+        Phone TEXT
+      );
+    `);
+
+    /* ===================== TEAM ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Team (
+        UUID TEXT PRIMARY KEY,
+        EventID TEXT NOT NULL,
+        TeamName TEXT NOT NULL,
+        TeamNumber INTEGER NOT NULL,
+        FOREIGN KEY (EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
+      );
+    `);
+
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS TeamEmployees (
+        TeamID TEXT NOT NULL,
+        EmployeeID TEXT NOT NULL,
+        PRIMARY KEY (TeamID, EmployeeID),
+        FOREIGN KEY (TeamID) REFERENCES Team(UUID) ON DELETE CASCADE,
+        FOREIGN KEY (EmployeeID) REFERENCES Employees(UUID) ON DELETE CASCADE
+      );
+    `);
+
+    /* ===================== PLANNING ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Planning (
+        UUID TEXT PRIMARY KEY,
+        TeamID TEXT NOT NULL,
+        FOREIGN KEY (TeamID) REFERENCES Team(UUID) ON DELETE CASCADE
+      );
+    `);
+
+    /* ===================== SECURITY AREA ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS SecurityArea (
+        UUID TEXT PRIMARY KEY,
+        EquipmentID TEXT NOT NULL,
+        Quantity INTEGER NOT NULL,
+        InstallationDate TEXT NOT NULL,
+        RemovalDate TEXT NOT NULL,
+        GeoJson TEXT NOT NULL,
+        FOREIGN KEY(EquipmentID) REFERENCES Equipment(UUID) ON DELETE CASCADE
+      );
+    `);
+
+    /* ===================== ACTION ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Action (
+        UUID TEXT PRIMARY KEY,
+        PlanningID TEXT NOT NULL,
+        SecurityAreaID TEXT NOT NULL,
+        Type TEXT CHECK(Type IN ('setup','removal')),
+        Date TEXT NOT NULL,
+        Longitude REAL NOT NULL,
+        Latitude REAL NOT NULL,
+        FOREIGN KEY (PlanningID) REFERENCES Planning(UUID) ON DELETE CASCADE,
+        FOREIGN KEY (SecurityAreaID) REFERENCES SecurityArea(UUID) ON DELETE CASCADE
+      );
+    `);
+
+    /* ===================== AREA ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS Area (
+        UUID TEXT PRIMARY KEY,
+        EventID TEXT NOT NULL,
+        Name TEXT,
+        ColorHex TEXT NOT NULL,
+        GeoJson TEXT NOT NULL,
+        FOREIGN KEY (EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
+      );
+    `);
+    await insertHardcodedEvent(db);
+    const res = await db.getAllAsync("PRAGMA table_info(Evenement);");
+    console.log(res);
+
+    console.log("Base initialisée !");
+  } catch (e) {
+    console.error("Erreur lors de la création de la base :", e);
+  }
+}
+export async function insertHardcodedEvent(db: SQLiteDatabase) {
+  const event = {
+    UUID: "event-001",
+    Title: "Festival Sécurité 2025",
+    StartDate: "2025-06-01T08:00:00.000Z",
+    EndDate: "2025-06-05T18:00:00.000Z",
+    Status: "toOrganize" as const,
+  };
+
+  try {
+    /* ===================== EVENEMENT ===================== */
+    await db.runAsync(
+      `
+      INSERT OR REPLACE INTO Evenement
+        (UUID, Title, StartDate, EndDate, Status)
+      VALUES (?, ?, ?, ?, ?);
+      `,
+      [event.UUID, event.Title, event.StartDate, event.EndDate, event.Status]
+    );
+
+    /* ===================== POINTS ===================== */
+    const points = [
+      {
+        UUID: "point-001",
+        Name: "Entrée principale",
+        lat: 48.5739,
+        lng: 7.7524,
+        comment: "Entrée visiteurs",
+      },
+      {
+        UUID: "point-002",
+        Name: "Poste de sécurité",
+        lat: 48.5728,
+        lng: 7.7512,
+        comment: "Présence agents",
+      },
+      {
+        UUID: "point-003",
+        Name: "Sortie secours",
+        lat: 48.5745,
+        lng: 7.7505,
+        comment: "Accès pompiers",
+      },
+    ];
+
+    for (const p of points) {
+      await db.runAsync(
+        `
+        INSERT OR REPLACE INTO Point
+          (UUID, EventID, Name, Latitude, Longitude, Comment, Validated)
+        VALUES (?, ?, ?, ?, ?, ?, 1);
+        `,
+        [p.UUID, event.UUID, p.Name, p.lat, p.lng, p.comment]
+      );
+    }
+
+    /* ===================== AREA ===================== */
+    const areaGeoJson = JSON.stringify({
+      type: "Polygon",
+      coordinates: [
+        [
+          [7.7505, 48.5725],
+          [7.754, 48.5725],
+          [7.754, 48.5745],
+          [7.7505, 48.5745],
+          [7.7505, 48.5725],
+        ],
+      ],
+    });
+
+    await db.runAsync(
+      `
+      INSERT OR REPLACE INTO Area
+        (UUID, EventID, Name, ColorHex, GeoJson)
+      VALUES (?, ?, ?, ?, ?);
+      `,
+      [
+        "area-001",
+        event.UUID,
+        "Zone sécurisée principale",
+        "#ff00004f",
+        areaGeoJson,
+      ]
+    );
+
+    /* ===================== PATH ===================== */
+    const pathGeoJson = JSON.stringify({
+      type: "LineString",
+      coordinates: [
+        [7.7508, 48.573],
+        [7.7515, 48.5735],
+        [7.7523, 48.574],
+        [7.7532, 48.5743],
+      ],
+    });
+
+    await db.runAsync(
+      `
+      INSERT OR REPLACE INTO Path
+        (UUID, EventID, Name, ColorHex, StartDate,
+         FastestEstimatedSpeed, SlowestEstimatedSpeed, GeoJson)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+      `,
+      [
+        "path-001",
+        event.UUID,
+        "Parcours agents",
+        "#0000FF",
+        event.StartDate,
+        5.0,
+        2.5,
+        pathGeoJson,
+      ]
+    );
+
+    console.log("Événement, points, area et path insérés ✅");
+  } catch (error) {
+    console.error("Erreur insertion données de démo :", error);
+  }
 }
 
 export async function deleteDatabase(
   db: SQLiteDatabase,
   dbName: string = "base.db"
 ) {
-  if (!db) {
-    throw new Error("DB non initialisée — appelle initDatabase() dans App.tsx");
-  }
   try {
     await db.closeAsync();
-    const res = await SQLite.deleteDatabaseAsync(dbName);
-    console.log("Base supprimée :", res);
+    await SQLite.deleteDatabaseAsync(dbName);
+    console.log("Base supprimée");
     return true;
   } catch (e) {
-    console.error("Erreur lors de la suppression :", e);
+    console.error("Erreur suppression DB :", e);
     return false;
   }
 }

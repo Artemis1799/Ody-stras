@@ -261,7 +261,7 @@ export default function SimulateScreen() {
         await update<Evenement>(
           db,
           "Evenement",
-          { Status: "TERMINE" },
+          { Status: "completed" },
           "UUID = ?",
           [eventUUID]
         );
@@ -380,9 +380,7 @@ export default function SimulateScreen() {
                     styles.markerText,
                     isCompleted && styles.completedMarkerText,
                   ]}
-                >
-                  {point.Ordre}
-                </Text>
+                ></Text>
               </View>
             </Marker>
           );
@@ -424,9 +422,7 @@ export default function SimulateScreen() {
             <Ionicons name="location" size={24} color="#A6CE39" />
             <View style={styles.pointDetails}>
               <Text style={styles.pointLabel}>Point actuel</Text>
-              <Text style={styles.pointName}>
-                {currentPoint.Commentaire || `Point ${currentPoint.Ordre}`}
-              </Text>
+              <Text style={styles.pointName}>{currentPoint.Comment}</Text>
             </View>
           </View>
         )}
@@ -443,9 +439,7 @@ export default function SimulateScreen() {
             <Ionicons name="flag-outline" size={20} color="#666" />
             <View style={styles.pointDetails}>
               <Text style={styles.nextLabel}>Prochain</Text>
-              <Text style={styles.nextName}>
-                {nextPoint.Commentaire || `Point ${nextPoint.Ordre}`}
-              </Text>
+              <Text style={styles.nextName}>{nextPoint.Comment}</Text>
             </View>
           </View>
         )}
