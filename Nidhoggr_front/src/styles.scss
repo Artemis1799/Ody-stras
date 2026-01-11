@@ -33,28 +33,18 @@ html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 // Styles pour le dropdown équipement (avec panelStyleClass spécifique)
+// Copié depuis points-sidebar pour cohérence
 .equipment-dropdown-panel {
   background-color: #1a2028 !important;
   border: 1px solid #30363d !important;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4) !important;
   border-radius: 12px !important;
   margin-top: 6px !important;
-  z-index: 10000 !important;
-  width: max-content !important;
-  min-width: 300px !important;
-  overflow: visible !important;
-
-  .p-autocomplete-list-container {
-    overflow: visible !important;
-    max-height: none !important;
-  }
+  overflow: hidden;
   
   .p-autocomplete-list {
     background-color: #1a2028 !important;
     padding: 0.5rem !important;
-    max-height: 30px !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
     
     .p-autocomplete-option {
       background-color: transparent !important;
@@ -63,11 +53,11 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
       border-radius: 8px;
       margin: 2px 0;
       transition: all 0.15s ease;
-      white-space: nowrap !important;
       
       &:hover {
         background-color: rgba(42, 215, 131, 0.1) !important;
         color: #ffffff !important;
+        transform: translateX(4px);
       }
       
       &.p-autocomplete-option-selected,

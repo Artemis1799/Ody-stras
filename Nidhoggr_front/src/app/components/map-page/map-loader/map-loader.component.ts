@@ -98,8 +98,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
       // Limites géographiques basées sur les tuiles téléchargées
       const bounds = L.latLngBounds(
-        L.latLng(48.513, 7.638), // Sud-Ouest (MINLAT, MINLON)
-        L.latLng(48.65, 7.878) // Nord-Est (MAXLAT, MAXLON)
+        L.latLng(48.4850, 7.5720), // Sud-Ouest (MINLAT, MINLON)
+        L.latLng(48.6500, 7.878) // Nord-Est (MAXLAT, MAXLON)
       );
 
       // Nettoyer l'ancienne instance si elle existe
@@ -246,6 +246,29 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         });
       });
 
+      // Émettre les bounds initiaux de la carte
+      this.emitMapBounds();
+
+      // Écouter les événements de déplacement/zoom pour mettre à jour les bounds
+      this.map.on('moveend', () => {
+        this.emitMapBounds();
+      });
+
+      // S'abonner au signal de recentrage sur le projet
+      this.mapService.centerOnProject$.subscribe(() => {
+        this.centerOnAllSecurityZones();
+      });
+
+      // S'abonner aux zones en surbrillance pour mettre à jour leur style
+      this.mapService.highlightedSecurityZones$.subscribe((highlightedIds) => {
+        this.updateSecurityZonesHighlight(highlightedIds);
+      });
+
+      // S'abonner au filtre des zones visibles (filtre équipement de la sidebar)
+      this.mapService.visibleSecurityZoneIds$.subscribe((visibleIds) => {
+        this.updateSecurityZonesVisibility(visibleIds);
+      });
+
       // Forcer Leaflet à recalculer la taille
       setTimeout(() => {
         if (this.map && this.map.invalidateSize) {
@@ -280,10 +303,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     // Ajouter les nouveaux markers
     points.forEach((point, index) => {
       if (this.map && point.latitude && point.longitude) {
-        // Déterminer le contenu du marker
-        const markerContent = point.isPointOfInterest 
-          ? '!' 
-          : (point.order || index + 1).toString();
+        // Déterminer le contenu du marker (vide pour les points normaux, ! pour les points d'intérêt)
+        const markerContent = point.isPointOfInterest ? '!' : '';
         
         const marker = L.marker([point.latitude, point.longitude], {
           title: this.getPointDisplayName(point),
@@ -303,6 +324,125 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         });
 
         this.markers.set(point.uuid, marker);
+      }
+    });
+  }
+
+  /**
+   * Émet les bounds actuels de la carte vers le MapService
+   */
+  private emitMapBounds(): void {
+    if (!this.map) return;
+    
+    const bounds = this.map.getBounds();
+    this.mapService.setMapBounds({
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest()
+    });
+  }
+
+  /**
+   * Centre la carte pour afficher toutes les security zones
+   */
+  private centerOnAllSecurityZones(): void {
+    if (!this.map) return;
+    
+    const zones = this.mapService.getSecurityZones();
+    if (zones.length === 0) return;
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+    const allCoords: Array<[number, number]> = [];
+    
+    zones.forEach(zone => {
+      if (!zone.geoJson) return;
+      try {
+        const geometry = JSON.parse(zone.geoJson);
+        let coordinates: number[][] = [];
+        
+        if (geometry.type === 'LineString') {
+          coordinates = geometry.coordinates;
+        } else if (geometry.type === 'MultiLineString') {
+          coordinates = geometry.coordinates.flat();
+        } else if (geometry.type === 'Feature' && geometry.geometry) {
+          if (geometry.geometry.type === 'LineString') {
+            coordinates = geometry.geometry.coordinates;
+          } else if (geometry.geometry.type === 'MultiLineString') {
+            coordinates = geometry.geometry.coordinates.flat();
+          }
+        }
+        
+        coordinates.forEach(coord => {
+          allCoords.push([coord[1], coord[0]]); // [lat, lng]
+        });
+      } catch (e) {
+        console.error('Erreur parsing geoJson:', e);
+      }
+    });
+    
+    if (allCoords.length > 0) {
+      const latLngBounds = L.latLngBounds(allCoords);
+      this.map.fitBounds(latLngBounds, { padding: [50, 50], animate: true });
+    }
+  }
+
+  /**
+   * Met à jour la surbrillance des security zones en fonction des IDs fournis
+   */
+  private updateSecurityZonesHighlight(highlightedIds: string[]): void {
+    // Parcourir toutes les security zones sur la carte
+    this.geometryLayers.forEach((layer, uuid) => {
+      if (layer.shapeType !== 'securityZone') return;
+      
+      const isHighlighted = highlightedIds.includes(uuid);
+      
+      if (isHighlighted) {
+        // Style surbrillance: plus épais, couleur vive
+        layer.setStyle({
+          color: '#2ad783',
+          weight: 6,
+          opacity: 1
+        });
+        // Mettre au premier plan
+        layer.bringToFront();
+      } else {
+        // Style normal: discret
+        layer.setStyle({
+          color: '#ff6b6b',
+          weight: 2,
+          opacity: 0.4
+        });
+      }
+    });
+  }
+
+  /**
+   * Met à jour la visibilité des security zones en fonction du filtre équipement de la sidebar
+   * @param visibleIds - tableau d'IDs des zones à afficher, ou null pour afficher toutes les zones
+   */
+  private updateSecurityZonesVisibility(visibleIds: string[] | null): void {
+    if (!this.drawnItems) return;
+    
+    // Parcourir toutes les security zones sur la carte
+    this.geometryLayers.forEach((layer, uuid) => {
+      if (layer.shapeType !== 'securityZone') return;
+      
+      // Si visibleIds est null, afficher toutes les zones
+      // Sinon, afficher uniquement les zones dont l'ID est dans la liste
+      const shouldBeVisible = visibleIds === null || visibleIds.includes(uuid);
+      
+      if (shouldBeVisible) {
+        // Afficher la zone si elle n'est pas déjà affichée
+        if (!this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.addLayer(layer);
+        }
+      } else {
+        // Masquer la zone
+        if (this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.removeLayer(layer);
+        }
       }
     });
   }
@@ -506,8 +646,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         });
       }
     } else {
-      // Pour un point normal, ouvrir le drawer classique
-      this.mapService.selectPoint(point);
+      // Pour un point normal, ouvrir le drawer classique avec son ordre
+      this.mapService.selectPoint(point, point.order);
 
       // Zoomer et centrer sur le point
       if (this.map && point.latitude && point.longitude) {
@@ -802,10 +942,16 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       layer.securityZoneUuid = zone.uuid;
       layer.shapeType = 'securityZone';
 
-      // Ajouter au groupe drawnItems
-      this.drawnItems.addLayer(layer);
+      // Vérifier si cette zone doit être visible selon le filtre actuel
+      const visibleIds = this.mapService.getVisibleSecurityZoneIds();
+      const shouldBeVisible = visibleIds === null || visibleIds.includes(zone.uuid);
 
-      // Stocker dans la map
+      // Ajouter au groupe drawnItems seulement si visible
+      if (shouldBeVisible) {
+        this.drawnItems.addLayer(layer);
+      }
+
+      // Stocker dans la map (même si masquée, pour pouvoir la réafficher plus tard)
       this.geometryLayers.set(zone.uuid, layer);
 
       // Rendre interactive (avec comportement spécifique aux SecurityZones)
@@ -927,7 +1073,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         if (point.isPointOfInterest) {
           this.mapService.selectPointOfInterest(point);
         } else {
-          this.mapService.selectPoint(point);
+          this.mapService.selectPoint(point, point.order);
         }
       },
       error: (error) => {
@@ -1030,9 +1176,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       const L: any = (window as any).L;
       L.DomEvent.stopPropagation(e);
 
-      // Ne pas sélectionner les points d'intérêt
+      // Ne pas sélectionner les points d'intérêt via ce handler (ils ont leur propre drawer)
       if (!point.isPointOfInterest) {
-        this.mapService.selectPoint(point);
+        this.mapService.selectPoint(point, point.order);
       }
     });
   }
@@ -1110,6 +1256,41 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Vérifie si un layer est une géométrie d'événement (zone ou parcours)
+   * et retourne les informations pour le popup
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private getEventGeometryInfo(layer: any): { title: string; type: 'zone' | 'path' } | null {
+    // Vérifier si c'est une Area d'événement
+    if (layer.areaUuid) {
+      const area = this.mapService.getAreas().find(a => a.uuid === layer.areaUuid);
+      if (area && area.name && area.name.startsWith('Zone - ')) {
+        // Extraire le nom de l'événement
+        const eventTitle = area.name.substring('Zone - '.length);
+        return {
+          title: `Zone de l'événement ${eventTitle}`,
+          type: 'zone'
+        };
+      }
+    }
+    
+    // Vérifier si c'est un Path d'événement
+    if (layer.pathUuid) {
+      const path = this.mapService.getPaths().find(p => p.uuid === layer.pathUuid);
+      if (path && path.name && path.name.startsWith('Tracé - ')) {
+        // Extraire le nom de l'événement
+        const eventTitle = path.name.substring('Tracé - '.length);
+        return {
+          title: `Parcours de l'événement ${eventTitle}`,
+          type: 'path'
+        };
+      }
+    }
+    
+    return null;
+  }
+
+  /**
    * Rend une couche interactive (sélectionnable et modifiable)
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1130,32 +1311,48 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       this.highlightLayer(layer);
       this.selectedLayer = layer;
 
-      // Créer un popup avec option de suppression
-      const popupContent = `
-        <div class="geometry-popup" style="text-align: center;">
-          <strong>Élément géométrique</strong><br>
-          <br>
-          <button id="delete-geometry-btn" style="margin: 5px; padding: 8px 12px; cursor: pointer; background: #ff6b6b; color: white; border: none; border-radius: 4px;">
-            🗑️ Supprimer
-          </button>
-        </div>
-      `;
+      // Vérifier si c'est une géométrie d'événement (zone ou parcours)
+      const eventGeometryInfo = this.getEventGeometryInfo(layer);
+      
+      let popupContent: string;
+      
+      if (eventGeometryInfo) {
+        // Popup spécial pour les géométries d'événement (sans bouton supprimer)
+        popupContent = `
+          <div class="geometry-popup" style="text-align: center;">
+            <strong>${eventGeometryInfo.title}</strong>
+          </div>
+        `;
+      } else {
+        // Popup standard avec option de suppression
+        popupContent = `
+          <div class="geometry-popup" style="text-align: center;">
+            <strong>Élément géométrique</strong><br>
+            <br>
+            <button id="delete-geometry-btn" style="margin: 5px; padding: 8px 12px; cursor: pointer; background: #ff6b6b; color: white; border: none; border-radius: 4px;">
+              🗑️ Supprimer
+            </button>
+          </div>
+        `;
+      }
 
       // Créer et ouvrir le popup
       if (layer.bindPopup) {
         layer.bindPopup(popupContent).openPopup();
 
-        // Attacher l'événement au bouton après l'ouverture du popup
-        setTimeout(() => {
-          const deleteBtn = document.getElementById('delete-geometry-btn');
+        // Attacher l'événement au bouton après l'ouverture du popup (seulement si pas une géométrie d'événement)
+        if (!eventGeometryInfo) {
+          setTimeout(() => {
+            const deleteBtn = document.getElementById('delete-geometry-btn');
 
-          if (deleteBtn) {
-            deleteBtn.onclick = (event) => {
-              event.stopPropagation();
-              this.deleteGeometry(layer);
-            };
-          }
-        }, 100);
+            if (deleteBtn) {
+              deleteBtn.onclick = (event) => {
+                event.stopPropagation();
+                this.deleteGeometry(layer);
+              };
+            }
+          }, 100);
+        }
       }
     });
 

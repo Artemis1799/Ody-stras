@@ -27,6 +27,14 @@ export interface EventCreationMode {
   zoneModificationMode: boolean; 
 }
 
+// Interface pour les bounds de la carte
+export interface MapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -48,6 +56,12 @@ export class MapService {
   private focusPointSubject = new Subject<Point>(); // Pour le focus sur un point depuis la timeline
   private focusSecurityZoneSubject = new Subject<SecurityZone>(); // Pour le focus sur une security zone
   private timelineVisibleSubject = new BehaviorSubject<boolean>(false); // Visibilité de la timeline
+  private mapBoundsSubject = new BehaviorSubject<MapBounds | null>(null); // Bounds actuels de la carte
+  private timelineFilterDateSubject = new BehaviorSubject<Date | null>(null); // Date du filtre timeline
+  private centerOnProjectSubject = new Subject<void>(); // Signal pour recentrer sur le projet
+  private highlightedSecurityZonesSubject = new BehaviorSubject<string[]>([]); // IDs des zones en surbrillance
+  private sidebarCollapsedSubject = new BehaviorSubject<boolean>(false); // État de la sidebar (collapsed/expanded)
+  private visibleSecurityZoneIdsSubject = new BehaviorSubject<string[] | null>(null); // IDs des zones visibles (null = toutes visibles)
   
   // Mode dessin pour SecurityZone
   private drawingModeSubject = new BehaviorSubject<DrawingMode>({ active: false, sourcePoint: null, equipment: null });
@@ -79,6 +93,12 @@ export class MapService {
   focusPoint$: Observable<Point> = this.focusPointSubject.asObservable();
   focusSecurityZone$: Observable<SecurityZone> = this.focusSecurityZoneSubject.asObservable();
   timelineVisible$: Observable<boolean> = this.timelineVisibleSubject.asObservable();
+  mapBounds$: Observable<MapBounds | null> = this.mapBoundsSubject.asObservable();
+  timelineFilterDate$: Observable<Date | null> = this.timelineFilterDateSubject.asObservable();
+  centerOnProject$: Observable<void> = this.centerOnProjectSubject.asObservable();
+  highlightedSecurityZones$: Observable<string[]> = this.highlightedSecurityZonesSubject.asObservable();
+  sidebarCollapsed$: Observable<boolean> = this.sidebarCollapsedSubject.asObservable();
+  visibleSecurityZoneIds$: Observable<string[] | null> = this.visibleSecurityZoneIdsSubject.asObservable();
   drawingMode$: Observable<DrawingMode> = this.drawingModeSubject.asObservable();
   eventCreationMode$: Observable<EventCreationMode> = this.eventCreationModeSubject.asObservable();
 
@@ -452,5 +472,69 @@ export class MapService {
       step: 'drawing-path',
       pathGeoJson: null
     });
+  }
+
+  // ============= Map Bounds (Viewport) =============
+  
+  setMapBounds(bounds: MapBounds): void {
+    this.mapBoundsSubject.next(bounds);
+  }
+
+  getMapBounds(): MapBounds | null {
+    return this.mapBoundsSubject.value;
+  }
+
+  // ============= Timeline Filter Date =============
+  
+  setTimelineFilterDate(date: Date | null): void {
+    this.timelineFilterDateSubject.next(date);
+  }
+
+  getTimelineFilterDate(): Date | null {
+    return this.timelineFilterDateSubject.value;
+  }
+
+  // ============= Center on Project =============
+  
+  triggerCenterOnProject(): void {
+    this.centerOnProjectSubject.next();
+  }
+
+  // ============= Highlighted Security Zones =============
+  
+  setHighlightedSecurityZones(zoneIds: string[]): void {
+    this.highlightedSecurityZonesSubject.next(zoneIds);
+  }
+
+  getHighlightedSecurityZones(): string[] {
+    return this.highlightedSecurityZonesSubject.value;
+  }
+
+  clearHighlightedSecurityZones(): void {
+    this.highlightedSecurityZonesSubject.next([]);
+  }
+
+  // ============= Sidebar State =============
+  
+  setSidebarCollapsed(collapsed: boolean): void {
+    this.sidebarCollapsedSubject.next(collapsed);
+  }
+
+  isSidebarCollapsed(): boolean {
+    return this.sidebarCollapsedSubject.value;
+  }
+
+  // ============= Visible Security Zones Filter =============
+  
+  /**
+   * Définit les IDs des zones de sécurité à afficher sur la carte
+   * @param zoneIds - tableau d'IDs de zones à afficher, ou null pour afficher toutes les zones
+   */
+  setVisibleSecurityZoneIds(zoneIds: string[] | null): void {
+    this.visibleSecurityZoneIdsSubject.next(zoneIds);
+  }
+
+  getVisibleSecurityZoneIds(): string[] | null {
+    return this.visibleSecurityZoneIdsSubject.value;
   }
 }
