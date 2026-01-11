@@ -147,6 +147,9 @@ export async function flushDatabase(db: SQLiteDatabase): Promise<void> {
     await db.runAsync("DELETE FROM Point");
     await db.runAsync("DELETE FROM Area");
     await db.runAsync("DELETE FROM Path");
+    await db.runAsync("DELETE FROM PlanningTask");
+    await db.runAsync("DELETE FROM PlanningMember");
+    await db.runAsync("DELETE FROM PlanningTeam");
     await db.runAsync("DELETE FROM Action");
     await db.runAsync("DELETE FROM Planning");
     await db.runAsync("DELETE FROM SecurityArea");

@@ -256,6 +256,135 @@ export default function ImportEventScreen() {
     console.log("Suppression terminée");
   };
 
+  // ============= SUPPRESSION DES DONNÉES DE PLANNING =============
+
+  const deleteExistingPlanningData = async (eventUuid: string, teamUuid: string) => {
+    console.log("Suppression données planning pour event:", eventUuid, "team:", teamUuid);
+
+    await deleteWhere(db, "PlanningTask", ["TeamID"], [teamUuid]);
+    await deleteWhere(db, "PlanningMember", ["TeamID"], [teamUuid]);
+    await deleteWhere(db, "PlanningTeam", ["UUID"], [teamUuid]);
+
+    console.log("Suppression planning terminée");
+  };
+
+  // ============= TRAITEMENT DU MESSAGE planning_data =============
+
+  const processPlanningData = async (data: any) => {
+    const team = data.team;
+    const members = data.members || [];
+    const installations = data.installations || [];
+    const removals = data.removals || [];
+
+    console.log("=== DÉBUT IMPORT PLANNING ===");
+    console.log("Team:", team.name);
+    console.log("Event:", team.eventName);
+    console.log("Members:", members.length);
+    console.log("Installations:", installations.length);
+    console.log("Removals:", removals.length);
+
+    try {
+      // 1. Supprimer les données existantes
+      setReceiveStatus("Suppression des données existantes...");
+      await deleteExistingPlanningData(team.eventId, team.uuid);
+
+      // 2. Créer ou mettre à jour l'événement en mode planning
+      setReceiveStatus("Création de l'événement...");
+      await insertOrReplace(db, "Evenement", {
+        UUID: team.eventId,
+        Title: team.eventName,
+        StartDate: installations[0]?.date || new Date().toISOString(),
+        EndDate: removals[removals.length - 1]?.date || new Date().toISOString(),
+        Status: "toOrganize",
+        Mode: "planning",
+      });
+
+      // 3. Sauvegarder la team
+      setReceiveStatus("Sauvegarde de l'équipe...");
+      await insertOrReplace(db, "PlanningTeam", {
+        UUID: team.uuid,
+        EventID: team.eventId,
+        Name: team.name,
+        Number: team.number,
+      });
+
+      // 4. Sauvegarder les membres
+      if (members.length > 0) {
+        setReceiveStatus("Import des membres...");
+        for (const member of members) {
+          await insertOrReplace(db, "PlanningMember", {
+            UUID: member.uuid,
+            TeamID: team.uuid,
+            FirstName: member.firstName,
+            LastName: member.lastName,
+          });
+        }
+      }
+
+      // 5. Sauvegarder les tâches d'installation
+      if (installations.length > 0) {
+        setReceiveStatus("Import des installations...");
+        for (let i = 0; i < installations.length; i++) {
+          const task = installations[i];
+          await insertOrReplace(db, "PlanningTask", {
+            UUID: task.uuid,
+            TeamID: team.uuid,
+            EquipmentType: task.equipmentType,
+            Quantity: task.quantity,
+            ScheduledDate: task.date,
+            TaskType: "installation",
+            Status: "pending",
+            Comment: task.comment || "",
+            GeoJson: task.geoJson,
+          });
+          setImportStats(prev => ({ ...prev, areas: i + 1 }));
+        }
+      }
+
+      // 6. Sauvegarder les tâches de déinstallation
+      if (removals.length > 0) {
+        setReceiveStatus("Import des déinstallations...");
+        for (let i = 0; i < removals.length; i++) {
+          const task = removals[i];
+          await insertOrReplace(db, "PlanningTask", {
+            UUID: task.uuid + "-removal", // UUID différent pour la déinstallation
+            TeamID: team.uuid,
+            EquipmentType: task.equipmentType,
+            Quantity: task.quantity,
+            ScheduledDate: task.date,
+            TaskType: "removal",
+            Status: "pending",
+            Comment: task.comment || "",
+            GeoJson: task.geoJson,
+          });
+          setImportStats(prev => ({ ...prev, paths: i + 1 }));
+        }
+      }
+
+      // Terminé
+      Animated.timing(progressAnim, {
+        toValue: 100,
+        duration: 200,
+        useNativeDriver: false,
+      }).start();
+
+      setImportedEvent({
+        uuid: team.eventId,
+        title: team.eventName,
+        startDate: installations[0]?.date || "",
+        endDate: removals[removals.length - 1]?.date || "",
+        status: 0,
+      });
+
+      console.log("=== IMPORT PLANNING TERMINÉ ===");
+      setReceiveStatus("Import terminé");
+    } catch (error) {
+      console.error("Erreur import planning:", error);
+      setReceiveStatus("Erreur: " + String(error));
+      throw error;
+    }
+  };
+
   // ============= TRAITEMENT DU MESSAGE event_export =============
 
   const processEventExport = async (data: EventExportMessage) => {
@@ -418,7 +547,26 @@ export default function ImportEventScreen() {
                 ws.close();
                 resolve();
               }, 500);
-            } else if (message.type === "error") {
+            }
+            // Traiter planning_data
+            else if (message.type === "planning_data") {
+              isProcessing.current = true;
+              setReceiveStatus("Traitement planning...");
+
+              await processPlanningData(message);
+
+              ws.send(JSON.stringify({
+                type: "import_complete",
+                eventId: message.team.eventId,
+                timestamp: new Date().toISOString(),
+              }));
+
+              setTimeout(() => {
+                ws.close();
+                resolve();
+              }, 500);
+            }
+            else if (message.type === "error") {
               setReceiveStatus("Erreur: " + message.message);
               ws.close();
               reject(new Error(message.message));

@@ -10,6 +10,8 @@ import WelcomeScreen from "./src/screens/HomeScreen";
 import SimulateScreen from "./src/screens/simulateScreen";
 import PointsScreen from "./src/screens/points";
 import EventScreen from "./src/screens/Event";
+import PlanningTimelineScreen from "./src/screens/planningTimeline";
+import PlanningNavigationScreen from "./src/screens/planningNavigation";
 
 import { setupDatabase, deleteDatabase } from "./database/database";
 import { SQLiteDatabase, SQLiteProvider } from "expo-sqlite";
@@ -65,6 +67,8 @@ function AppContent() {
       {/*<Stack.Screen name="SimulateScreen" component={SimulateScreen} />*/}
       <Stack.Screen name="ExportEvent" component={exportEventScreen} />
       <Stack.Screen name="ImportEvent" component={ImportEventScreen} />
+      <Stack.Screen name="PlanningTimeline" component={PlanningTimelineScreen} />
+      <Stack.Screen name="PlanningNavigation" component={PlanningNavigationScreen} />
     </Stack.Navigator>
   );
 }

@@ -198,31 +198,65 @@ export default function EventScreen() {
         </View>
 
         {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.pointsButton}
-            onPress={() => {
-              navigation.navigate("Map", { eventId: eventUUID });
-            }}
-          >
-            <Text style={styles.buttonText}>{Strings.event.addPoints}</Text>
-          </TouchableOpacity>
+        {eventData.Mode === "planning" ? (
+          // Mode Planning : Boutons Planning/Pose/Dépose
+          <View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.pointsButton, { backgroundColor: "#0E47A1" }]}
+                onPress={() => navigation.navigate("PlanningTimeline", { eventId: eventUUID })}
+              >
+                <Ionicons name="calendar" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.buttonText}>📋 Planning</Text>
+              </TouchableOpacity>
+            </View>
 
-          <TouchableOpacity
-            style={styles.pointsButton}
-            onPress={() => navigation.navigate("Points", { eventUUID })}
-          >
-            <Text style={styles.buttonText}>{Strings.event.managePoints}</Text>
-          </TouchableOpacity>
-        </View>
-        <View>
-          <TouchableOpacity
-            style={styles.exportButton}
-            onPress={() => navigation.navigate("ExportEvent", { eventUUID })}
-          >
-            <Text style={styles.buttonText}>{Strings.event.exportEvent}</Text>
-          </TouchableOpacity>
-        </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.pointsButton, { backgroundColor: "#43A047" }]}
+                onPress={() => navigation.navigate("PlanningNavigation", { eventId: eventUUID, taskType: "installation" })}
+              >
+                <Ionicons name="construct" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.buttonText}>🔧 Pose</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.pointsButton, { backgroundColor: "#E53935" }]}
+                onPress={() => navigation.navigate("PlanningNavigation", { eventId: eventUUID, taskType: "removal" })}
+              >
+                <Ionicons name="cube" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.buttonText}>📦 Dépose</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          // Mode Création : Boutons classiques
+          <View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.pointsButton}
+                onPress={() => navigation.navigate("Map", { eventId: eventUUID })}
+              >
+                <Text style={styles.buttonText}>{Strings.event.addPoints}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.pointsButton}
+                onPress={() => navigation.navigate("Points", { eventUUID })}
+              >
+                <Text style={styles.buttonText}>{Strings.event.managePoints}</Text>
+              </TouchableOpacity>
+            </View>
+            <View>
+              <TouchableOpacity
+                style={styles.exportButton}
+                onPress={() => navigation.navigate("ExportEvent", { eventUUID })}
+              >
+                <Text style={styles.buttonText}>{Strings.event.exportEvent}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
