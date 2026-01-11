@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Event, EventStatus } from '../../models/eventModel';
 import { EventService } from '../../services/EventService';
+import { MapService } from '../../services/MapService';
 import { DeletePopupComponent } from '../delete-popup/delete-popup';
 import { ToastService } from '../../services/ToastService';
 
@@ -31,13 +32,18 @@ export class EventEditPopup implements OnInit {
   isSubmitting = false;
   errorMessage = '';
   showDeleteConfirm = false;
+  eventAreaVisible = true;
 
   constructor(
     private eventService: EventService,
+    private mapService: MapService,
     private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
+    // Récupérer l'état actuel de la visibilité de l'area
+    this.eventAreaVisible = this.mapService.getEventAreaVisible();
+    
     if (this.event) {
       this.formData.title = this.event.title || '';
       this.formData.status = this.event.status;
@@ -136,5 +142,10 @@ export class EventEditPopup implements OnInit {
         this.toastService.showError('Erreur', 'Impossible de supprimer l\'événement');
       }
     });
+  }
+
+  toggleEventAreaVisibility(): void {
+    this.eventAreaVisible = !this.eventAreaVisible;
+    this.mapService.setEventAreaVisible(this.eventAreaVisible);
   }
 }

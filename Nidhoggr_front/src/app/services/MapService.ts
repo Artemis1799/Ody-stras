@@ -6,6 +6,7 @@ import { Area } from '../models/areaModel';
 import { RoutePath } from '../models/routePathModel';
 import { SecurityZone } from '../models/securityZoneModel';
 import { Equipment } from '../models/equipmentModel';
+import { GeometryEditData } from '../models/geometryEditModel';
 
 // Mode de dessin pour les SecurityZones
 export interface DrawingMode {
@@ -24,7 +25,8 @@ export interface EventCreationMode {
   event: Event | null;
   zoneGeoJson: string | null;
   pathGeoJson: string | null;
-  zoneModificationMode: boolean; 
+  zoneModificationMode: boolean;
+  pathModificationMode: boolean;
 }
 
 // Interface pour les bounds de la carte
@@ -62,6 +64,10 @@ export class MapService {
   private highlightedSecurityZonesSubject = new BehaviorSubject<string[]>([]); // IDs des zones en surbrillance
   private sidebarCollapsedSubject = new BehaviorSubject<boolean>(false); // État de la sidebar (collapsed/expanded)
   private visibleSecurityZoneIdsSubject = new BehaviorSubject<string[] | null>(null); // IDs des zones visibles (null = toutes visibles)
+  private eventAreaVisibleSubject = new BehaviorSubject<boolean>(this.loadEventAreaVisibility()); // Visibilité de l'area de l'événement
+  
+  // Édition de géométrie (Area ou RoutePath)
+  private geometryEditSubject = new BehaviorSubject<GeometryEditData | null>(null);
   
   // Mode dessin pour SecurityZone
   private drawingModeSubject = new BehaviorSubject<DrawingMode>({ active: false, sourcePoint: null, equipment: null });
@@ -73,7 +79,8 @@ export class MapService {
     event: null,
     zoneGeoJson: null,
     pathGeoJson: null,
-    zoneModificationMode: false
+    zoneModificationMode: false,
+    pathModificationMode: false
   });
 
   points$: Observable<Point[]> = this.pointsSubject.asObservable();
@@ -99,6 +106,8 @@ export class MapService {
   highlightedSecurityZones$: Observable<string[]> = this.highlightedSecurityZonesSubject.asObservable();
   sidebarCollapsed$: Observable<boolean> = this.sidebarCollapsedSubject.asObservable();
   visibleSecurityZoneIds$: Observable<string[] | null> = this.visibleSecurityZoneIdsSubject.asObservable();
+  eventAreaVisible$: Observable<boolean> = this.eventAreaVisibleSubject.asObservable();
+  geometryEdit$: Observable<GeometryEditData | null> = this.geometryEditSubject.asObservable();
   drawingMode$: Observable<DrawingMode> = this.drawingModeSubject.asObservable();
   eventCreationMode$: Observable<EventCreationMode> = this.eventCreationModeSubject.asObservable();
 
@@ -381,7 +390,8 @@ export class MapService {
       event,
       zoneGeoJson: null,
       pathGeoJson: null,
-      zoneModificationMode: false
+      zoneModificationMode: false,
+      pathModificationMode: false
     });
   }
 
@@ -395,14 +405,16 @@ export class MapService {
         ...current,
         step: 'confirm',
         zoneGeoJson: geoJson,
-        zoneModificationMode: false 
+        zoneModificationMode: false,
+        pathModificationMode: false
       });
     } else {
       this.eventCreationModeSubject.next({
         ...current,
         step: 'drawing-path',
         zoneGeoJson: geoJson,
-        zoneModificationMode: false
+        zoneModificationMode: false,
+        pathModificationMode: false
       });
     }
   }
@@ -414,7 +426,8 @@ export class MapService {
     const newMode = {
       ...current,
       step: 'confirm' as const,
-      pathGeoJson: geoJson
+      pathGeoJson: geoJson,
+      pathModificationMode: false
     };
     this.eventCreationModeSubject.next(newMode);
   }
@@ -434,7 +447,8 @@ export class MapService {
       event: null,
       zoneGeoJson: null,
       pathGeoJson: null,
-      zoneModificationMode: false
+      zoneModificationMode: false,
+      pathModificationMode: false
     });
   }
 
@@ -445,11 +459,12 @@ export class MapService {
       event: null,
       zoneGeoJson: null,
       pathGeoJson: null,
-      zoneModificationMode: false
+      zoneModificationMode: false,
+      pathModificationMode: false
     });
   }
 
-  // Permet de revenir à l'étape de dessin de zone pour modifier (garde le path existant)
+  // Permet de revenir à l'étape de modification de zone (garde le geoJson existant pour édition)
   backToZoneDrawing(): void {
     const current = this.eventCreationModeSubject.value;
     if (!current.active) return;
@@ -457,12 +472,12 @@ export class MapService {
     this.eventCreationModeSubject.next({
       ...current,
       step: 'drawing-zone',
-      zoneGeoJson: null,
+      // Ne pas effacer zoneGeoJson - on garde la géométrie pour l'éditer
       zoneModificationMode: true 
     });
   }
 
-  // Permet de revenir à l'étape de dessin du chemin pour modifier
+  // Permet de revenir à l'étape de modification du chemin (garde le geoJson existant pour édition)
   backToPathDrawing(): void {
     const current = this.eventCreationModeSubject.value;
     if (!current.active) return;
@@ -470,8 +485,40 @@ export class MapService {
     this.eventCreationModeSubject.next({
       ...current,
       step: 'drawing-path',
-      pathGeoJson: null
+      // Ne pas effacer pathGeoJson - on garde la géométrie pour l'éditer
+      pathModificationMode: true
     });
+  }
+
+  // Valide les modifications en cours et retourne à l'étape de confirmation
+  validateModification(): void {
+    const current = this.eventCreationModeSubject.value;
+    if (!current.active) return;
+    
+    this.eventCreationModeSubject.next({
+      ...current,
+      step: 'confirm',
+      zoneModificationMode: false,
+      pathModificationMode: false
+    });
+  }
+
+  // Met à jour le geoJson de la zone ou du path pendant l'édition
+  updateEventGeoJson(type: 'zone' | 'path', geoJson: string): void {
+    const current = this.eventCreationModeSubject.value;
+    if (!current.active) return;
+
+    if (type === 'zone') {
+      this.eventCreationModeSubject.next({
+        ...current,
+        zoneGeoJson: geoJson
+      });
+    } else {
+      this.eventCreationModeSubject.next({
+        ...current,
+        pathGeoJson: geoJson
+      });
+    }
   }
 
   // ============= Map Bounds (Viewport) =============
@@ -536,5 +583,56 @@ export class MapService {
 
   getVisibleSecurityZoneIds(): string[] | null {
     return this.visibleSecurityZoneIdsSubject.value;
+  }
+
+  // ============= Event Area Visibility =============
+  
+  /**
+   * Charge la visibilité de l'area de l'événement
+   */
+  private loadEventAreaVisibility(): boolean {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return true;
+    }
+    const saved = localStorage.getItem('eventAreaVisible');
+    return saved !== 'false'; // Par défaut visible (true)
+  }
+
+  /**
+   * Définit la visibilité de l'area de l'événement sur la carte
+   */
+  setEventAreaVisible(visible: boolean): void {
+    this.eventAreaVisibleSubject.next(visible);
+    // Sauvegarder dans le localStorage
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      localStorage.setItem('eventAreaVisible', String(visible));
+    }
+  }
+
+  getEventAreaVisible(): boolean {
+    return this.eventAreaVisibleSubject.value;
+  }
+
+  // ============= Geometry Edit (Area/RoutePath) =============
+  
+  /**
+   * Ouvre le drawer d'édition pour une Area ou un RoutePath
+   */
+  openGeometryEdit(data: GeometryEditData): void {
+    this.geometryEditSubject.next(data);
+  }
+
+  /**
+   * Ferme le drawer d'édition de géométrie
+   */
+  closeGeometryEdit(): void {
+    this.geometryEditSubject.next(null);
+  }
+
+  /**
+   * Récupère l'état actuel de l'édition de géométrie
+   */
+  getGeometryEdit(): GeometryEditData | null {
+    return this.geometryEditSubject.value;
   }
 }

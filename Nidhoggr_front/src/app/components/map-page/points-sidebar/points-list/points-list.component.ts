@@ -24,10 +24,7 @@ export class PointsListComponent {
   }
 
   getPointDisplayName(point: Point): string {
-    if (point.comment) {
-      return point.comment;
-    }
-    return `Point ${point.uuid.substring(0, 8)}`;
+    return `Point ${point.order}`;
   }
 
   trackByUuid(_index: number, point: Point): string {

@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MapService, DrawingMode, EventCreationMode } from '../../../services/MapService';
 import { AreaService } from '../../../services/AreaService';
@@ -19,12 +19,13 @@ import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup'
 import { PointTypePopupComponent } from '../../../shared/point-type-popup/point-type-popup.component';
 import { EventCreationGuide } from '../../../shared/event-creation-guide/event-creation-guide';
 import { EventConfirmPopup } from '../../../shared/event-confirm-popup/event-confirm-popup';
+import { GeometryEditDrawerComponent, GeometryEditData } from '../../../shared/geometry-edit-drawer/geometry-edit-drawer.component';
 import { ToastService } from '../../../services/ToastService';
 
 @Component({
   selector: 'app-map-loader',
   standalone: true,
-  imports: [CommonModule, DeletePopupComponent, PointTypePopupComponent, EventCreationGuide, EventConfirmPopup],
+  imports: [CommonModule, DeletePopupComponent, PointTypePopupComponent, EventCreationGuide, EventConfirmPopup, GeometryEditDrawerComponent],
   templateUrl: './map-loader.component.html',
   styleUrls: ['./map-loader.component.scss'],
 })
@@ -51,7 +52,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private polygonDrawHandler: any = null; // Handler pour le mode dessin polygon (event creation)
   private currentDrawingMode: DrawingMode = { active: false, sourcePoint: null, equipment: null };
-  private currentEventCreationMode: EventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null, zoneModificationMode: false };
+  private currentEventCreationMode: EventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null, zoneModificationMode: false, pathModificationMode: false };
   private eventCreationModeSubscription?: Subscription;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private eventCreationZoneLayer: any = null; // Layer temporaire pour la zone en création
@@ -74,6 +75,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private pendingMarkerLayer: any = null;
 
+  // Drawer d'édition de géométrie (Area/RoutePath)
+  showGeometryEditDrawer = false;
+  geometryEditData: GeometryEditData | null = null;
+
   constructor(
     private mapService: MapService,
     private areaService: AreaService,
@@ -83,7 +88,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     private equipmentService: EquipmentService,
     private pictureService: PictureService,
     private toastService: ToastService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   ngAfterViewInit(): void {
@@ -269,6 +275,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.updateSecurityZonesVisibility(visibleIds);
       });
 
+      // S'abonner à la visibilité de l'area de l'événement
+      this.mapService.eventAreaVisible$.subscribe((visible) => {
+        this.updateEventAreaVisibility(visible);
+      });
+
       // Forcer Leaflet à recalculer la taille
       setTimeout(() => {
         if (this.map && this.map.invalidateSize) {
@@ -440,6 +451,35 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         }
       } else {
         // Masquer la zone
+        if (this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.removeLayer(layer);
+        }
+      }
+    });
+  }
+
+  /**
+   * Met à jour la visibilité de l'area de l'événement (zone créée lors de la création de l'événement)
+   * @param visible - true pour afficher, false pour masquer
+   */
+  private updateEventAreaVisibility(visible: boolean): void {
+    if (!this.drawnItems) return;
+    
+    // Parcourir toutes les areas sur la carte
+    this.geometryLayers.forEach((layer, uuid) => {
+      if (layer.shapeType !== 'area') return;
+      
+      // Vérifier si c'est l'area de l'événement (nom commence par "Zone - ")
+      const area = this.mapService.getAreas().find(a => a.uuid === uuid);
+      if (!area || !area.name?.startsWith('Zone - ')) return;
+      
+      if (visible) {
+        // Afficher l'area si elle n'est pas déjà affichée
+        if (!this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.addLayer(layer);
+        }
+      } else {
+        // Masquer l'area
         if (this.drawnItems.hasLayer(layer)) {
           this.drawnItems.removeLayer(layer);
         }
@@ -855,10 +895,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       layer.areaUuid = area.uuid;
       layer.shapeType = 'area';
 
-      // Ajouter au groupe drawnItems
-      this.drawnItems.addLayer(layer);
+      // Vérifier si c'est l'area de l'événement et si elle doit être visible
+      const isEventArea = area.name?.startsWith('Zone - ');
+      const eventAreaVisible = this.mapService.getEventAreaVisible();
+      const shouldBeVisible = !isEventArea || eventAreaVisible;
 
-      // Stocker dans la map
+      // Ajouter au groupe drawnItems seulement si visible
+      if (shouldBeVisible) {
+        this.drawnItems.addLayer(layer);
+      }
+
+      // Stocker dans la map (même si masquée, pour pouvoir la réafficher plus tard)
       this.geometryLayers.set(area.uuid, layer);
 
       // Rendre interactive
@@ -1176,10 +1223,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       const L: any = (window as any).L;
       L.DomEvent.stopPropagation(e);
 
-      // Ne pas sélectionner les points d'intérêt via ce handler (ils ont leur propre drawer)
-      if (!point.isPointOfInterest) {
-        this.mapService.selectPoint(point, point.order);
-      }
+      // Utiliser onMarkerClick pour gérer les deux types de points
+      this.onMarkerClick(point);
     });
   }
 
@@ -1291,6 +1336,65 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Récupère les informations d'une géométrie (Area ou RoutePath) pour l'affichage dans le popup
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private getGeometryInfo(layer: any): { type: 'area' | 'path'; uuid: string; name?: string; description?: string } | null {
+    if (layer.areaUuid) {
+      const area = this.mapService.getAreas().find(a => a.uuid === layer.areaUuid);
+      if (area) {
+        return {
+          type: 'area',
+          uuid: area.uuid,
+          name: area.name,
+          description: area.description
+        };
+      }
+    }
+    
+    if (layer.pathUuid) {
+      const path = this.mapService.getPaths().find(p => p.uuid === layer.pathUuid);
+      if (path) {
+        return {
+          type: 'path',
+          uuid: path.uuid,
+          name: path.name,
+          description: path.description
+        };
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Ouvre le drawer d'édition pour une Area ou un RoutePath
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private openGeometryEditDrawer(layer: any): void {
+    // Fermer le popup Leaflet d'abord
+    if (layer.closePopup) {
+      layer.closePopup();
+    }
+
+    if (layer.areaUuid) {
+      const area = this.mapService.getAreas().find(a => a.uuid === layer.areaUuid);
+      if (area) {
+        this.geometryEditData = { type: 'area', data: area };
+        this.showGeometryEditDrawer = true;
+        this.cdr.detectChanges();
+      }
+    } else if (layer.pathUuid) {
+      const path = this.mapService.getPaths().find(p => p.uuid === layer.pathUuid);
+      if (path) {
+        this.geometryEditData = { type: 'path', data: path };
+        this.showGeometryEditDrawer = true;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  /**
    * Rend une couche interactive (sélectionnable et modifiable)
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1314,17 +1418,41 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // Vérifier si c'est une géométrie d'événement (zone ou parcours)
       const eventGeometryInfo = this.getEventGeometryInfo(layer);
       
+      // Récupérer les infos de la géométrie (Area ou RoutePath)
+      const geometryInfo = this.getGeometryInfo(layer);
+      
       let popupContent: string;
       
       if (eventGeometryInfo) {
-        // Popup spécial pour les géométries d'événement (sans bouton supprimer)
+        // Popup spécial pour les géométries d'événement (sans bouton supprimer, avec bouton modifier)
         popupContent = `
           <div class="geometry-popup" style="text-align: center;">
             <strong>${eventGeometryInfo.title}</strong>
+            ${geometryInfo?.description ? `<p style="margin: 8px 0; color: #8b949e; font-size: 12px;">${geometryInfo.description}</p>` : ''}
+            <br>
+            <button id="edit-geometry-btn" style="margin: 5px; padding: 8px 12px; cursor: pointer; background: #2ad783; color: #0d1117; border: none; border-radius: 4px; font-weight: 600;">
+              ✏️ Modifier
+            </button>
+          </div>
+        `;
+      } else if (geometryInfo) {
+        // Popup pour Area ou RoutePath avec nom, description et boutons
+        const displayName = geometryInfo.name || (geometryInfo.type === 'area' ? 'Zone sans nom' : 'Parcours sans nom');
+        popupContent = `
+          <div class="geometry-popup" style="text-align: center;">
+            <strong>${displayName}</strong>
+            ${geometryInfo.description ? `<p style="margin: 8px 0; color: #8b949e; font-size: 12px;">${geometryInfo.description}</p>` : ''}
+            <br>
+            <button id="edit-geometry-btn" style="margin: 5px; padding: 8px 12px; cursor: pointer; background: #2ad783; color: #0d1117; border: none; border-radius: 4px; font-weight: 600;">
+              ✏️ Modifier
+            </button>
+            <button id="delete-geometry-btn" style="margin: 5px; padding: 8px 12px; cursor: pointer; background: #ff6b6b; color: white; border: none; border-radius: 4px;">
+              🗑️ Supprimer
+            </button>
           </div>
         `;
       } else {
-        // Popup standard avec option de suppression
+        // Popup standard avec option de suppression uniquement
         popupContent = `
           <div class="geometry-popup" style="text-align: center;">
             <strong>Élément géométrique</strong><br>
@@ -1340,19 +1468,27 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       if (layer.bindPopup) {
         layer.bindPopup(popupContent).openPopup();
 
-        // Attacher l'événement au bouton après l'ouverture du popup (seulement si pas une géométrie d'événement)
-        if (!eventGeometryInfo) {
-          setTimeout(() => {
-            const deleteBtn = document.getElementById('delete-geometry-btn');
+        // Attacher les événements aux boutons après l'ouverture du popup
+        setTimeout(() => {
+          const editBtn = document.getElementById('edit-geometry-btn');
+          const deleteBtn = document.getElementById('delete-geometry-btn');
 
-            if (deleteBtn) {
-              deleteBtn.onclick = (event) => {
-                event.stopPropagation();
-                this.deleteGeometry(layer);
-              };
-            }
-          }, 100);
-        }
+          if (editBtn && geometryInfo) {
+            editBtn.onclick = (event) => {
+              event.stopPropagation();
+              this.openGeometryEditDrawer(layer);
+              // Fermer le popup
+              if (layer.closePopup) layer.closePopup();
+            };
+          }
+
+          if (deleteBtn) {
+            deleteBtn.onclick = (event) => {
+              event.stopPropagation();
+              this.deleteGeometry(layer);
+            };
+          }
+        }, 100);
       }
     });
 
@@ -1428,6 +1564,33 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   cancelDeleteGeometry(): void {
     this.showDeleteGeometryConfirm = false;
     this.layerToDelete = null;
+  }
+
+  // ============= Édition de géométrie =============
+
+  closeGeometryEditDrawer(): void {
+    this.showGeometryEditDrawer = false;
+    this.geometryEditData = null;
+  }
+
+  onGeometryUpdated(data: GeometryEditData): void {
+    // Mettre à jour les données dans le MapService
+    if (data.type === 'area') {
+      const areas = this.mapService.getAreas();
+      const index = areas.findIndex(a => a.uuid === data.data.uuid);
+      if (index !== -1) {
+        areas[index] = data.data as Area;
+        this.mapService.setAreas([...areas]);
+      }
+    } else {
+      const paths = this.mapService.getPaths();
+      const index = paths.findIndex(p => p.uuid === data.data.uuid);
+      if (index !== -1) {
+        paths[index] = data.data as RoutePath;
+        this.mapService.setPaths([...paths]);
+      }
+    }
+    this.closeGeometryEditDrawer();
   }
 
   confirmDeleteGeometry(): void {
@@ -1564,13 +1727,14 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     }
 
     // Créer la SecurityZone avec le commentaire du point et la quantité calculée
+    const defaultDate = new Date(2026, 0, 1, 0, 0, 0); // 01/01/2026 à 00:00
     const securityZoneData: Partial<SecurityZone> = {
       eventId: this.selectedEvent.uuid,
       equipmentId: equipment.uuid,
       quantity: quantity,
       comment: sourcePoint.comment || '', // Transférer le commentaire du point
-      installationDate: new Date(),
-      removalDate: new Date(Date.now() + 86400000), // +1 jour par défaut
+      installationDate: defaultDate,
+      removalDate: defaultDate,
       geoJson: geoJsonString
     };
 
@@ -1713,24 +1877,30 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     }
 
     if (mode.step === 'drawing-zone') {
-      // Supprimer uniquement le layer zone existant (garder le path s'il existe)
-      this.clearEventCreationZoneLayer();
+      // En mode modification de zone, activer l'édition du layer existant
+      if (mode.zoneModificationMode && this.eventCreationZoneLayer) {
+        // Activer le mode édition sur le layer existant
+        this.enableLayerEditing(this.eventCreationZoneLayer, L, 'zone');
+      } else {
+        // Supprimer uniquement le layer zone existant (garder le path s'il existe)
+        this.clearEventCreationZoneLayer();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.polygonDrawHandler = new (L.Draw as any).Polygon(this.map, {
-        allowIntersection: false,
-        drawError: {
-          color: '#e1e100',
-          message: '<strong>Erreur:</strong> Les bords ne doivent pas se croiser!',
-        },
-        shapeOptions: {
-          color: '#3388ff',
-          fillOpacity: 0.2,
-          weight: 3
-        }
-      });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.polygonDrawHandler = new (L.Draw as any).Polygon(this.map, {
+          allowIntersection: false,
+          drawError: {
+            color: '#e1e100',
+            message: '<strong>Erreur:</strong> Les bords ne doivent pas se croiser!',
+          },
+          shapeOptions: {
+            color: '#3388ff',
+            fillOpacity: 0.2,
+            weight: 3
+          }
+        });
 
-      this.polygonDrawHandler.enable();
+        this.polygonDrawHandler.enable();
+      }
 
     } else if (mode.step === 'drawing-path') {
       // Désactiver le handler polygon s'il existe
@@ -1738,20 +1908,29 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.polygonDrawHandler.disable();
         this.polygonDrawHandler = null;
       }
+      
+      // Désactiver le mode édition du layer zone s'il était actif
+      this.disableLayerEditing(this.eventCreationZoneLayer);
 
-      // Supprimer uniquement le layer path existant (garder la zone)
-      this.clearEventCreationPathLayer();
+      // En mode modification de path, activer l'édition du layer existant
+      if (mode.pathModificationMode && this.eventCreationPathLayer) {
+        // Activer le mode édition sur le layer existant
+        this.enableLayerEditing(this.eventCreationPathLayer, L, 'path');
+      } else {
+        // Supprimer uniquement le layer path existant (garder la zone)
+        this.clearEventCreationPathLayer();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.polylineDrawHandler = new (L.Draw as any).Polyline(this.map, {
-        shapeOptions: {
-          color: '#a91a1a',
-          weight: 4,
-          opacity: 0.8
-        }
-      });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.polylineDrawHandler = new (L.Draw as any).Polyline(this.map, {
+          shapeOptions: {
+            color: '#a91a1a',
+            weight: 4,
+            opacity: 0.8
+          }
+        });
 
-      this.polylineDrawHandler.enable();
+        this.polylineDrawHandler.enable();
+      }
 
     } else if (mode.step === 'confirm' || mode.step === 'idle') {
       // Désactiver les handlers si actifs
@@ -1763,12 +1942,71 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.polylineDrawHandler.disable();
         this.polylineDrawHandler = null;
       }
+      
+      // Désactiver le mode édition des layers
+      this.disableLayerEditing(this.eventCreationZoneLayer);
+      this.disableLayerEditing(this.eventCreationPathLayer);
 
       // Réafficher le contrôle de dessin standard si un événement est sélectionné
       if (mode.step === 'idle' && this.selectedEvent && this.drawControl) {
         this.map.addControl(this.drawControl);
       }
     }
+  }
+
+  /**
+   * Active le mode édition sur un layer existant
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private enableLayerEditing(layer: any, L: any, type: 'zone' | 'path'): void {
+    if (!layer || !this.map) return;
+
+    // Activer le mode édition sur le layer
+    if (layer.editing) {
+      layer.editing.enable();
+    }
+
+    // Changer le style pour indiquer le mode édition
+    if (layer.setStyle) {
+      layer.setStyle({
+        dashArray: '10, 10',
+        weight: type === 'zone' ? 4 : 5
+      });
+    }
+
+    // Stocker le type d'édition en cours pour pouvoir récupérer le geoJson à la validation
+    layer._editType = type;
+  }
+
+  /**
+   * Désactive le mode édition sur un layer et retourne le geoJson final
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private disableLayerEditing(layer: any): void {
+    if (!layer) return;
+
+    // Récupérer le geoJson final AVANT de désactiver l'édition
+    if (layer._editType && layer.editing && layer.editing.enabled()) {
+      const geoJson = this.leafletToGeoJSON(layer);
+      if (geoJson) {
+        const geoJsonString = JSON.stringify(geoJson);
+        this.mapService.updateEventGeoJson(layer._editType, geoJsonString);
+      }
+    }
+
+    if (layer.editing) {
+      layer.editing.disable();
+    }
+
+    // Restaurer le style normal
+    if (layer.setStyle) {
+      layer.setStyle({
+        dashArray: null
+      });
+    }
+
+    // Nettoyer
+    delete layer._editType;
   }
 
   /**
@@ -1883,7 +2121,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     this.clearAllEventCreationLayers();
 
     // Réinitialiser le mode
-    this.currentEventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null, zoneModificationMode: false };
+    this.currentEventCreationMode = { active: false, step: 'idle', event: null, zoneGeoJson: null, pathGeoJson: null, zoneModificationMode: false, pathModificationMode: false };
 
     // Réafficher le contrôle de dessin standard si un événement est sélectionné
     if (this.selectedEvent && this.drawControl && this.map) {

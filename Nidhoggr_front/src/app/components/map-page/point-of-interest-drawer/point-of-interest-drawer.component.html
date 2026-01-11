@@ -33,19 +33,6 @@
         </div>
       </div>
 
-      <!-- Coordonnées -->
-      <div class="info-row">
-        <div class="info-item">
-          <span class="info-label">Position</span>
-          <span class="info-value" *ngIf="selectedPoint.latitude && selectedPoint.longitude">
-            {{ selectedPoint.latitude.toFixed(6) }}, {{ selectedPoint.longitude.toFixed(6) }}
-          </span>
-          <span class="info-value empty" *ngIf="!selectedPoint.latitude || !selectedPoint.longitude">
-            Non définie
-          </span>
-        </div>
-      </div>
-
       <!-- Commentaire (éditable) -->
       <div class="form-row">
         <label for="comment">Commentaire</label>
