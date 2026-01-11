@@ -9,6 +9,7 @@ import {
     Animated,
     Modal,
     ActivityIndicator,
+    PanResponder,
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
@@ -52,10 +53,58 @@ export default function PlanningNavigationScreen() {
     const [routeLoaded, setRouteLoaded] = useState(false);
 
     const mapRef = useRef<MapView>(null);
-    const swipeAnim = useRef(new Animated.Value(0)).current;
     const locationSubscription = useRef<Location.LocationSubscription | null>(null);
 
+    // Slider iOS
+    const SLIDER_WIDTH = Dimensions.get("window").width - 100;
+    const THUMB_SIZE = 60;
+    const SLIDE_THRESHOLD = SLIDER_WIDTH - THUMB_SIZE - 10;
+    const sliderAnim = useRef(new Animated.Value(0)).current;
+    const handleSwipeConfirmRef = useRef<() => void>(() => { });
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderMove: (_, gestureState) => {
+                const newValue = Math.max(0, Math.min(gestureState.dx, SLIDE_THRESHOLD));
+                sliderAnim.setValue(newValue);
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                console.log(`📊 Slider release: dx=${gestureState.dx}, threshold=${SLIDE_THRESHOLD}`);
+                if (gestureState.dx >= SLIDE_THRESHOLD * 0.9) { // 90% du chemin suffit
+                    console.log("✅ Slider validé !");
+                    // Validation réussie
+                    Animated.timing(sliderAnim, {
+                        toValue: SLIDE_THRESHOLD,
+                        duration: 100,
+                        useNativeDriver: false,
+                    }).start(() => {
+                        handleSwipeConfirmRef.current();
+                        sliderAnim.setValue(0);
+                    });
+                } else {
+                    console.log("↩️ Slider retour");
+                    // Retour à la position initiale
+                    Animated.spring(sliderAnim, {
+                        toValue: 0,
+                        useNativeDriver: false,
+                        tension: 50,
+                        friction: 8,
+                    }).start();
+                }
+            },
+        })
+    ).current;
+
     const currentTask = tasks[currentTaskIndex];
+    const currentTaskRef = useRef<PlanningTask | undefined>(currentTask);
+
+    // Mettre à jour la ref à chaque changement
+    useEffect(() => {
+        currentTaskRef.current = currentTask;
+        console.log(`📋 currentTaskRef updated: ${currentTask ? currentTask.UUID.substring(0, 8) : 'null'}`);
+    }, [currentTask]);
 
     useFocusEffect(
         useCallback(() => {
@@ -145,11 +194,13 @@ export default function PlanningNavigationScreen() {
     };
 
     const startLocationTracking = async () => {
+        console.log("🚀 Démarrage tracking GPS...");
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-            console.log("Permission localisation refusée");
+            console.log("❌ Permission localisation refusée");
             return;
         }
+        console.log("✅ Permission GPS accordée");
 
         let lastRouteUpdate = 0;
 
@@ -165,27 +216,44 @@ export default function PlanningNavigationScreen() {
                     longitude: location.coords.longitude,
                 };
                 setUserLocation(newLocation);
+                console.log(`📡 Position: ${newLocation.latitude.toFixed(5)}, ${newLocation.longitude.toFixed(5)}`);
+
+                const task = currentTaskRef.current;
+                console.log(`📋 currentTask: ${task ? task.UUID.substring(0, 8) : 'null'}`);
 
                 if (location.coords.heading !== null) {
                     setHeading(location.coords.heading);
                 }
 
                 // Calculer distance vers le point actuel
-                if (currentTask) {
-                    const taskCenter = getTaskCenter(currentTask);
-                    if (taskCenter) {
-                        const dist = calculateDistance(newLocation, taskCenter);
+                if (task) {
+                    const taskCenter = getTaskCenter(task);
+                    const allCoords = getTaskCoordinates(task);
+
+                    // Calculer la distance minimale vers n'importe quel point de la ligne
+                    let minDist = Infinity;
+                    for (const coord of allCoords) {
+                        const d = calculateDistance(newLocation, coord);
+                        if (d < minDist) minDist = d;
+                    }
+
+                    // Fallback sur le centre si pas de coords
+                    const dist = allCoords.length > 0 ? minDist : (taskCenter ? calculateDistance(newLocation, taskCenter) : null);
+
+                    if (dist !== null) {
                         setDistance(dist);
+                        console.log(`📍 Distance: ${dist.toFixed(1)}m (seuil: ${ARRIVAL_DISTANCE}m)`);
 
                         // Recalculer l'itinéraire toutes les 10 secondes
                         const now = Date.now();
-                        if (now - lastRouteUpdate > 10000) {
+                        if (now - lastRouteUpdate > 10000 && taskCenter) {
                             lastRouteUpdate = now;
                             fetchRoute(newLocation, taskCenter);
                         }
 
                         // Détection d'arrivée
                         if (dist <= ARRIVAL_DISTANCE && !showArrivalModal && !showConfirmModal) {
+                            console.log("🎯 Arrivée détectée !");
                             setShowArrivalModal(true);
                         }
                     }
@@ -285,6 +353,7 @@ export default function PlanningNavigationScreen() {
     };
 
     const handleSwipeConfirm = async () => {
+        console.log("🔧 handleSwipeConfirm appelé !");
         if (!currentTask) return;
 
         try {
@@ -299,6 +368,11 @@ export default function PlanningNavigationScreen() {
             // Passer à la tâche suivante
             if (currentTaskIndex < tasks.length - 1) {
                 setCurrentTaskIndex(currentTaskIndex + 1);
+                // Reset les états pour la nouvelle tâche
+                setShowArrivalModal(false);
+                setRouteLoaded(false);
+                setRouteCoordinates([]);
+
                 // Recentrer la carte
                 const nextTask = tasks[currentTaskIndex + 1];
                 const center = getTaskCenter(nextTask);
@@ -322,6 +396,9 @@ export default function PlanningNavigationScreen() {
         setShowArrivalModal(false);
         setShowConfirmModal(true);
     };
+
+    // Mettre à jour la ref pour le PanResponder
+    handleSwipeConfirmRef.current = handleSwipeConfirm;
 
     if (tasks.length === 0) {
         return (
@@ -486,14 +563,19 @@ export default function PlanningNavigationScreen() {
                             <Text style={localStyles.confirmComment}>{currentTask.Comment}</Text>
                         )}
 
-                        <TouchableOpacity
-                            style={localStyles.swipeButton}
-                            onPress={handleSwipeConfirm}
-                        >
-                            <Text style={localStyles.swipeButtonText}>
-                                ✓ Glisser pour confirmer
-                            </Text>
-                        </TouchableOpacity>
+                        {/* Slider iOS style "Slide to Unlock" */}
+                        <View style={[localStyles.sliderTrack, { width: SLIDER_WIDTH }]}>
+                            <Text style={localStyles.sliderText}>Glisser pour confirmer →</Text>
+                            <Animated.View
+                                style={[
+                                    localStyles.sliderThumb,
+                                    { transform: [{ translateX: sliderAnim }] }
+                                ]}
+                                {...panResponder.panHandlers}
+                            >
+                                <Ionicons name="checkmark" size={28} color="#43A047" />
+                            </Animated.View>
+                        </View>
 
                         <TouchableOpacity
                             style={localStyles.cancelButton}
@@ -753,5 +835,36 @@ const localStyles = StyleSheet.create({
         fontSize: 14,
         color: "#666",
         marginTop: 8,
+    },
+    // Styles pour le slider iOS
+    sliderTrack: {
+        height: 60,
+        backgroundColor: "#43A047",
+        borderRadius: 30,
+        marginTop: 24,
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
+    },
+    sliderThumb: {
+        position: "absolute",
+        left: 4,
+        width: 52,
+        height: 52,
+        backgroundColor: "#fff",
+        borderRadius: 26,
+        justifyContent: "center",
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    sliderText: {
+        color: "rgba(255, 255, 255, 0.9)",
+        fontSize: 16,
+        fontWeight: "600",
+        marginLeft: 40,
     },
 });
