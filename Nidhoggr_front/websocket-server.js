@@ -357,9 +357,9 @@ function handleEnd(data, ws) {
  */
 function handleEventExport(data, ws) {
   console.log('📤 Export d\'événement vers le téléphone');
-  console.log('   Événement:', data.event?.name || 'Sans nom');
-  console.log('   Points:', data.points?.length || 0);
-  console.log('   Géométries:', data.geometries?.length || 0);
+  console.log('   Événement:', data.event?.title || data.event?.name || 'Sans nom');
+  console.log('   Areas:', data.areas?.length || 0);
+  console.log('   Paths:', data.paths?.length || 0);
   console.log('   Équipements:', data.equipments?.length || 0);
 
   let clientsSent = 0;
@@ -376,54 +376,33 @@ function handleEventExport(data, ws) {
     type: 'event_data',
     event: {
       uuid: data.event.uuid,
-      name: data.event.name,
+      title: data.event.title || data.event.name,
       description: data.event.description,
       startDate: data.event.startDate,
       endDate: data.event.endDate || null,
       status: data.event.status,
       responsable: data.event.responsable || ''
     },
-    points: data.points.map(point => ({
-      uuid: point.uuid,
-      eventId: point.eventId,
-      equipmentId: point.equipmentId,
-      latitude: point.latitude,
-      longitude: point.longitude,
-      comment: point.comment,
-      imageId: null,
-      order: point.order,
-      isValid: point.isValid,
-      equipmentQuantity: point.equipmentQuantity,
-      created: point.created,
-      modified: point.modified,
-      equipment: point.equipment ? {
-        uuid: point.equipment.uuid,
-        type: point.equipment.type,
-        description: point.equipment.description,
-        unit: point.equipment.unit,
-        totalStock: point.equipment.totalStock || 0,
-        remainingStock: point.equipment.remainingStock || 0
-      } : null,
-      photos: (point.photos || []).map(photo => ({
-        uuid: photo.uuid,
-        pictureName: photo.pictureName,
-        picture: photo.picture
-      }))
+    areas: (data.areas || []).map(area => ({
+      uuid: area.uuid,
+      eventId: area.eventId,
+      geoJson: area.geoJson,
+      name: area.name,
+      color: area.color
     })),
-    geometries: (data.geometries || []).map(geom => ({
-      uuid: geom.uuid,
-      eventId: geom.eventId,
-      type: geom.type,
-      geoJson: geom.geoJson,
-      properties: geom.properties
+    paths: (data.paths || []).map(path => ({
+      uuid: path.uuid,
+      eventId: path.eventId,
+      geoJson: path.geoJson,
+      name: path.name,
+      color: path.color
     })),
     equipments: (data.equipments || []).map(equip => ({
       uuid: equip.uuid,
       type: equip.type,
       description: equip.description,
-      unit: equip.unit,
-      totalStock: equip.totalStock || 0,
-      remainingStock: equip.remainingStock || 0
+      length: equip.length,
+      storageType: equip.storageType
     })),
     metadata: {
       exportDate: new Date().toISOString(),
@@ -445,9 +424,8 @@ function handleEventExport(data, ws) {
     type: 'export_confirmed',
     message: `Données envoyées à ${clientsSent} téléphone(s)`,
     summary: {
-      points: data.points?.length || 0,
-      photos: data.points?.reduce((sum, p) => sum + (p.photos?.length || 0), 0) || 0,
-      geometries: data.geometries?.length || 0,
+      areas: data.areas?.length || 0,
+      paths: data.paths?.length || 0,
       equipments: data.equipments?.length || 0
     }
   }));

@@ -448,7 +448,7 @@ export class TeamPopupComponent implements OnDestroy {
 
     // Construire l'objet JSON du planning
     const planningData = {
-      type: 'planning_export',
+      type: 'planning_data',
       team: {
         uuid: this.team.uuid,
         name: this.team.teamName,
