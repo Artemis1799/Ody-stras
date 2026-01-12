@@ -12,6 +12,8 @@ import {
     PanResponder,
     Alert,
     Vibration,
+    Linking,
+    Platform,
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
@@ -437,6 +439,24 @@ export default function PlanningNavigationScreen() {
         }
     };
 
+    const openNativeMaps = () => {
+        if (!currentTask) return;
+        const center = getTaskCenter(currentTask);
+        if (!center) return;
+
+        const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
+        const latLng = `${center.latitude},${center.longitude}`;
+        const label = currentTask.TaskType === "installation" ? "Pose" : "Dépose";
+        const url = Platform.select({
+            ios: `${scheme}${label}@${latLng}`,
+            android: `${scheme}${latLng}(${label})`
+        });
+
+        if (url) {
+            Linking.openURL(url);
+        }
+    };
+
     // Mettre à jour la ref pour le PanResponder
     handleSwipeConfirmRef.current = handleSwipeConfirm;
 
@@ -521,14 +541,24 @@ export default function PlanningNavigationScreen() {
                 )}
             </MapView>
 
-            {/* Bouton Signaler Problème */}
-            <TouchableOpacity
-                style={localStyles.problemButton}
-                onPress={() => setShowProblemModal(true)}
-            >
-                <Ionicons name="warning" size={32} color="#fff" />
-                <Text style={localStyles.problemButtonText}>Incapable / Problème</Text>
-            </TouchableOpacity>
+            {/* Boutons Actions (Côté Droit) */}
+            <View style={localStyles.rightActionsContainer}>
+                {/* Bouton GPS Externe */}
+                <TouchableOpacity
+                    style={localStyles.actionButtonBlue}
+                    onPress={openNativeMaps}
+                >
+                    <Ionicons name="map" size={28} color="#fff" />
+                </TouchableOpacity>
+
+                {/* Bouton Signaler Problème (Simplifié) */}
+                <TouchableOpacity
+                    style={localStyles.actionButtonRed}
+                    onPress={() => setShowProblemModal(true)}
+                >
+                    <Ionicons name="warning" size={28} color="#fff" />
+                </TouchableOpacity>
+            </View>
 
             {/* Panneau de navigation */}
             <View style={[
@@ -1025,28 +1055,40 @@ const localStyles = StyleSheet.create({
         fontWeight: "600",
         marginLeft: 85,
     },
-    problemButton: {
+
+    rightActionsContainer: {
         position: "absolute",
-        top: 140, // Descendu pour éviter le header
+        top: 140,
         right: 20,
-        backgroundColor: "#E53935", // Rouge pour attirer l'attention
-        flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 30,
-        elevation: 8,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
+        gap: 16, // Espace entre les boutons
         zIndex: 100,
     },
-    problemButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 18,
-        marginLeft: 8,
+    actionButtonRed: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: "#E53935",
+        justifyContent: "center",
+        alignItems: "center",
+        elevation: 6,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+    },
+    actionButtonBlue: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: "#4285F4", // Bleu Google Maps
+        justifyContent: "center",
+        alignItems: "center",
+        elevation: 6,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
     },
     problemModalContent: {
         backgroundColor: "#fff",
