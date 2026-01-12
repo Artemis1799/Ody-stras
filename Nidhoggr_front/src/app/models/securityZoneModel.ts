@@ -1,5 +1,6 @@
 import { Equipment } from './equipmentModel';
 import { Team } from './teamModel';
+import { Event } from './eventModel';
 
 export interface SecurityZone {
   uuid: string;

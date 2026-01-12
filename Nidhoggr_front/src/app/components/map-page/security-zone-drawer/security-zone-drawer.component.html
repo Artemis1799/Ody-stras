@@ -31,7 +31,13 @@
         </div>
         <div class="info-item">
           <span class="info-label">Quantité</span>
-          <span class="info-value">{{ quantity }}</span>
+          <input 
+            type="number" 
+            pInputText 
+            [(ngModel)]="quantity"
+            min="1"
+            class="w-full input-quantity"
+          />
         </div>
       </div>
 
@@ -54,7 +60,6 @@
         <p-datepicker 
           inputId="installationDate"
           [(ngModel)]="installationDate"
-          [defaultDate]="defaultDate"
           [showTime]="true"
           [showIcon]="true"
           dateFormat="dd/mm/yy"
@@ -85,7 +90,6 @@
         <p-datepicker 
           inputId="removalDate"
           [(ngModel)]="removalDate"
-          [defaultDate]="defaultDate"
           [showTime]="true"
           [showIcon]="true"
           dateFormat="dd/mm/yy"
