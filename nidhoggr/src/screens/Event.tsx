@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import {
@@ -23,6 +23,9 @@ import {
   EventScreenNavigationProp,
   Path,
   PointOnMap,
+  PlanningTeam,
+  PlanningTask,
+  GeoJSONData
 } from "../../types/types";
 import { getAllWhere, getPointsForEvent } from "../../database/queries";
 import { Strings } from "../../types/strings";
@@ -41,6 +44,7 @@ export default function EventScreen() {
   const eventUUID = params.UUID;
   const [areas, setAreas] = useState<Area[]>([]);
   const [paths, setPaths] = useState<Path[]>([]);
+  const [taskPaths, setTaskPaths] = useState<{ id: string; coords: { latitude: number; longitude: number }[]; color: string }[]>([]);
   const [eventData, setEventData] = useState<Evenement>(params);
   const [points, setPoints] = useState<PointOnMap[]>([]);
 
@@ -107,6 +111,32 @@ export default function EventScreen() {
           //const pathsGeoJsonList = pathsDB.map((g) => g.GeoJson);
           setAreas(areasDB);
           setPaths(pathsDB);
+
+          // Charger les tâches pour afficher leurs tracés
+          const teams = await getAllWhere<PlanningTeam>(db, "PlanningTeam", ["EventID"], [eventUUID]);
+          let loadedTaskPaths: { id: string; coords: { latitude: number; longitude: number }[]; color: string }[] = [];
+
+          for (const team of teams) {
+            const teamTasks = await getAllWhere<PlanningTask>(db, "PlanningTask", ["TeamID"], [team.UUID]);
+            for (const task of teamTasks) {
+              try {
+                const geoJson: GeoJSONData = JSON.parse(task.GeoJson);
+                if (geoJson.type === "LineString" && Array.isArray(geoJson.coordinates)) {
+                  const coords = (geoJson.coordinates as [number, number][]).map(([lng, lat]) => ({
+                    latitude: lat,
+                    longitude: lng,
+                  }));
+                  // Couleur selon type
+                  const color = task.TaskType === "installation" ? "#43A047" : "#E53935"; // Vert ou Rouge
+                  loadedTaskPaths.push({ id: task.UUID, coords, color });
+                }
+              } catch (e) {
+                // Ignorer json invalide
+              }
+            }
+          }
+          setTaskPaths(loadedTaskPaths);
+
           const sql: PointOnMap[] = await getPointsForEvent(db, eventUUID);
 
           const pts: PointOnMap[] = sql.map((row: PointOnMap) => ({
@@ -172,6 +202,16 @@ export default function EventScreen() {
             ))}
             <RenderAreas areas={areas} />
             <RenderPaths paths={paths} />
+
+            {/* Tracés des tâches */}
+            {taskPaths.map((tp) => (
+              <Polyline
+                key={tp.id}
+                coordinates={tp.coords}
+                strokeColor={tp.color}
+                strokeWidth={4}
+              />
+            ))}
           </MapView>
         </View>
 
