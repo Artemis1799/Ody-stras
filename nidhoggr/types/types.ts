@@ -221,7 +221,7 @@ export interface PlanningTask {
   Quantity?: number;
   ScheduledDate: string;
   TaskType: "installation" | "removal";
-  Status: "pending" | "in_progress" | "completed";
+  Status: "pending" | "in_progress" | "completed" | "suspended";
   CompletedAt?: string;
   Comment?: string;
   GeoJson: string;

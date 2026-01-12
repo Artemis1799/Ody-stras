@@ -10,6 +10,8 @@ import {
     Modal,
     ActivityIndicator,
     PanResponder,
+    Alert,
+    Vibration,
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
@@ -45,6 +47,7 @@ export default function PlanningNavigationScreen() {
     const [distance, setDistance] = useState<number | null>(null);
     const [showArrivalModal, setShowArrivalModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showProblemModal, setShowProblemModal] = useState(false);
     const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
     const [routeDistance, setRouteDistance] = useState<number | null>(null);
     const [routeDuration, setRouteDuration] = useState<number | null>(null);
@@ -57,7 +60,7 @@ export default function PlanningNavigationScreen() {
 
     // Slider iOS
     const SLIDER_WIDTH = Dimensions.get("window").width - 100;
-    const THUMB_SIZE = 60;
+    const THUMB_SIZE = 72;
     const SLIDE_THRESHOLD = SLIDER_WIDTH - THUMB_SIZE - 10;
     const sliderAnim = useRef(new Animated.Value(0)).current;
     const handleSwipeConfirmRef = useRef<() => void>(() => { });
@@ -74,6 +77,7 @@ export default function PlanningNavigationScreen() {
                 console.log(`📊 Slider release: dx=${gestureState.dx}, threshold=${SLIDE_THRESHOLD}`);
                 if (gestureState.dx >= SLIDE_THRESHOLD * 0.9) { // 90% du chemin suffit
                     console.log("✅ Slider validé !");
+                    Vibration.vibrate(50); // Feedback haptique
                     // Validation réussie
                     Animated.timing(sliderAnim, {
                         toValue: SLIDE_THRESHOLD,
@@ -397,6 +401,42 @@ export default function PlanningNavigationScreen() {
         setShowConfirmModal(true);
     };
 
+    const handleReportProblem = async (reason: string) => {
+        if (!currentTask) return;
+        try {
+            console.log(`⚠️ Problème signalé: ${reason}`);
+            // Utilisez 'completed' pour satisfaire la contrainte DB, mais ajoutez un tag dans le commentaire
+            await update(db, "PlanningTask", {
+                Status: "completed",
+                CompletedAt: new Date().toISOString(),
+                Comment: `[SUSPENDED] ${reason}`
+            }, "UUID = ?", [currentTask.UUID]);
+
+            setShowProblemModal(false);
+
+            // Passer à la suivante
+            if (currentTaskIndex < tasks.length - 1) {
+                setCurrentTaskIndex(currentTaskIndex + 1);
+                setShowArrivalModal(false);
+                setRouteLoaded(false);
+                setRouteCoordinates([]);
+                // Recentrer
+                const nextTask = tasks[currentTaskIndex + 1];
+                const center = getTaskCenter(nextTask);
+                if (center && mapRef.current) {
+                    mapRef.current.animateToRegion({
+                        ...center, latitudeDelta: 0.005, longitudeDelta: 0.005
+                    }, 1000);
+                }
+            } else {
+                navigation.goBack();
+            }
+        } catch (error) {
+            console.error("Erreur signalement problème:", error);
+            Alert.alert("Erreur", "Impossible de signaler le problème.");
+        }
+    };
+
     // Mettre à jour la ref pour le PanResponder
     handleSwipeConfirmRef.current = handleSwipeConfirm;
 
@@ -481,8 +521,26 @@ export default function PlanningNavigationScreen() {
                 )}
             </MapView>
 
+            {/* Bouton Signaler Problème */}
+            <TouchableOpacity
+                style={localStyles.problemButton}
+                onPress={() => setShowProblemModal(true)}
+            >
+                <Ionicons name="warning" size={32} color="#fff" />
+                <Text style={localStyles.problemButtonText}>Incapable / Problème</Text>
+            </TouchableOpacity>
+
             {/* Panneau de navigation */}
-            <View style={localStyles.navigationPanel}>
+            <View style={[
+                localStyles.navigationPanel,
+                {
+                    backgroundColor: currentTask?.TaskType === "installation"
+                        ? "#43A047" // Vert Pose
+                        : currentTask?.TaskType === "removal"
+                            ? "#E53935" // Rouge Dépose
+                            : "#fff" // Blanc Défaut
+                }
+            ]}>
                 <View style={localStyles.arrowContainer}>
                     <View style={[
                         localStyles.arrow,
@@ -493,23 +551,43 @@ export default function PlanningNavigationScreen() {
                 </View>
 
                 <View style={localStyles.infoContainer}>
-                    <Text style={localStyles.distanceText}>
+                    <Text style={[
+                        localStyles.distanceText,
+                        { color: currentTask?.TaskType ? "#fff" : "#0E47A1" }
+                    ]}>
                         {routeDistance !== null ? formatDistance(routeDistance) : (distance !== null ? formatDistance(distance) : "...")}
                     </Text>
-                    <Text style={localStyles.timeText}>
+                    <Text style={[
+                        localStyles.timeText,
+                        { color: currentTask?.TaskType ? "rgba(255,255,255,0.9)" : "#333" }
+                    ]}>
                         {getEstimatedTime()}
                     </Text>
                 </View>
 
                 <View style={localStyles.taskInfo}>
-                    <Text style={localStyles.taskTitle}>
+                    <Text style={[
+                        localStyles.taskTitle,
+                        { color: currentTask?.TaskType ? "#fff" : "#333" }
+                    ]}>
                         {currentTask?.TaskType === "installation" ? "🔧 Pose" : "📦 Dépose"}
                     </Text>
-                    <Text style={localStyles.taskEquipment}>{currentTask?.EquipmentType}</Text>
-                    <Text style={localStyles.taskQuantity}>Quantité: {currentTask?.Quantity}</Text>
+                    <Text style={[
+                        localStyles.taskEquipment,
+                        { color: currentTask?.TaskType ? "rgba(255,255,255,0.9)" : "#555" }
+                    ]} numberOfLines={2} ellipsizeMode="tail">
+                        {currentTask?.EquipmentType}
+                    </Text>
+                    <Text style={[
+                        localStyles.taskQuantity,
+                        { color: currentTask?.TaskType ? "#fff" : "#333" }
+                    ]}>Quantité: {currentTask?.Quantity}</Text>
                 </View>
 
-                <Text style={localStyles.progressText}>
+                <Text style={[
+                    localStyles.progressText,
+                    { color: currentTask?.TaskType ? "rgba(255,255,255,0.8)" : "#999" }
+                ]}>
                     {currentTaskIndex + 1} / {tasks.length}
                 </Text>
             </View>
@@ -563,23 +641,99 @@ export default function PlanningNavigationScreen() {
                             <Text style={localStyles.confirmComment}>{currentTask.Comment}</Text>
                         )}
 
-                        {/* Slider iOS style "Slide to Unlock" */}
-                        <View style={[localStyles.sliderTrack, { width: SLIDER_WIDTH }]}>
-                            <Text style={localStyles.sliderText}>Glisser pour confirmer →</Text>
+                        {/* Slider iOS style amélioré */}
+                        <Animated.View style={[
+                            localStyles.sliderTrack,
+                            {
+                                width: SLIDER_WIDTH,
+                                backgroundColor: sliderAnim.interpolate({
+                                    inputRange: [0, SLIDE_THRESHOLD],
+                                    outputRange: ["#f0f0f0", "#4CAF50"],
+                                    extrapolate: "clamp"
+                                })
+                            }
+                        ]}>
+                            <Animated.Text style={[
+                                localStyles.sliderText,
+                                {
+                                    opacity: sliderAnim.interpolate({
+                                        inputRange: [0, SLIDE_THRESHOLD / 2],
+                                        outputRange: [1, 0],
+                                        extrapolate: "clamp"
+                                    }),
+                                    transform: [{
+                                        translateX: sliderAnim.interpolate({
+                                            inputRange: [0, SLIDE_THRESHOLD],
+                                            outputRange: [0, 20],
+                                            extrapolate: "clamp"
+                                        })
+                                    }]
+                                }
+                            ]}>
+                                Glisser pour valider {" >>>"}
+                            </Animated.Text>
+
                             <Animated.View
                                 style={[
                                     localStyles.sliderThumb,
-                                    { transform: [{ translateX: sliderAnim }] }
+                                    {
+                                        transform: [
+                                            { translateX: sliderAnim },
+                                            {
+                                                scale: sliderAnim.interpolate({ // Petit effet de scale quand on glisse
+                                                    inputRange: [0, SLIDE_THRESHOLD],
+                                                    outputRange: [1, 1.1],
+                                                    extrapolate: "clamp"
+                                                })
+                                            }
+                                        ]
+                                    }
                                 ]}
                                 {...panResponder.panHandlers}
                             >
-                                <Ionicons name="checkmark" size={28} color="#43A047" />
+                                <Ionicons name="arrow-forward" size={28} color="#43A047" />
                             </Animated.View>
-                        </View>
+                        </Animated.View>
 
                         <TouchableOpacity
                             style={localStyles.cancelButton}
                             onPress={() => setShowConfirmModal(false)}
+                        >
+                            <Text style={localStyles.cancelButtonText}>Annuler</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Modal de Signalement de Problème */}
+            <Modal
+                visible={showProblemModal}
+                transparent
+                animationType="fade"
+            >
+                <View style={localStyles.modalOverlay}>
+                    <View style={localStyles.problemModalContent}>
+                        <Text style={localStyles.problemTitle}>⚠️ Signaler un problème</Text>
+                        <Text style={localStyles.problemSubtitle}>Pourquoi ne pouvez-vous pas effectuer la tâche ?</Text>
+
+                        <TouchableOpacity style={localStyles.problemOption} onPress={() => handleReportProblem("Accès refusé")}>
+                            <Ionicons name="hand-left" size={24} color="#E53935" />
+                            <Text style={localStyles.problemOptionText}>Accès refusé / Impossible d'accéder</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={localStyles.problemOption} onPress={() => handleReportProblem("Matériel HS/Manquant")}>
+                            <Ionicons name="construct" size={24} color="#F57C00" />
+                            <Text style={localStyles.problemOptionText}>Matériel HS ou Manquant</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={localStyles.problemOption} onPress={() => handleReportProblem("Autre")}>
+                            <Ionicons name="help-circle" size={24} color="#1976D2" />
+                            <Text style={localStyles.problemOptionText}>Autre raison</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={localStyles.cancelButton}
+                            onPress={() => setShowProblemModal(false)}
                         >
                             <Text style={localStyles.cancelButtonText}>Annuler</Text>
                         </TouchableOpacity>
@@ -635,29 +789,33 @@ const localStyles = StyleSheet.create({
         marginRight: 12,
     },
     distanceText: {
-        fontSize: 28,
+        fontSize: 36, // Réduit un peu (était 48)
         fontWeight: "bold",
         color: "#0E47A1",
     },
     timeText: {
-        fontSize: 14,
+        fontSize: 24, // Augmenté
         color: "#666",
+        fontWeight: "600",
     },
     taskInfo: {
         flex: 1,
     },
     taskTitle: {
-        fontSize: 16,
-        fontWeight: "600",
+        fontSize: 24, // Augmenté
+        fontWeight: "bold",
         color: "#333",
     },
     taskEquipment: {
-        fontSize: 14,
+        fontSize: 20, // Augmenté
         color: "#666",
+        marginTop: 4,
     },
     taskQuantity: {
-        fontSize: 12,
+        fontSize: 22, // Augmenté
         color: "#999",
+        fontWeight: "bold",
+        marginTop: 4,
     },
     progressText: {
         fontSize: 16,
@@ -838,9 +996,9 @@ const localStyles = StyleSheet.create({
     },
     // Styles pour le slider iOS
     sliderTrack: {
-        height: 60,
+        height: 80,
         backgroundColor: "#43A047",
-        borderRadius: 30,
+        borderRadius: 40,
         marginTop: 24,
         justifyContent: "center",
         alignItems: "center",
@@ -849,10 +1007,10 @@ const localStyles = StyleSheet.create({
     sliderThumb: {
         position: "absolute",
         left: 4,
-        width: 52,
-        height: 52,
+        width: 72,
+        height: 72,
         backgroundColor: "#fff",
-        borderRadius: 26,
+        borderRadius: 36,
         justifyContent: "center",
         alignItems: "center",
         shadowColor: "#000",
@@ -862,9 +1020,66 @@ const localStyles = StyleSheet.create({
         elevation: 5,
     },
     sliderText: {
-        color: "rgba(255, 255, 255, 0.9)",
-        fontSize: 16,
+        color: "#444",
+        fontSize: 20,
         fontWeight: "600",
-        marginLeft: 40,
+        marginLeft: 85,
+    },
+    problemButton: {
+        position: "absolute",
+        top: 140, // Descendu pour éviter le header
+        right: 20,
+        backgroundColor: "#E53935", // Rouge pour attirer l'attention
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 30,
+        elevation: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        zIndex: 100,
+    },
+    problemButtonText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 18,
+        marginLeft: 8,
+    },
+    problemModalContent: {
+        backgroundColor: "#fff",
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 32,
+        width: "100%",
+    },
+    problemTitle: {
+        fontSize: 26,
+        fontWeight: "bold",
+        color: "#E53935",
+        marginBottom: 8,
+        textAlign: "center",
+    },
+    problemSubtitle: {
+        fontSize: 18,
+        color: "#555",
+        marginBottom: 24,
+        textAlign: "center",
+    },
+    problemOption: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 16,
+        backgroundColor: "#f5f5f5",
+        borderRadius: 12,
+        marginBottom: 12,
+    },
+    problemOptionText: {
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#333",
+        marginLeft: 16,
     },
 });

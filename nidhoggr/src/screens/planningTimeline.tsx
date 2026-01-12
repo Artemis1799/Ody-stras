@@ -6,6 +6,7 @@ import {
     FlatList,
     TouchableOpacity,
     StyleSheet,
+    Modal,
 } from "react-native";
 import MapView, { Polyline } from "react-native-maps";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
@@ -32,6 +33,7 @@ export default function PlanningTimelineScreen() {
     const [tasks, setTasks] = useState<PlanningTask[]>([]);
     const [team, setTeam] = useState<PlanningTeam | null>(null);
     const [loading, setLoading] = useState(true);
+    const [selectedProblem, setSelectedProblem] = useState<{ title: string; reason: string } | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -65,17 +67,26 @@ export default function PlanningTimelineScreen() {
         }
     };
 
+    const getTaskStatus = (task: PlanningTask) => {
+        if (task.Status === "completed" && task.Comment?.startsWith("[SUSPENDED]")) return "suspended";
+        return task.Status;
+    };
+
     const getTaskIcon = (task: PlanningTask) => {
+        const status = getTaskStatus(task);
+        if (status === "suspended") return "warning";
         if (task.TaskType === "installation") {
-            return task.Status === "completed" ? "checkmark-circle" : "construct";
+            return status === "completed" ? "checkmark-circle" : "construct";
         } else {
-            return task.Status === "completed" ? "checkmark-circle" : "cube";
+            return status === "completed" ? "checkmark-circle" : "cube";
         }
     };
 
     const getTaskColor = (task: PlanningTask) => {
-        if (task.Status === "completed") return "#43A047";
-        if (task.Status === "in_progress") return "#FF9800";
+        const status = getTaskStatus(task);
+        if (status === "suspended") return "#E53935"; // Rouge Danger
+        if (status === "completed") return "#43A047";
+        if (status === "in_progress") return "#FF9800";
         return task.TaskType === "installation" ? "#0E47A1" : "#E53935";
     };
 
@@ -118,10 +129,19 @@ export default function PlanningTimelineScreen() {
                 { borderLeftColor: getTaskColor(item), borderLeftWidth: 4 }
             ]}
             onPress={() => {
-                navigation.navigate("PlanningNavigation", {
-                    eventId,
-                    taskType: item.TaskType
-                });
+                const status = getTaskStatus(item);
+                if (status === "suspended") {
+                    const reason = item.Comment ? item.Comment.replace("[SUSPENDED] ", "") : "Raison non spécifiée";
+                    setSelectedProblem({
+                        title: `${item.TaskType === "installation" ? "Pose" : "Dépose"} ${item.EquipmentType}`,
+                        reason: reason
+                    });
+                } else {
+                    navigation.navigate("PlanningNavigation", {
+                        eventId,
+                        taskType: item.TaskType
+                    });
+                }
             }}
         >
             <View style={localStyles.taskHeader}>
@@ -173,8 +193,9 @@ export default function PlanningTimelineScreen() {
                     { backgroundColor: getTaskColor(item) + "20" }
                 ]}>
                     <Text style={[localStyles.statusText, { color: getTaskColor(item) }]}>
-                        {item.Status === "completed" ? "Terminé" :
-                            item.Status === "in_progress" ? "En cours" : "À faire"}
+                        {getTaskStatus(item) === "suspended" ? "Suspendu / Problème" :
+                            item.Status === "completed" ? "Terminé" :
+                                item.Status === "in_progress" ? "En cours" : "À faire"}
                     </Text>
                 </View>
             </View>
@@ -214,6 +235,37 @@ export default function PlanningTimelineScreen() {
                     </View>
                 }
             />
+
+            {/* Modal Raison Problème */}
+            <Modal
+                visible={!!selectedProblem}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setSelectedProblem(null)}
+            >
+                <View style={localStyles.modalOverlay}>
+                    <View style={localStyles.problemModalContent}>
+                        <View style={localStyles.modalHeader}>
+                            <Ionicons name="warning" size={32} color="#E53935" />
+                            <Text style={localStyles.problemTitle}>Problème Signalé</Text>
+                        </View>
+
+                        <Text style={localStyles.taskName}>{selectedProblem?.title}</Text>
+
+                        <View style={localStyles.reasonContainer}>
+                            <Text style={localStyles.reasonLabel}>Raison :</Text>
+                            <Text style={localStyles.reasonText}>{selectedProblem?.reason}</Text>
+                        </View>
+
+                        <TouchableOpacity
+                            style={localStyles.closeButton}
+                            onPress={() => setSelectedProblem(null)}
+                        >
+                            <Text style={localStyles.closeButtonText}>Fermer</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -345,5 +397,76 @@ const localStyles = StyleSheet.create({
     miniMap: {
         height: 100,
         width: "100%",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    problemModalContent: {
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 24,
+        width: "100%",
+        maxWidth: 340,
+        alignItems: "center",
+        elevation: 5,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+    },
+    modalHeader: {
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    problemTitle: {
+        fontSize: 22,
+        fontWeight: "bold",
+        color: "#E53935",
+        marginTop: 8,
+    },
+    taskName: {
+        fontSize: 16,
+        color: "#666",
+        marginBottom: 24,
+        textAlign: "center",
+        borderBottomWidth: 1,
+        borderBottomColor: "#eee",
+        paddingBottom: 8,
+        width: "100%",
+    },
+    reasonContainer: {
+        backgroundColor: "#ffebee",
+        padding: 16,
+        borderRadius: 12,
+        width: "100%",
+        marginBottom: 24,
+    },
+    reasonLabel: {
+        fontSize: 14,
+        color: "#E53935",
+        fontWeight: "bold",
+        marginBottom: 4,
+    },
+    reasonText: {
+        fontSize: 18,
+        color: "#333",
+        fontWeight: "500",
+    },
+    closeButton: {
+        backgroundColor: "#E53935",
+        paddingVertical: 12,
+        paddingHorizontal: 32,
+        borderRadius: 24,
+        width: "100%",
+        alignItems: "center",
+    },
+    closeButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
     },
 });
