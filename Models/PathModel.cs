@@ -17,6 +17,8 @@ public class RoutePath
     [MaxLength(255)]
     public string Name { get; set; } = string.Empty;
     
+    public string? Description { get; set; }
+    
     [Required]
     [MaxLength(20)]
     public string ColorHex { get; set; } = "#000000";
