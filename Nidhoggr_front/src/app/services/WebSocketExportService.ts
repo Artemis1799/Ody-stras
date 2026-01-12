@@ -237,6 +237,8 @@ export class WebSocketExportService {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async processPoint(pointData: any): Promise<void> {
+    console.log('RAW pointData received:', JSON.stringify(pointData, null, 2));
+    
     // Le mobile peut envoyer en PascalCase ou camelCase
     const uuid = pointData.UUID || pointData.uuid;
     
@@ -245,7 +247,7 @@ export class WebSocketExportService {
     }
     
     // Récupérer l'eventId : priorité au mobile, sinon currentEventUuid, sinon default
-    const mobileEventId = pointData.Event_ID || pointData.eventId;
+    const mobileEventId = pointData.EventID || pointData.Event_ID || pointData.eventId;
     const eventIdToUse = mobileEventId || this.currentEventUuid || DEFAULT_EVENT_UUID;
     
     // S'assurer que l'événement existe
@@ -254,7 +256,10 @@ export class WebSocketExportService {
     }
     
     // Récupérer l'équipement ID du format mobile
-    const mobileEquipmentId = pointData.Equipement_ID || pointData.equipmentId;
+    const mobileEquipmentId = pointData.EquipmentID || pointData.Equipement_ID || pointData.equipmentId;
+    // Vérifier si c'est un GUID "null" ou vide
+    const isNullEquipmentId = !mobileEquipmentId || 
+      mobileEquipmentId === '00000000-0000-0000-0000-000000000000';
 
     // Convertir du format mobile vers TypeScript (camelCase)
     const point: Point = {
@@ -263,14 +268,15 @@ export class WebSocketExportService {
       name: pointData.Name ?? pointData.name ?? '',
       latitude: pointData.Latitude ?? pointData.latitude,
       longitude: pointData.Longitude ?? pointData.longitude,
-      comment: pointData.Commentaire ?? pointData.Comment ?? pointData.comment ?? '',
+      comment: pointData.Comment ?? pointData.Commentaire ?? pointData.comment ?? '',
       order: pointData.Ordre ?? pointData.Order ?? pointData.order ?? 0,
-      validated: pointData.Valide !== undefined ? Boolean(pointData.Valide) : (pointData.Validated ?? pointData.validated ?? true),
-      equipmentId: mobileEquipmentId ?? ''
+      validated: pointData.Validated !== undefined ? Boolean(pointData.Validated) : (pointData.Valide !== undefined ? Boolean(pointData.Valide) : true),
+      isPointOfInterest: pointData.IsPointOfInterest ?? pointData.isPointOfInterest ?? false,
+      equipmentId: isNullEquipmentId ? null : mobileEquipmentId
     };
     
-    // Si un équipement est spécifié, vérifier s'il existe ou le créer
-    if (mobileEquipmentId) {
+    // Si un équipement valide est spécifié, vérifier s'il existe ou le créer
+    if (!isNullEquipmentId && mobileEquipmentId) {
       // Vérifier si l'équipement existe
       const equipmentExists = this.existingEquipments.has(mobileEquipmentId);
       
@@ -315,11 +321,15 @@ export class WebSocketExportService {
       error: (err) => {
         if (err.status === 404) {
           // Le point n'existe pas -> CREATE (garder l'UUID du mobile)
+          console.log('Creating point with data:', JSON.stringify(point, null, 2));
           this.pointService.create(point).subscribe({
             next: (created) => {
               this.existingPoints.set(created.uuid, created);
+              console.log('Point created successfully:', created.uuid);
             },
-            error: () => {
+            error: (createErr) => {
+              console.error('Error creating point:', createErr);
+              console.error('Point data sent:', point);
             }
           });
         }
