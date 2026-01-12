@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal, OnDestroy } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Team } from '../../models/teamModel';
@@ -21,13 +21,16 @@ export interface TeamFormData {
   templateUrl: './team-popup.html',
   styleUrl: './team-popup.scss'
 })
-export class TeamPopupComponent implements OnDestroy {
+export class TeamPopupComponent implements OnDestroy, OnChanges {
   @Input() isEditing = false;
   @Input() team: Partial<Team> = {};
   @Input() allEmployees: Employee[] = [];
   @Input() selectedEmployees: Employee[] = [];
   @Input() events: Event[] = [];
   @Input() securityZones: SecurityZone[] = [];
+  
+  // Selected events for export (multi-select)
+  selectedEventIds: string[] = [];
   
   // QR Code popup properties
   showQRCodePopup = false;
@@ -50,6 +53,10 @@ export class TeamPopupComponent implements OnDestroy {
   @Output() selectedEmployeesChange = new EventEmitter<Employee[]>();
   @Output() save = new EventEmitter<TeamFormData>();
   @Output() close = new EventEmitter<void>();
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Pas besoin d'initialiser selectedEventIds ici, c'est fait dans la popup d'export
+  }
   
   getFilteredEmployees(): Employee[] {
     const lastNameFilter = this.searchLastName().toLowerCase().trim();
@@ -340,13 +347,26 @@ export class TeamPopupComponent implements OnDestroy {
   }
 
   /**
-   * Exporte le planning via WebSocket avec QR Code
+   * Ouvre la popup d'export planning pour sélectionner les événements
    */
   async exportPlanningQRCode(): Promise<void> {
     if (!this.team.uuid) return;
 
-    this.isExporting = true;
+    // Réinitialiser la sélection d'événements
+    this.selectedEventIds = [];
+    this.qrCodeDataURL = '';
+    this.exportStatus = '';
+    this.isExporting = false;
     this.showQRCodePopup = true;
+  }
+
+  /**
+   * Confirme la sélection des événements et génère le QR Code
+   */
+  async confirmAndGenerateQRCode(): Promise<void> {
+    if (!this.team.uuid || this.selectedEventIds.length === 0) return;
+
+    this.isExporting = true;
     this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
 
     try {
@@ -437,14 +457,28 @@ export class TeamPopupComponent implements OnDestroy {
     }
 
     const teamId = this.team.uuid!;
-    const installationZones = this.securityZones.filter(z => z.installationTeamId === teamId);
-    const removalZones = this.securityZones.filter(z => z.removalTeamId === teamId);
+    
+    // Filtrer les zones de sécurité par équipe ET par événements sélectionnés
+    const selectedEvents = this.selectedEventIds.length > 0 ? this.selectedEventIds : [];
+    
+    const installationZones = this.securityZones.filter(z => 
+      z.installationTeamId === teamId && 
+      (selectedEvents.length === 0 || selectedEvents.includes(z.eventId))
+    );
+    const removalZones = this.securityZones.filter(z => 
+      z.removalTeamId === teamId && 
+      (selectedEvents.length === 0 || selectedEvents.includes(z.eventId))
+    );
 
     // Tri par date
     installationZones.sort((a, b) => new Date(a.installationDate).getTime() - new Date(b.installationDate).getTime());
     removalZones.sort((a, b) => new Date(a.removalDate).getTime() - new Date(b.removalDate).getTime());
 
-    const eventName = this.events.find(e => e.uuid === this.team.eventId)?.title || '';
+    const selectedEventNames = this.events
+      .filter(e => selectedEvents.includes(e.uuid))
+      .map(e => e.title)
+      .join(', ');
+    const eventName = selectedEventNames || this.events.find(e => e.uuid === this.team.eventId)?.title || '';
 
     // Construire l'objet JSON du planning
     const planningData = {
@@ -506,5 +540,38 @@ export class TeamPopupComponent implements OnDestroy {
     this.exportStatus = '';
     this.isExporting = false;
     this.disconnectWebSocket();
+  }
+
+  /**
+   * Vérifie si un événement est sélectionné pour l'export
+   */
+  isEventSelected(eventId: string): boolean {
+    return this.selectedEventIds.includes(eventId);
+  }
+
+  /**
+   * Bascule la sélection d'un événement
+   */
+  toggleEventSelection(eventId: string): void {
+    const index = this.selectedEventIds.indexOf(eventId);
+    if (index > -1) {
+      this.selectedEventIds = this.selectedEventIds.filter(id => id !== eventId);
+    } else {
+      this.selectedEventIds = [...this.selectedEventIds, eventId];
+    }
+  }
+
+  /**
+   * Sélectionne tous les événements
+   */
+  selectAllEvents(): void {
+    this.selectedEventIds = this.events.map(e => e.uuid);
+  }
+
+  /**
+   * Désélectionne tous les événements
+   */
+  clearEventSelection(): void {
+    this.selectedEventIds = [];
   }
 }
