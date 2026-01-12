@@ -249,7 +249,7 @@ export default function ExportEventScreen() {
           longitude: point.Longitude,
           comment: point.Comment || "",
           validated: (point.Validated || 0) === 1,
-          equipmentId: point.EquipmentID || null,
+          equipmentId: point.EquipmentID === NO_EQUIPMENT_ID ? null : (point.EquipmentID || null),
           equipmentQuantity: point.EquipmentQuantity || 0,
           ordre: point.Ordre || 0,
           photos: photos.map(photo => ({
@@ -331,7 +331,7 @@ export default function ExportEventScreen() {
               Longitude: point.longitude,
               Comment: point.comment,
               Validated: point.validated ? 1 : 0,
-              EquipmentID: point.equipmentId === NO_EQUIPMENT_ID ? null : point.equipmentId,
+              EquipmentID: point.equipmentId,
               EquipmentQuantity: point.equipmentQuantity,
               Ordre: point.ordre,
               photos: point.photos.map(photo => ({
