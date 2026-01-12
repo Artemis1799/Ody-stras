@@ -48,11 +48,28 @@ export class EventCreationGuide implements OnInit, OnDestroy {
     return this.mode?.event?.title ?? '';
   }
 
+  get isZoneModificationMode(): boolean {
+    return this.mode?.zoneModificationMode ?? false;
+  }
+
+  get isPathModificationMode(): boolean {
+    return this.mode?.pathModificationMode ?? false;
+  }
+
+  get isModificationMode(): boolean {
+    return this.isZoneModificationMode || this.isPathModificationMode;
+  }
+
   toggleMinimize(): void {
     this.isMinimized = !this.isMinimized;
   }
 
   onCancel(): void {
     this.mapService.cancelEventCreation();
+  }
+
+  onValidateModification(): void {
+    // Valider les modifications et revenir à l'étape de confirmation
+    this.mapService.validateModification();
   }
 }
