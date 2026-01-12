@@ -37,6 +37,9 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
   selectedZone: SecurityZone | null = null;
   equipment: Equipment | null = null;
 
+  // Date par défaut pour les datepickers : 01/01/2026 à 00:00
+  defaultDate = new Date(2026, 0, 1, 0, 0, 0);
+
   // Édition des dates et commentaire
   installationDate: Date | null = null;
   removalDate: Date | null = null;
@@ -113,9 +116,9 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     
     this.selectedZone = zone;
     
-    // Charger les dates et le commentaire
-    this.installationDate = zone.installationDate ? new Date(zone.installationDate) : null;
-    this.removalDate = zone.removalDate ? new Date(zone.removalDate) : null;
+    // Charger les dates et le commentaire (avec date par défaut si null)
+    this.installationDate = zone.installationDate ? new Date(zone.installationDate) : new Date(this.defaultDate);
+    this.removalDate = zone.removalDate ? new Date(zone.removalDate) : new Date(this.defaultDate);
     this.editedComment = zone.comment || '';
 
     // Charger l'équipe de pose actuelle si présente

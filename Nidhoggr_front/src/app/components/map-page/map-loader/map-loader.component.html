@@ -23,3 +23,11 @@
   (eventConfirmed)="onEventConfirmed($event)"
   (cancelled)="onEventCreationCancelled()"
 ></app-event-confirm-popup>
+
+@if (showGeometryEditDrawer && geometryEditData) {
+  <app-geometry-edit-drawer
+    [geometry]="geometryEditData"
+    (close)="closeGeometryEditDrawer()"
+    (geometryUpdated)="onGeometryUpdated($event)"
+  ></app-geometry-edit-drawer>
+}

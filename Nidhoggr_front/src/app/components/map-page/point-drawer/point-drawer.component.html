@@ -23,19 +23,6 @@
 
   <ng-container *ngIf="selectedPoint" class="drawer-content">
     <div class="unified-section">
-      <!-- Informations de position -->
-      <div class="info-row">
-        <div class="info-item">
-          <span class="info-label">Position</span>
-          <span class="info-value" *ngIf="selectedPoint.latitude && selectedPoint.longitude">
-            {{ selectedPoint.latitude.toFixed(6) }}, {{ selectedPoint.longitude.toFixed(6) }}
-          </span>
-          <span class="info-value empty" *ngIf="!selectedPoint.latitude || !selectedPoint.longitude">
-            Non définie
-          </span>
-        </div>
-      </div>
-
       <!-- Instructions pour l'étape 1 -->
       <div class="step-instructions">
         <p>Sélectionnez le type d'équipement pour ce point, puis placez-le sur la carte.</p>
@@ -56,7 +43,7 @@
 
       <!-- Équipement -->
       <div class="form-row equipment-selector">
-        <label for="equipment">Équipement <span class="required">*</span></label>
+        <label for="equipment">Équipement (optionnel)<span class="required"></span></label>
         <p-autoComplete
           inputId="equipment"
           [(ngModel)]="selectedEquipmentName"
@@ -102,7 +89,7 @@
           (click)="proceedToDrawing()"
         >
           <span class="pi pi-map-marker"></span>
-          Placer sur la carte
+          Placer l'équipement sur la carte
         </button>
       </div>
     </div>

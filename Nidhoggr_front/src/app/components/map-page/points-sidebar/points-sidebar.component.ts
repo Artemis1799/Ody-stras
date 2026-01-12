@@ -61,11 +61,6 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Onglet actif: 'points' ou 'zones'
   activeTab: 'points' | 'zones' = 'points';
 
-  // Timeline properties
-  timelineItems: Array<{ id: string; title: string; start?: Date; end?: Date }> = [];
-  showTimeline$!: Observable<boolean>;
-  timelinePoints: Point[] = [];
-
   // Search properties
   searchQuery = '';
   searchResults: NominatimResult[] = [];
@@ -117,8 +112,6 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.points$ = this.mapService.points$;
     this.securityZones$ = this.mapService.securityZones$;
     this.events$ = this.mapService.events$;
-    // Initialiser showTimeline$
-    this.showTimeline$ = this.mapService.timelineVisible$;
   }
 
   ngOnInit(): void {
@@ -388,11 +381,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   onPointClick(point: Point): void {
     this.selectedPointUuid = point.uuid;
 
-    // Trouver l'index du point dans la liste filtrée
-    const pointIndex = this.filteredPoints.findIndex((p) => p.uuid === point.uuid);
-
-    // Sélectionner le point (ouvrira le drawer)
-    this.mapService.selectPoint(point, pointIndex + 1);
+    // Sélectionner le point avec son ordre réel (ouvrira le drawer)
+    this.mapService.selectPoint(point, point.order);
 
     // Attendre que le drawer s'ouvre puis recentrer avec offset
     setTimeout(() => {
@@ -568,50 +558,23 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       console.warn("Aucun événement sélectionné — impossible d'afficher la frise.");
       return;
     }
-    this.pointService.getByEventId(selectedEvent.uuid).subscribe({
-      next: (points) => {
-        if (!points || points.length === 0) {
-          console.warn('Aucun point à afficher dans la frise.');
-          return;
-        }
-        
-        // TODO: Le modèle Point a été refactoré - installedAt/removedAt n'existent plus
-        // La timeline nécessite une adaptation pour utiliser le nouveau modèle de données
-        console.warn('Timeline temporairement désactivée - modèle Point refactoré');
-        
-        // Pour l'instant, afficher tous les points sans dates dans la timeline
-        this.timelineItems = points.map((p, index) => ({
-          id: p.uuid,
-          title: p.name || `Point ${index + 1}`,
-          start: new Date(), // Placeholder - à remplacer par les vraies dates
-          end: new Date(Date.now() + 3600000), // Placeholder +1h
-        }));
-
-        this.timelinePoints = points;
-        
-        // Ouvrir la timeline via le service (ferme automatiquement le point drawer)
-        this.mapService.openTimeline();
-      },
-      error: (err) => {
-        console.error('Erreur lors du chargement des points pour la frise :', err);
-      },
-    });
-  }
-  onTimelinePointHovered(pointId: string): void {
-    const hoveredPoint = this.timelinePoints.find((p) => p.uuid === pointId);
-    if (hoveredPoint) {
-      this.mapService.focusOnPoint(hoveredPoint);
+    
+    // La timeline utilise maintenant les SecurityZones du MapService
+    // Il suffit d'ouvrir la timeline, elle récupère les données automatiquement
+    const zones = this.mapService.getSecurityZones();
+    if (zones.length === 0) {
+      console.warn('Aucune zone de sécurité à afficher dans la frise.');
+      return;
     }
-  }
-
-  onTimelinePointHoverEnd(): void {
-    // Optionnel: réinitialiser le focus de la map
-    // this.mapService.resetFocus();
+    
+    // Ouvrir la timeline via le service (ferme automatiquement le point drawer)
+    this.mapService.openTimeline();
   }
 
   closeTimeline(): void {
     this.mapService.closeTimeline();
   }
+
   // Points search and pagination methods
   onPointsSearchChange(): void {
     this.currentPage = 1;
@@ -726,6 +689,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   toggleSidebar(): void {
     this.isCollapsed = !this.isCollapsed;
+    this.mapService.setSidebarCollapsed(this.isCollapsed);
   }
 
   // ============= Security Zones Methods =============
@@ -759,6 +723,16 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   applyZonesFiltersAndPagination(): void {
     // Filtrer les zones par type
     this.filteredSecurityZones = this.filterZonesByType(this.allSecurityZones, this.selectedZoneType);
+
+    // Mettre à jour les zones visibles sur la carte
+    if (this.selectedZoneType === 'all' || !this.selectedZoneType) {
+      // Aucun filtre actif -> afficher toutes les zones
+      this.mapService.setVisibleSecurityZoneIds(null);
+    } else {
+      // Filtre actif -> n'afficher que les zones filtrées
+      const visibleIds = this.filteredSecurityZones.map(z => z.uuid);
+      this.mapService.setVisibleSecurityZoneIds(visibleIds);
+    }
 
     // Calculer la pagination
     this.zonesTotalPages = Math.max(1, Math.ceil(this.filteredSecurityZones.length / this.itemsPerPage));

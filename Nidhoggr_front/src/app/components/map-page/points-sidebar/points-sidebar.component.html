@@ -43,7 +43,7 @@
         >
           <span class="tab-icon">🛡️</span>
           Zones
-          <span class="tab-count">{{ allSecurityZones.length }}</span>
+          <span class="tab-count">{{ filteredSecurityZones.length }}</span>
         </button>
       </div>
     }
@@ -239,10 +239,4 @@
 ></app-event-edit-popup>
 }
 
-<app-timeline-drawer
-  [timelineItems]="timelineItems"
-  [isVisible]="(showTimeline$ | async) ?? false"
-  (pointHovered)="onTimelinePointHovered($event)"
-  (pointHoverEnd)="onTimelinePointHoverEnd()"
-  (closed)="closeTimeline()"
-></app-timeline-drawer>
+<app-timeline-drawer></app-timeline-drawer>

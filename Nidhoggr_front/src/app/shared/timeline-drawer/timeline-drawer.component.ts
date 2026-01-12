@@ -1,58 +1,346 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
+import { MapService, MapBounds } from '../../services/MapService';
+import { SecurityZone } from '../../models/securityZoneModel';
+import { Subscription, combineLatest } from 'rxjs';
 
-interface TimelineItem {
+interface TimelineZone {
   id: string;
   title: string;
-  start?: Date;
-  end?: Date;
+  start: Date;
+  end: Date;
+  zone: SecurityZone;
 }
 
 @Component({
   selector: 'app-timeline-drawer',
   standalone: true,
-  imports: [CommonModule, MatButtonModule],
+  imports: [CommonModule],
   templateUrl: './timeline-drawer.component.html',
   styleUrls: ['./timeline-drawer.component.scss'],
 })
-export class TimelineDrawerComponent {
-  @Input() timelineItems: TimelineItem[] = [];
-  @Input() isVisible = false;
-
-  @Output() pointHovered = new EventEmitter<string>();
-  @Output() pointHoverEnd = new EventEmitter<void>();
-  @Output() closed = new EventEmitter<void>();
-
+export class TimelineDrawerComponent implements OnInit, OnDestroy {
+  // Référence à l'axe temporel pour le drag
+  @ViewChild('timelineAxis') timelineAxis!: ElementRef<HTMLDivElement>;
+  @ViewChild('timelineWrapper') timelineWrapper!: ElementRef<HTMLDivElement>;
+  
+  // Données
+  allZones: TimelineZone[] = [];
+  filteredZones: TimelineZone[] = [];
+  
+  // Visibilité
+  isVisible = false;
+  sidebarCollapsed = false;
+  
+  // Plage de dates globale
   minDate: Date | null = null;
   maxDate: Date | null = null;
   totalDays = 0;
   graduations: Array<{ label: string; position: number }> = [];
-
-  // Drawer dynamique
+  
+  // Indicateur de date draggable
+  selectedDate: Date | null = null;
+  dateFilterActive = false;
+  geoFilterActive = true; // Filtre géospatial actif par défaut
+  isDragging = false;
+  
+  // Tooltip dynamique
   tooltipVisible = false;
   tooltipX = 0;
   tooltipY = 0;
-  tooltipItem: TimelineItem | null = null;
+  tooltipItem: TimelineZone | null = null;
+  
+  // Bounds de la carte pour le filtre géospatial
+  private currentBounds: MapBounds | null = null;
+  
+  private subscriptions: Subscription[] = [];
 
-  ngOnChanges(): void {
-    if (this.timelineItems.length > 0) {
-      this.processTimeline();
+  constructor(
+    private mapService: MapService,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
+    // Combiner les observables: visibilité, zones, bounds
+    const combined$ = combineLatest([
+      this.mapService.timelineVisible$,
+      this.mapService.securityZones$,
+      this.mapService.mapBounds$
+    ]);
+
+    this.subscriptions.push(
+      combined$.subscribe(([visible, zones, bounds]) => {
+        
+        const wasVisible = this.isVisible;
+        this.isVisible = visible;
+        this.currentBounds = bounds;
+        
+        if (visible && zones.length > 0) {
+          // Toujours reprocesser les zones pour être à jour
+          this.processSecurityZones(zones);
+          
+          // Auto-centrer sur le projet seulement à l'ouverture
+          if (!wasVisible) {
+            this.mapService.triggerCenterOnProject();
+          }
+          
+          // Toujours appliquer les filtres (y compris quand les bounds changent)
+          this.applyFilters();
+        }
+      })
+    );
+
+    // S'abonner à l'état de la sidebar
+    this.subscriptions.push(
+      this.mapService.sidebarCollapsed$.subscribe(collapsed => {
+        this.sidebarCollapsed = collapsed;
+        this.cdr.detectChanges();
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  /**
+   * Transforme les security zones en éléments de timeline
+   */
+  private processSecurityZones(zones: SecurityZone[]): void {
+    this.allZones = zones.map(zone => ({
+      id: zone.uuid,
+      title: zone.equipment?.type || 'Zone sans équipement',
+      start: new Date(zone.installationDate),
+      end: new Date(zone.removalDate),
+      zone
+    }));
+
+    // Calculer la plage de dates globale
+    if (this.allZones.length > 0) {
+      const dates: Date[] = [];
+      this.allZones.forEach(z => {
+        if (!isNaN(z.start.getTime())) dates.push(z.start);
+        if (!isNaN(z.end.getTime())) dates.push(z.end);
+      });
+
+      if (dates.length > 0) {
+        const minDateRaw = new Date(Math.min(...dates.map(d => d.getTime())));
+        const maxDateRaw = new Date(Math.max(...dates.map(d => d.getTime())));
+
+        // Ajouter une marge de 3%
+        const diffMs = maxDateRaw.getTime() - minDateRaw.getTime();
+        const marginMs = Math.ceil(diffMs * 0.03);
+
+        this.minDate = new Date(minDateRaw.getTime() - marginMs);
+        this.maxDate = new Date(maxDateRaw.getTime() + marginMs);
+        this.totalDays = Math.ceil((this.maxDate.getTime() - this.minDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Initialiser la date sélectionnée au milieu
+        this.initializeSelectedDate();
+        this.generateGraduations();
+      }
     }
   }
 
-  onPointHover(pointId: string, event: MouseEvent): void {
-    this.pointHovered.emit(pointId);
+  /**
+   * Initialise la date sélectionnée au milieu de la plage
+   */
+  private initializeSelectedDate(): void {
+    if (!this.minDate || !this.maxDate) return;
     
-    // Afficher le tooltip dynamique
-    this.tooltipItem = this.timelineItems.find(item => item.id === pointId) || null;
-    if (this.tooltipItem) {
-      this.tooltipVisible = true;
-      this.updateTooltipPosition(event);
+    const timeRange = this.maxDate.getTime() - this.minDate.getTime();
+    const middleTime = this.minDate.getTime() + (timeRange * 0.5);
+    this.selectedDate = new Date(middleTime);
+  }
+
+  /**
+   * Applique les filtres de date et géospatial
+   */
+  private applyFilters(): void {
+    let filtered = [...this.allZones];
+
+    // Filtre par date: la zone doit être active à cette date
+    if (this.dateFilterActive && this.selectedDate) {
+      filtered = filtered.filter(z => 
+        this.selectedDate! >= z.start && this.selectedDate! <= z.end
+      );
+    }
+
+    // Filtre géospatial: la zone doit être visible dans le viewport (hors timeline)
+    if (this.geoFilterActive && this.currentBounds) {
+      const beforeGeoFilter = filtered.length;
+      // Ajuster les bounds pour exclure la zone occupée par la timeline
+      const adjustedBounds = this.getAdjustedBoundsForTimeline(this.currentBounds);
+      filtered = filtered.filter(z => this.isZoneInBounds(z.zone, adjustedBounds));
+    }
+
+    this.filteredZones = filtered;
+    
+    // Forcer la détection de changement pour mettre à jour le template
+    this.cdr.detectChanges();
+    
+    // Émettre les IDs des zones filtrées pour la surbrillance sur la carte
+    this.mapService.setHighlightedSecurityZones(filtered.map(z => z.id));
+  }
+
+  /**
+   * Ajuste les bounds pour exclure la zone occupée par la timeline en bas de l'écran
+   */
+  private getAdjustedBoundsForTimeline(bounds: MapBounds): MapBounds {
+    // La timeline occupe environ 300px en bas de l'écran
+    // Calculer le ratio de la hauteur de la timeline par rapport à la hauteur du viewport
+    const timelineHeight = 300; // px approximatif de la timeline
+    const viewportHeight = window.innerHeight;
+    const timelineRatio = timelineHeight / viewportHeight;
+    
+    // Ajuster le bound sud en remontant proportionnellement
+    const latRange = bounds.north - bounds.south;
+    const adjustedSouth = bounds.south + (latRange * timelineRatio);
+    
+    return {
+      north: bounds.north,
+      south: adjustedSouth,
+      east: bounds.east,
+      west: bounds.west
+    };
+  }
+
+  /**
+   * Vérifie si une zone est dans les bounds de la carte
+   */
+  private isZoneInBounds(zone: SecurityZone, bounds: MapBounds): boolean {
+    if (!zone.geoJson) return false;
+    
+    try {
+      const geometry = JSON.parse(zone.geoJson);
+      let coordinates: number[][] = [];
+      
+      // Extraire les coordonnées selon le type de géométrie
+      const extractCoords = (geom: { type: string; coordinates: number[][] | number[][][] }): number[][] => {
+        if (geom.type === 'LineString') {
+          return geom.coordinates as number[][];
+        } else if (geom.type === 'MultiLineString') {
+          return (geom.coordinates as number[][][]).flat();
+        } else if (geom.type === 'Polygon') {
+          // Un Polygon a des rings: [[outer], [hole1], [hole2], ...]
+          return (geom.coordinates as number[][][]).flat();
+        } else if (geom.type === 'MultiPolygon') {
+          // MultiPolygon: [[[ring1], [ring2]], [[ring1], [ring2]]]
+          return (geom.coordinates as unknown as number[][][][]).flat(2);
+        }
+        return [];
+      };
+
+      if (geometry.type === 'Feature' && geometry.geometry) {
+        coordinates = extractCoords(geometry.geometry);
+      } else {
+        coordinates = extractCoords(geometry);
+      }
+      
+      // Vérifier si au moins un point est dans les bounds
+      return coordinates.some(coord => {
+        const lon = coord[0];
+        const lat = coord[1];
+        return lat >= bounds.south && lat <= bounds.north &&
+               lon >= bounds.west && lon <= bounds.east;
+      });
+    } catch {
+      return false;
     }
   }
 
-  onPointMouseMove(event: MouseEvent): void {
+  /**
+   * Active/désactive le filtre de date (désactive le filtre géospatial si activé)
+   */
+  toggleDateFilter(): void {
+    this.dateFilterActive = !this.dateFilterActive;
+    // Les filtres sont mutuellement exclusifs
+    if (this.dateFilterActive) {
+      this.geoFilterActive = false;
+    }
+    this.applyFilters();
+  }
+
+  /**
+   * Active/désactive le filtre géospatial (désactive le filtre de date si activé)
+   */
+  toggleGeoFilter(): void {
+    this.geoFilterActive = !this.geoFilterActive;
+    // Les filtres sont mutuellement exclusifs
+    if (this.geoFilterActive) {
+      this.dateFilterActive = false;
+    }
+    this.applyFilters();
+  }
+
+  /**
+   * Gestion du drag sur l'axe temporel - MouseDown
+   */
+  onAxisMouseDown(event: MouseEvent): void {
+    if (!this.dateFilterActive) return;
+    
+    // Empêcher la sélection de texte pendant le drag
+    event.preventDefault();
+    
+    this.isDragging = true;
+    this.updateDateFromMousePosition(event);
+  }
+
+  /**
+   * Gestion du drag sur l'axe temporel - MouseMove
+   */
+  onAxisMouseMove(event: MouseEvent): void {
+    if (!this.isDragging || !this.dateFilterActive) return;
+    this.updateDateFromMousePosition(event);
+  }
+
+  /**
+   * Gestion du drag sur l'axe temporel - MouseUp
+   */
+  onAxisMouseUp(): void {
+    this.isDragging = false;
+  }
+
+  /**
+   * Met à jour la date sélectionnée à partir de la position de la souris
+   */
+  private updateDateFromMousePosition(event: MouseEvent): void {
+    if (!this.minDate || !this.maxDate) return;
+    
+    // Utiliser l'axe pour calculer la position (il est déjà aligné avec les barres)
+    const refElement = this.timelineAxis?.nativeElement;
+    if (!refElement) return;
+    
+    const rect = refElement.getBoundingClientRect();
+    
+    // Calculer la position relative (0-1)
+    let relativeX = (event.clientX - rect.left) / rect.width;
+    relativeX = Math.max(0, Math.min(1, relativeX)); // Clamp entre 0 et 1
+    
+    // Convertir en date
+    const timeRange = this.maxDate.getTime() - this.minDate.getTime();
+    const selectedTime = this.minDate.getTime() + (timeRange * relativeX);
+    this.selectedDate = new Date(selectedTime);
+    
+    this.applyFilters();
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Hover sur une zone
+   */
+  onZoneHover(zone: TimelineZone, event: MouseEvent): void {
+    this.tooltipItem = zone;
+    this.tooltipVisible = true;
+    this.updateTooltipPosition(event);
+    
+    // Focus sur la zone dans la carte (désactivé si filtre géospatial actif pour éviter de modifier les bounds)
+    if (!this.geoFilterActive) {
+      this.mapService.focusOnSecurityZone(zone.zone);
+    }
+  }
+
+  onZoneMouseMove(event: MouseEvent): void {
     if (this.tooltipVisible) {
       this.updateTooltipPosition(event);
     }
@@ -64,58 +352,58 @@ export class TimelineDrawerComponent {
     this.tooltipY = event.clientY - 10;
   }
 
-  onPointHoverEnd(): void {
-    this.pointHoverEnd.emit();
+  onZoneHoverEnd(): void {
     this.tooltipVisible = false;
     this.tooltipItem = null;
   }
 
   close(): void {
-    this.closed.emit();
+    // Nettoyer la surbrillance des zones
+    this.mapService.clearHighlightedSecurityZones();
+    this.mapService.closeTimeline();
   }
 
-  private processTimeline(): void {
-    if (!this.timelineItems || this.timelineItems.length === 0) {
-      return;
+  // ============= Méthodes d'affichage =============
+
+  getDatePosition(date: Date): number {
+    if (!this.minDate || !this.maxDate || this.totalDays === 0) {
+      return 0;
     }
+    const diff = date.getTime() - this.minDate.getTime();
+    const position = (diff / (this.maxDate.getTime() - this.minDate.getTime())) * 100;
+    return Math.max(0, Math.min(100, position));
+  }
 
-    // Convertir les dates string en objets Date si nécessaire
-    this.timelineItems = this.timelineItems.map(item => ({
-      ...item,
-      start: item.start ? new Date(item.start) : undefined,
-      end: item.end ? new Date(item.end) : undefined,
-    }));
+  getDuration(start: Date, end: Date): number {
+    if (!this.minDate || !this.maxDate || this.totalDays === 0) {
+      return 0;
+    }
+    const startPos = this.getDatePosition(start);
+    const endPos = this.getDatePosition(end);
+    const duration = endPos - startPos;
+    return Math.max(Math.min(duration, 100 - startPos), 2);
+  }
 
-    // Calculer la plage de dates
-    const dates: Date[] = [];
-    this.timelineItems.forEach((item) => {
-      if (item.start && !isNaN(item.start.getTime())) dates.push(item.start);
-      if (item.end && !isNaN(item.end.getTime())) dates.push(item.end);
+  formatDate(date: Date | null): string {
+    if (!date) return 'N/A';
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
-
-    if (dates.length > 0) {
-      const minDateRaw = new Date(Math.min(...dates.map((d) => d.getTime())));
-      const maxDateRaw = new Date(Math.max(...dates.map((d) => d.getTime())));
-
-      // Ajouter une marge de 2% avant et après
-      const diffMs = maxDateRaw.getTime() - minDateRaw.getTime();
-      const marginMs = Math.ceil(diffMs * 0.02);
-
-      this.minDate = new Date(minDateRaw.getTime() - marginMs);
-      this.maxDate = new Date(maxDateRaw.getTime() + marginMs);
-
-      // Calculer le nombre de jours
-      const diffMsAdjusted = this.maxDate.getTime() - this.minDate.getTime();
-      this.totalDays = Math.ceil(diffMsAdjusted / (1000 * 60 * 60 * 24)) + 1;
-
-      // Générer les graduations
-      this.generateGraduations();
-    }
   }
 
-  /**
-   * Génère les graduations en fonction de la plage de dates
-   */
+  formatDateTime(date: Date | null): string {
+    if (!date) return 'N/A';
+    const datePart = date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    const timePart = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    return `${datePart} ${timePart}`;
+  }
+
   private generateGraduations(): void {
     if (!this.minDate || !this.maxDate || this.totalDays === 0) {
       this.graduations = [];
@@ -129,42 +417,27 @@ export class TimelineDrawerComponent {
     let formatFn: (date: Date) => string;
 
     if (this.totalDays <= 1) {
-      // Pour moins d'un jour: toutes les heures
-      stepMs = 1000 * 60 * 60; // 1 heure
-      formatFn = (d) =>
-        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      stepMs = 1000 * 60 * 60;
+      formatFn = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     } else if (this.totalDays <= 2) {
-      // Pour 1-2 jours: toutes les 6 heures (demi-journées)
       stepMs = 1000 * 60 * 60 * 6;
-      formatFn = (d) =>
-        `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${String(
-          d.getHours()
-        ).padStart(2, '0')}h`;
+      formatFn = (d) => `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${String(d.getHours()).padStart(2, '0')}h`;
     } else if (this.totalDays <= 3) {
-      // Pour 2-3 jours: toutes les 12 heures
       stepMs = 1000 * 60 * 60 * 12;
-      formatFn = (d) =>
-        `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${String(
-          d.getHours()
-        ).padStart(2, '0')}h`;
+      formatFn = (d) => `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${String(d.getHours()).padStart(2, '0')}h`;
     } else if (this.totalDays <= 7) {
-      // Pour moins d'une semaine: chaque jour
       stepMs = 1000 * 60 * 60 * 24;
       formatFn = (d) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
     } else if (this.totalDays <= 30) {
-      // Pour moins d'un mois: tous les 3 jours
       stepMs = 1000 * 60 * 60 * 24 * 3;
       formatFn = (d) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
     } else if (this.totalDays <= 90) {
-      // Pour moins de 3 mois: toutes les semaines
       stepMs = 1000 * 60 * 60 * 24 * 7;
       formatFn = (d) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
     } else if (this.totalDays <= 365) {
-      // Pour moins d'un an: tous les mois
       stepMs = 1000 * 60 * 60 * 24 * 30;
       formatFn = (d) => d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
     } else {
-      // Pour plus d'un an: tous les 3 mois
       stepMs = 1000 * 60 * 60 * 24 * 90;
       formatFn = (d) => d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
     }
@@ -181,77 +454,19 @@ export class TimelineDrawerComponent {
     }
   }
 
-  /**
-   * Calcule la position en pourcentage d'une date sur la timeline
-   */
-  getDatePosition(date: Date | string | undefined): number {
-    if (!date || !this.minDate || !this.maxDate || this.totalDays === 0) {
-      return 0;
-    }
-    // Convertir en Date si c'est une string
-    const dateObj = date instanceof Date ? date : new Date(date);
-    if (isNaN(dateObj.getTime())) {
-      return 0;
-    }
-    const diff = dateObj.getTime() - this.minDate.getTime();
-    const position = (diff / (this.maxDate.getTime() - this.minDate.getTime())) * 100;
-    // Limiter entre 0 et 100 pour éviter les débordements
-    return Math.max(0, Math.min(100, position));
-  }
-
-  /**
-   * Calcule la largeur en pourcentage d'une période
-   */
-  getDuration(start: Date | undefined, end: Date | undefined): number {
-    if (!start || !end || !this.minDate || !this.maxDate || this.totalDays === 0) {
-      return 0;
-    }
-    const startPos = this.getDatePosition(start);
-    const endPos = this.getDatePosition(end);
-    const duration = endPos - startPos;
-    // Minimum 2% pour la visibilité, maximum pour ne pas dépasser le conteneur
-    return Math.max(Math.min(duration, 100 - startPos), 2);
-  }
-
-  /**
-   * Format une date pour l'affichage
-   */
-  formatDate(date: Date | null | undefined): string {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  }
-
-  /**
-   * Format une date avec heure:minute pour l'affichage
-   */
-  formatDateTime(date: Date | null | undefined): string {
-    if (!date) return 'N/A';
-    const d = new Date(date);
-    const datePart = d.toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-    const timePart = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(
-      2,
-      '0'
-    )}`;
-    return `${datePart} ${timePart}`;
-  }
-
-  /**
-   * Génère un label pour la plage horaire
-   */
   getTimelineLabel(): string {
     if (!this.minDate || !this.maxDate) {
       return 'Pas de dates';
     }
-    return `${this.formatDate(this.minDate)} → ${this.formatDate(this.maxDate)} (${
-      this.totalDays
-    } jours)`;
+    return `${this.formatDate(this.minDate)} → ${this.formatDate(this.maxDate)} (${this.totalDays} jours)`;
+  }
+
+  getFilterInfo(): string {
+    const total = this.allZones.length;
+    const filtered = this.filteredZones.length;
+    if (total === filtered) {
+      return `${total} zones de sécurité`;
+    }
+    return `${filtered} / ${total} zones visibles`;
   }
 }

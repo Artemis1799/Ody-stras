@@ -138,6 +138,45 @@
     }
   }
 
+  .guide-validate {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border: none;
+    background: #2ad783;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0d1117;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #22c274;
+      transform: scale(1.02);
+    }
+  }
+
+  &.modification-mode {
+    border-top-color: #f59e0b;
+    
+    .guide-icon {
+      background: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+    }
+    
+    .guide-step {
+      color: #f59e0b;
+    }
+    
+    .progress-bar {
+      background: #f59e0b;
+      width: 100% !important;
+    }
+  }
+
   .guide-progress {
     height: 3px;
     background: #eee;
@@ -198,6 +237,19 @@
     .minimized-icon {
       background: rgba(169, 26, 26, 0.1);
       color: #a91a1a;
+    }
+  }
+
+  &.modification-mode {
+    border: 2px solid #f59e0b;
+    
+    .minimized-icon {
+      background: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+    }
+
+    .minimized-step {
+      color: #f59e0b;
     }
   }
 
