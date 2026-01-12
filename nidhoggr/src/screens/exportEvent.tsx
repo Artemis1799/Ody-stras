@@ -28,6 +28,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Strings } from "../../types/strings";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
+import { NO_EQUIPMENT_ID } from "../constants/constants";
 
 // ============= INTERFACES POUR L'EXPORT =============
 
@@ -330,7 +331,7 @@ export default function ExportEventScreen() {
               Longitude: point.longitude,
               Comment: point.comment,
               Validated: point.validated ? 1 : 0,
-              EquipmentID: point.equipmentId,
+              EquipmentID: point.equipmentId === NO_EQUIPMENT_ID ? null : point.equipmentId,
               EquipmentQuantity: point.equipmentQuantity,
               Ordre: point.ordre,
               photos: point.photos.map(photo => ({
@@ -341,7 +342,9 @@ export default function ExportEventScreen() {
             metadata: exportData.metadata,
           };
 
+
           console.log("Envoi du JSON bulk avec", bulkData.points.length, "points");
+          console.log("PAYLOAD JSON COMPLETE:", JSON.stringify(bulkData, null, 2));
           ws.send(JSON.stringify(bulkData));
 
           // Mettre à jour les stats
@@ -380,6 +383,9 @@ export default function ExportEventScreen() {
             setTimeout(() => {
               ws.close();
               resolve();
+              setTimeout(() => {
+                navigation.navigate("Events");
+              }, 2000);
             }, 500);
           }
         };
