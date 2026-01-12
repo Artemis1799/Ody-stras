@@ -23,31 +23,6 @@
     </div>
     
     <form #teamForm="ngForm" (ngSubmit)="onSave()">
-      <div class="form-group">
-        <label for="eventId">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-          Événement <span class="required">*</span>
-        </label>
-        <select 
-          id="eventId" 
-          [ngModel]="team.eventId"
-          (ngModelChange)="team.eventId = $event"
-          name="eventId"
-          required
-          [class.has-value]="team.eventId"
-        >
-          <option value="" disabled>Sélectionner un événement</option>
-          @for (event of events; track event.uuid) {
-            <option [value]="event.uuid">{{ event.title }}</option>
-          }
-        </select>
-      </div>
-
       <div class="form-row">
         <div class="form-group form-group-small">
           <label for="number">
@@ -235,22 +210,79 @@
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
-      <div class="qrcode-header">
-        <h4>Export Planning - QR Code</h4>
-        <p>Scannez ce QR code pour récupérer le planning</p>
-      </div>
-      <div class="qrcode-content">
-        @if (qrCodeDataURL) {
-          <img [src]="qrCodeDataURL" alt="QR Code Planning" class="qrcode-image" />
-        } @else {
-          <div class="qrcode-loading">
-            <span>Génération du QR code...</span>
+      
+      <!-- Étape 1: Sélection des événements -->
+      @if (!isExporting) {
+        <div class="qrcode-header">
+          <h4>Export Planning</h4>
+          <p>Sélectionnez les événements à inclure dans le planning</p>
+        </div>
+        <div class="qrcode-events-selector">
+          <div class="events-selector">
+            @if (events.length === 0) {
+              <div class="no-events-message">
+                Aucun événement disponible.
+              </div>
+            } @else {
+              <div class="events-actions">
+                <button type="button" class="select-all-btn" (click)="selectAllEvents()">Tout sélectionner</button>
+                <button type="button" class="clear-all-btn" (click)="clearEventSelection()">Tout désélectionner</button>
+              </div>
+              <div class="events-list">
+                @for (event of events; track event.uuid) {
+                  <div 
+                    class="event-item" 
+                    [class.selected]="isEventSelected(event.uuid)"
+                    (click)="toggleEventSelection(event.uuid)"
+                  >
+                    <span class="event-title">{{ event.title }}</span>
+                    <div class="event-check">
+                      @if (isEventSelected(event.uuid)) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           </div>
-        }
-      </div>
-      <div class="qrcode-status">
-        <p class="status-text">{{ exportStatus }}</p>
-      </div>
+          @if (selectedEventIds.length > 0) {
+            <div class="selected-count">{{ selectedEventIds.length }} événement(s) sélectionné(s)</div>
+          }
+        </div>
+        <div class="qrcode-actions">
+          <button type="button" class="cancel-btn" (click)="closeQRCodePopup()">Annuler</button>
+          <button type="button" class="confirm-btn" [disabled]="selectedEventIds.length === 0" (click)="confirmAndGenerateQRCode()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+              <rect x="14" y="14" width="3" height="3"></rect>
+            </svg>
+            Générer le QR Code
+          </button>
+        </div>
+      } @else {
+        <!-- Étape 2: Affichage du QR Code -->
+        <div class="qrcode-header">
+          <h4>Export Planning - QR Code</h4>
+          <p>Scannez ce QR code pour récupérer le planning</p>
+        </div>
+        <div class="qrcode-content">
+          @if (qrCodeDataURL) {
+            <img [src]="qrCodeDataURL" alt="QR Code Planning" class="qrcode-image" />
+          } @else {
+            <div class="qrcode-loading">
+              <span>Génération du QR code...</span>
+            </div>
+          }
+        </div>
+        <div class="qrcode-status">
+          <p class="status-text">{{ exportStatus }}</p>
+        </div>
+      }
     </div>
   </div>
 }
