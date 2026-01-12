@@ -506,6 +506,120 @@ form {
       box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
     }
   }
+
+  .qrcode-btn {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border: none;
+    color: #fff;
+    flex: 0 0 auto;
+    padding: 0.875rem 1rem !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+
+    &:hover {
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+  }
+}
+
+// QR Code Popup
+.qrcode-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.qrcode-dialog {
+  background: linear-gradient(165deg, #1e2530 0%, #171c24 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+  padding: 2rem;
+  position: relative;
+  max-width: 360px;
+  width: 90%;
+}
+
+.qrcode-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #8b949e;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+}
+
+.qrcode-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+
+  h4 {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #8b949e;
+  }
+}
+
+.qrcode-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.qrcode-image {
+  max-width: 100%;
+  height: auto;
+}
+
+.qrcode-loading {
+  padding: 2rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.qrcode-status {
+  margin-top: 1rem;
+  text-align: center;
+
+  .status-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #c9d1d9;
+    line-height: 1.5;
+  }
 }
 
 // Responsive

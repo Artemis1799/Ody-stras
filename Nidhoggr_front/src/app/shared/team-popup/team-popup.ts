@@ -1,11 +1,13 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Team } from '../../models/teamModel';
 import { Employee } from '../../models/employeeModel';
 import { Event } from '../../models/eventModel';
 import { SecurityZone } from '../../models/securityZoneModel';
+import { WS_URL } from '../constants/wsUrl';
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 
 export interface TeamFormData {
   team: Partial<Team>;
@@ -19,13 +21,20 @@ export interface TeamFormData {
   templateUrl: './team-popup.html',
   styleUrl: './team-popup.scss'
 })
-export class TeamPopupComponent {
+export class TeamPopupComponent implements OnDestroy {
   @Input() isEditing = false;
   @Input() team: Partial<Team> = {};
   @Input() allEmployees: Employee[] = [];
   @Input() selectedEmployees: Employee[] = [];
   @Input() events: Event[] = [];
   @Input() securityZones: SecurityZone[] = [];
+  
+  // QR Code popup properties
+  showQRCodePopup = false;
+  qrCodeDataURL = '';
+  exportStatus = '';
+  isExporting = false;
+  private ws: WebSocket | null = null;
   
   // Signaux de recherche
   searchLastName = signal('');
@@ -324,5 +333,178 @@ export class TeamPopupComponent {
 
     yPosition += 8;
     return yPosition;
+  }
+
+  ngOnDestroy(): void {
+    this.disconnectWebSocket();
+  }
+
+  /**
+   * Exporte le planning via WebSocket avec QR Code
+   */
+  async exportPlanningQRCode(): Promise<void> {
+    if (!this.team.uuid) return;
+
+    this.isExporting = true;
+    this.showQRCodePopup = true;
+    this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
+
+    try {
+      // Générer le QR code avec l'URL du serveur WebSocket
+      this.qrCodeDataURL = await QRCode.toDataURL(WS_URL, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+
+      // Connexion au WebSocket et attente du téléphone
+      this.connectAndWaitForPhone();
+    } catch (error) {
+      console.error('❌ Erreur génération QR code:', error);
+      this.exportStatus = '❌ Erreur lors de la génération du QR code';
+      this.isExporting = false;
+    }
+  }
+
+  /**
+   * Connecte au WebSocket et attend qu'un téléphone se connecte
+   */
+  private connectAndWaitForPhone(): void {
+    console.log('🔌 Connexion au WebSocket:', WS_URL);
+    this.ws = new WebSocket(WS_URL);
+
+    this.ws.onopen = () => {
+      console.log('✅ WebSocket connecté');
+      this.ws?.send(JSON.stringify({ type: 'web_waiting_planning', teamUuid: this.team.uuid }));
+      this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('📨 Message reçu:', message.type);
+
+        if (message.type === 'phone_requesting') {
+          console.log('📱 Téléphone connecté, envoi du planning...');
+          this.exportStatus = '🔄 Téléphone détecté ! Envoi du planning...';
+          this.sendPlanningData();
+        } else if (message.type === 'export_confirmed') {
+          console.log('✅ Export confirmé:', message);
+          this.exportStatus = '✅ Planning envoyé au téléphone !';
+          
+          setTimeout(() => {
+            this.isExporting = false;
+            this.showQRCodePopup = false;
+            this.disconnectWebSocket();
+          }, 3000);
+        }
+      } catch (error) {
+        console.error('Erreur parsing message:', error);
+      }
+    };
+
+    this.ws.onerror = (error) => {
+      console.error('❌ Erreur WebSocket:', error);
+      this.exportStatus = '❌ Erreur de connexion au serveur';
+      this.isExporting = false;
+    };
+
+    this.ws.onclose = () => {
+      console.log('🔌 WebSocket déconnecté');
+      this.ws = null;
+    };
+
+    // Timeout après 2 minutes
+    setTimeout(() => {
+      if (this.isExporting) {
+        this.exportStatus = '⏱️ Délai d\'attente dépassé';
+        this.isExporting = false;
+        this.disconnectWebSocket();
+      }
+    }, 120000);
+  }
+
+  /**
+   * Envoie les données du planning via WebSocket
+   */
+  private sendPlanningData(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error('❌ WebSocket non connecté');
+      return;
+    }
+
+    const teamId = this.team.uuid!;
+    const installationZones = this.securityZones.filter(z => z.installationTeamId === teamId);
+    const removalZones = this.securityZones.filter(z => z.removalTeamId === teamId);
+
+    // Tri par date
+    installationZones.sort((a, b) => new Date(a.installationDate).getTime() - new Date(b.installationDate).getTime());
+    removalZones.sort((a, b) => new Date(a.removalDate).getTime() - new Date(b.removalDate).getTime());
+
+    const eventName = this.events.find(e => e.uuid === this.team.eventId)?.title || '';
+
+    // Construire l'objet JSON du planning
+    const planningData = {
+      type: 'planning_data',
+      team: {
+        uuid: this.team.uuid,
+        name: this.team.teamName,
+        number: this.team.teamNumber,
+        eventId: this.team.eventId,
+        eventName: eventName
+      },
+      members: this.selectedEmployees.map(e => ({
+        uuid: e.uuid,
+        firstName: e.firstName,
+        lastName: e.lastName
+      })),
+      installations: installationZones.map(z => ({
+        uuid: z.uuid,
+        equipmentType: z.equipment?.type || '',
+        quantity: z.quantity,
+        date: z.installationDate,
+        comment: z.comment || '',
+        geoJson: z.geoJson
+      })),
+      removals: removalZones.map(z => ({
+        uuid: z.uuid,
+        equipmentType: z.equipment?.type || '',
+        quantity: z.quantity,
+        date: z.removalDate,
+        comment: z.comment || '',
+        geoJson: z.geoJson
+      }))
+    };
+
+    // Console.log le JSON
+    console.log('📋 Planning JSON export:', JSON.stringify(planningData, null, 2));
+
+    this.ws.send(JSON.stringify(planningData));
+    console.log('✅ Planning envoyé au serveur WebSocket');
+    this.exportStatus = '📤 Envoi du planning...';
+  }
+
+  /**
+   * Déconnecte le WebSocket
+   */
+  private disconnectWebSocket(): void {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+  }
+
+  /**
+   * Ferme le popup QR code
+   */
+  closeQRCodePopup(): void {
+    this.showQRCodePopup = false;
+    this.qrCodeDataURL = '';
+    this.exportStatus = '';
+    this.isExporting = false;
+    this.disconnectWebSocket();
   }
 }
