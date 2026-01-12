@@ -9,6 +9,11 @@ import {
   Image,
   Keyboard,
   TouchableWithoutFeedback,
+  InputAccessoryView,
+  Platform,
+  Button,
+  KeyboardAvoidingView,
+  ScrollView
 } from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -226,104 +231,136 @@ export function CreatePointScreen() {
     <SafeAreaView style={styles.container}>
       <Header onBack={handleGoBack} />
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.mapContainer}>
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              initialRegion={{
-                latitude: userLocation?.latitude || 48.5839,
-                longitude: userLocation?.longitude || 7.7455,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-              showsUserLocation={true}
-              showsMyLocationButton={!isEditingLocation}
-              followsUserLocation={false}
-              showsCompass={true}
-              rotateEnabled={!isEditingLocation}
-              pitchEnabled={!isEditingLocation}
-              scrollEnabled={isEditingLocation}
-              zoomEnabled={isEditingLocation}
-              onRegionChangeComplete={handleRegionChange}
-            >
-              {!isEditingLocation && markerPosition && (
-                <Marker
-                  coordinate={{
-                    latitude: markerPosition.latitude,
-                    longitude: markerPosition.longitude,
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View>
+              <View style={styles.mapContainer}>
+                <MapView
+                  ref={mapRef}
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: userLocation?.latitude || 48.5839,
+                    longitude: userLocation?.longitude || 7.7455,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
                   }}
-                />
-              )}
-            </MapView>
-            {isEditingLocation && (
-              <View style={styles.centerMarker}>
-                <Ionicons name="location-sharp" size={48} color="#8DC63F" />
+                  showsUserLocation={true}
+                  showsMyLocationButton={!isEditingLocation}
+                  followsUserLocation={false}
+                  showsCompass={true}
+                  rotateEnabled={!isEditingLocation}
+                  pitchEnabled={!isEditingLocation}
+                  scrollEnabled={isEditingLocation}
+                  zoomEnabled={isEditingLocation}
+                  onRegionChangeComplete={handleRegionChange}
+                >
+                  {!isEditingLocation && markerPosition && (
+                    <Marker
+                      coordinate={{
+                        latitude: markerPosition.latitude,
+                        longitude: markerPosition.longitude,
+                      }}
+                    />
+                  )}
+                </MapView>
+                {isEditingLocation && (
+                  <View style={styles.centerMarker}>
+                    <Ionicons name="location-sharp" size={48} color="#8DC63F" />
+                  </View>
+                )}
               </View>
-            )}
+
+              <TouchableOpacity
+                style={styles.editLocationButton}
+                onPress={toggleEditLocation}
+              >
+                <Ionicons
+                  name={isEditingLocation ? "checkmark-circle" : "location"}
+                  size={20}
+                  color={theme === "light" ? "#8DC63F" : "#2ad783"}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.editLocationButtonText}>
+                  {isEditingLocation
+                    ? Strings.createPoint.validatePosition
+                    : Strings.createPoint.editMarker}
+                </Text>
+              </TouchableOpacity>
+
+              <TextInput
+                placeholder="Nom du point"
+                style={styles.inputCreatePoint}
+                value={name}
+                onChangeText={setName}
+                inputAccessoryViewID="nameInputID"
+              />
+
+              <TextInput
+                placeholder="Commentaire"
+                style={styles.inputComment}
+                multiline
+                value={comment}
+                onChangeText={setComment}
+                inputAccessoryViewID="nameInputID"
+              />
+
+              <TouchableOpacity
+                style={styles.inputFake}
+                onPress={() =>
+                  navigation.navigate("AddPhoto", { pointId: pointId })
+                }
+              >
+                <Text>Photos</Text>
+                <Text>→</Text>
+              </TouchableOpacity>
+              <DropDownPicker
+                open={open}
+                value={equipment}
+                items={equipmentList}
+                setOpen={setOpen}
+                setValue={setEquipment}
+                setItems={setEquipmentList}
+                placeholder={Strings.createPoint.selectEquipmentPlaceholder}
+                listMode="SCROLLVIEW"
+                style={styles.dropdown}
+              />
+
+              <TouchableOpacity style={styles.validateButton} onPress={validate}>
+                <Text style={styles.validateButtonText}>
+                  {Strings.createPoint.validate}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {Platform.OS === "ios" && (
+        <InputAccessoryView nativeID="nameInputID">
+          <View style={localStyles.accessoryView}>
+            <Button onPress={() => Keyboard.dismiss()} title="OK" />
           </View>
-
-          <TouchableOpacity
-            style={styles.editLocationButton}
-            onPress={toggleEditLocation}
-          >
-            <Ionicons
-              name={isEditingLocation ? "checkmark-circle" : "location"}
-              size={20}
-              color={theme === "light" ? "#8DC63F" : "#2ad783"}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.editLocationButtonText}>
-              {isEditingLocation
-                ? Strings.createPoint.validatePosition
-                : Strings.createPoint.editMarker}
-            </Text>
-          </TouchableOpacity>
-
-          <TextInput
-            placeholder="Nom"
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-          />
-
-          <TextInput
-            placeholder="Commentaire"
-            style={styles.inputComment}
-            multiline
-            value={comment}
-            onChangeText={setComment}
-          />
-
-          <TouchableOpacity
-            style={styles.inputFake}
-            onPress={() =>
-              navigation.navigate("AddPhoto", { pointId: pointId })
-            }
-          >
-            <Text>Photos</Text>
-            <Text>→</Text>
-          </TouchableOpacity>
-          <DropDownPicker
-            open={open}
-            value={equipment}
-            items={equipmentList}
-            setOpen={setOpen}
-            setValue={setEquipment}
-            setItems={setEquipmentList}
-            placeholder={Strings.createPoint.selectEquipmentPlaceholder}
-            listMode="SCROLLVIEW"
-            style={styles.dropdown}
-          />
-
-          <TouchableOpacity style={styles.validateButton} onPress={validate}>
-            <Text style={styles.validateButtonText}>
-              {Strings.createPoint.validate}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableWithoutFeedback>
+        </InputAccessoryView>
+      )}
     </SafeAreaView>
   );
 }
+
+const localStyles = StyleSheet.create({
+  accessoryView: {
+    backgroundColor: "#f0f0f0", // Gris clair standard iOS
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#d0d0d0",
+  },
+});
