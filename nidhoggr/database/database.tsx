@@ -18,9 +18,18 @@ export async function setupDatabase(db: SQLiteDatabase) {
           'installation',
           'toOrganize',
           'inProgress'
-        ))
+        )),
+        Mode TEXT CHECK(Mode IN ('creation', 'planning')) DEFAULT 'creation'
       );
     `);
+
+    // Migration : Ajouter la colonne Mode si elle n'existe pas (pour les bases existantes)
+    try {
+      await db.execAsync(`ALTER TABLE Evenement ADD COLUMN Mode TEXT CHECK(Mode IN ('creation', 'planning')) DEFAULT 'creation';`);
+      console.log("Migration: Colonne Mode ajoutée à Evenement");
+    } catch (e) {
+      // La colonne existe déjà, on ignore l'erreur
+    }
 
     /* ===================== EQUIPMENT ===================== */
     await db.execAsync(`
@@ -156,7 +165,46 @@ export async function setupDatabase(db: SQLiteDatabase) {
         FOREIGN KEY (EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
       );
     `);
-    await insertHardcodedEvent(db);
+
+    /* ===================== PLANNING TEAM ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS PlanningTeam (
+        UUID TEXT PRIMARY KEY,
+        EventID TEXT NOT NULL,
+        Name TEXT NOT NULL,
+        Number INTEGER,
+        FOREIGN KEY(EventID) REFERENCES Evenement(UUID) ON DELETE CASCADE
+      );
+    `);
+
+    /* ===================== PLANNING MEMBER ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS PlanningMember (
+        UUID TEXT PRIMARY KEY,
+        TeamID TEXT NOT NULL,
+        FirstName TEXT,
+        LastName TEXT,
+        FOREIGN KEY(TeamID) REFERENCES PlanningTeam(UUID) ON DELETE CASCADE
+      );
+    `);
+
+    /* ===================== PLANNING TASK ===================== */
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS PlanningTask (
+        UUID TEXT PRIMARY KEY,
+        TeamID TEXT NOT NULL,
+        EquipmentType TEXT NOT NULL,
+        Quantity INTEGER,
+        ScheduledDate TEXT NOT NULL,
+        TaskType TEXT CHECK(TaskType IN ('installation', 'removal')),
+        Status TEXT CHECK(Status IN ('pending', 'in_progress', 'completed')) DEFAULT 'pending',
+        CompletedAt TEXT,
+        Comment TEXT,
+        GeoJson TEXT NOT NULL,
+        FOREIGN KEY(TeamID) REFERENCES PlanningTeam(UUID) ON DELETE CASCADE
+      );
+    `);
+    //await insertHardcodedEvent(db);
     const res = await db.getAllAsync("PRAGMA table_info(Evenement);");
     console.log(res);
 

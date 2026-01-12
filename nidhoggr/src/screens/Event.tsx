@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import {
@@ -23,6 +23,9 @@ import {
   EventScreenNavigationProp,
   Path,
   PointOnMap,
+  PlanningTeam,
+  PlanningTask,
+  GeoJSONData
 } from "../../types/types";
 import { getAllWhere, getPointsForEvent } from "../../database/queries";
 import { Strings } from "../../types/strings";
@@ -41,6 +44,7 @@ export default function EventScreen() {
   const eventUUID = params.UUID;
   const [areas, setAreas] = useState<Area[]>([]);
   const [paths, setPaths] = useState<Path[]>([]);
+  const [taskPaths, setTaskPaths] = useState<{ id: string; coords: { latitude: number; longitude: number }[]; color: string }[]>([]);
   const [eventData, setEventData] = useState<Evenement>(params);
   const [points, setPoints] = useState<PointOnMap[]>([]);
 
@@ -107,6 +111,32 @@ export default function EventScreen() {
           //const pathsGeoJsonList = pathsDB.map((g) => g.GeoJson);
           setAreas(areasDB);
           setPaths(pathsDB);
+
+          // Charger les tâches pour afficher leurs tracés
+          const teams = await getAllWhere<PlanningTeam>(db, "PlanningTeam", ["EventID"], [eventUUID]);
+          let loadedTaskPaths: { id: string; coords: { latitude: number; longitude: number }[]; color: string }[] = [];
+
+          for (const team of teams) {
+            const teamTasks = await getAllWhere<PlanningTask>(db, "PlanningTask", ["TeamID"], [team.UUID]);
+            for (const task of teamTasks) {
+              try {
+                const geoJson: GeoJSONData = JSON.parse(task.GeoJson);
+                if (geoJson.type === "LineString" && Array.isArray(geoJson.coordinates)) {
+                  const coords = (geoJson.coordinates as [number, number][]).map(([lng, lat]) => ({
+                    latitude: lat,
+                    longitude: lng,
+                  }));
+                  // Couleur selon type
+                  const color = task.TaskType === "installation" ? "#43A047" : "#E53935"; // Vert ou Rouge
+                  loadedTaskPaths.push({ id: task.UUID, coords, color });
+                }
+              } catch (e) {
+                // Ignorer json invalide
+              }
+            }
+          }
+          setTaskPaths(loadedTaskPaths);
+
           const sql: PointOnMap[] = await getPointsForEvent(db, eventUUID);
 
           const pts: PointOnMap[] = sql.map((row: PointOnMap) => ({
@@ -172,10 +202,88 @@ export default function EventScreen() {
             ))}
             <RenderAreas areas={areas} />
             <RenderPaths paths={paths} />
+
+            {/* Tracés des tâches */}
+            {taskPaths.map((tp) => (
+              <Polyline
+                key={tp.id}
+                coordinates={tp.coords}
+                strokeColor={tp.color}
+                strokeWidth={4}
+              />
+            ))}
           </MapView>
         </View>
 
-        {/* Event Details */}
+        {/* Action Buttons - juste après la map */}
+        {eventData.Mode === "planning" ? (
+          // Mode Planning : Boutons Planning/Pose/Dépose
+          <View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.pointsButton, { backgroundColor: "#0E47A1" }]}
+                onPress={() => navigation.navigate("PlanningTimeline", { eventId: eventUUID })}
+              >
+                <Text style={styles.buttonText}>📋 Planning</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.pointsButton, { backgroundColor: "#43A047", flex: 1, flexDirection: "column", paddingVertical: 12 }]}
+                onPress={() => navigation.navigate("PlanningNavigation", { eventId: eventUUID, taskType: "installation" })}
+              >
+                <Text style={{ fontSize: 24 }}>🔧</Text>
+                <Text style={styles.buttonText}>Pose</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.pointsButton, { backgroundColor: "#FF9800", flex: 1, flexDirection: "column", paddingVertical: 12 }]}
+                onPress={() => navigation.navigate("PlanningNavigation", { eventId: eventUUID, taskType: "mixed" })}
+              >
+                <Text style={{ fontSize: 24 }}>▶️</Text>
+                <Text style={styles.buttonText}>Tout</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.pointsButton, { backgroundColor: "#E53935", flex: 1, flexDirection: "column", paddingVertical: 12 }]}
+                onPress={() => navigation.navigate("PlanningNavigation", { eventId: eventUUID, taskType: "removal" })}
+              >
+                <Text style={{ fontSize: 24 }}>📦</Text>
+                <Text style={styles.buttonText}>Dépose</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          // Mode Création : Boutons classiques
+          <View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.pointsButton}
+                onPress={() => navigation.navigate("Map", { eventId: eventUUID })}
+              >
+                <Text style={styles.buttonText}>{Strings.event.addPoints}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.pointsButton}
+                onPress={() => navigation.navigate("Points", { eventUUID })}
+              >
+                <Text style={styles.buttonText}>{Strings.event.managePoints}</Text>
+              </TouchableOpacity>
+            </View>
+            <View>
+              <TouchableOpacity
+                style={styles.exportButton}
+                onPress={() => navigation.navigate("ExportEvent", { eventUUID })}
+              >
+                <Text style={styles.buttonText}>{Strings.event.exportEvent}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Event Details - après les boutons */}
         <View style={styles.detailsContainer}>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>
@@ -195,33 +303,6 @@ export default function EventScreen() {
             <Text style={styles.detailLabel}>{Strings.event.statusLabel}</Text>
             <Text style={styles.detailValue}>{eventData.Status}</Text>
           </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.pointsButton}
-            onPress={() => {
-              navigation.navigate("Map", { eventId: eventUUID });
-            }}
-          >
-            <Text style={styles.buttonText}>{Strings.event.addPoints}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.pointsButton}
-            onPress={() => navigation.navigate("Points", { eventUUID })}
-          >
-            <Text style={styles.buttonText}>{Strings.event.managePoints}</Text>
-          </TouchableOpacity>
-        </View>
-        <View>
-          <TouchableOpacity
-            style={styles.exportButton}
-            onPress={() => navigation.navigate("ExportEvent", { eventUUID })}
-          >
-            <Text style={styles.buttonText}>{Strings.event.exportEvent}</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

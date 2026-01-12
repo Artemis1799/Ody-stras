@@ -19,6 +19,9 @@ export type RootStackParamList = {
     EndDate: string;
     Status: string;
   };
+  // Planning routes
+  PlanningTimeline: { eventId: string };
+  PlanningNavigation: { eventId: string; taskType: "installation" | "removal" | "mixed" };
 };
 
 export type EventScreenNavigationProp = NativeStackNavigationProp<
@@ -41,11 +44,12 @@ export interface Evenement {
   StartDate: string;
   EndDate: string;
   Status:
-    | "uninstallation"
-    | "completed"
-    | "installation"
-    | "toOrganize"
-    | "inProgress";
+  | "uninstallation"
+  | "completed"
+  | "installation"
+  | "toOrganize"
+  | "inProgress";
+  Mode?: "creation" | "planning";
 }
 
 export interface Equipment {
@@ -68,9 +72,10 @@ export interface Point {
   Latitude: number;
   Longitude: number;
   Comment?: string;
-  Validated: boolean;
+  Validated?: number; // 0 = false, 1 = true (SQLite INTEGER)
   EquipmentID?: string;
   EquipmentQuantity?: number;
+  Ordre?: number;
 }
 
 export interface PointOnMap {
@@ -79,9 +84,6 @@ export interface PointOnMap {
   Longitude: number;
   EquipmentType?: string;
   Name?: string;
-  EquipType: string;
-  Equipement_quantite: number;
-  Equipement_ID: string;
 }
 
 export interface pointPhotoParams {
@@ -188,3 +190,73 @@ export type RenderPathsProps = {
 export type RenderAreasProps = {
   areas: Area[];
 };
+
+// ============= GEOJSON TYPES =============
+
+export interface GeoJSONData {
+  type: "Point" | "LineString" | "Polygon" | "MultiPoint" | "MultiLineString" | "MultiPolygon";
+  coordinates: number[] | number[][] | number[][][];
+}
+
+// ============= PLANNING TYPES =============
+
+export interface PlanningTeam {
+  UUID: string;
+  EventID: string;
+  Name: string;
+  Number?: number;
+}
+
+export interface PlanningMember {
+  UUID: string;
+  TeamID: string;
+  FirstName?: string;
+  LastName?: string;
+}
+
+export interface PlanningTask {
+  UUID: string;
+  TeamID: string;
+  EquipmentType: string;
+  Quantity?: number;
+  ScheduledDate: string;
+  TaskType: "installation" | "removal";
+  Status: "pending" | "in_progress" | "completed" | "suspended";
+  CompletedAt?: string;
+  Comment?: string;
+  GeoJson: string;
+}
+
+// Interface pour le message planning_data reçu via WebSocket
+export interface PlanningDataMessage {
+  type: "planning_data";
+  team: {
+    uuid: string;
+    name: string;
+    number: number;
+    eventId: string;
+    eventName: string;
+  };
+  members: Array<{
+    uuid: string;
+    firstName: string;
+    lastName: string;
+  }>;
+  installations: Array<{
+    uuid: string;
+    equipmentType: string;
+    quantity: number;
+    date: string;
+    comment: string;
+    geoJson: string;
+  }>;
+  removals: Array<{
+    uuid: string;
+    equipmentType: string;
+    quantity: number;
+    date: string;
+    comment: string;
+    geoJson: string;
+  }>;
+  exportedAt: string;
+}

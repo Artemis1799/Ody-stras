@@ -83,11 +83,11 @@ export function MapScreen() {
       setPaths(pathsDB);
       const sql: PointOnMap[] = await getPointsForEvent(db, eventId);
 
-      const pts: PointOnMap[] = sql.map((row: PointOnMap) => ({
+      const pts: PointOnMap[] = sql.map((row: any) => ({
         UUID: row.UUID,
         Latitude: row.Latitude,
         Longitude: row.Longitude,
-        EquipType: row.EquipmentType,
+        EquipmentType: row.EquipmentType,
       }));
       console.log("sql===");
       console.log(sql);
