@@ -21,6 +21,32 @@
         <p>{{ isEditing ? 'Modifiez les informations de cette équipe' : 'Créez une nouvelle équipe et assignez des membres' }}</p>
       </div>
     </div>
+
+    <!-- Event selector moved below header -->
+    <div class="event-selector-section">
+      <label for="eventSelect">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        Événement <span class="required">*</span>
+      </label>
+      <select 
+        id="eventSelect"
+        [ngModel]="team.eventId"
+        (ngModelChange)="onEventChange($event)"
+        name="eventId"
+        required
+        [class.has-value]="team.eventId"
+      >
+        <option value="" disabled>Sélectionner un événement</option>
+        @for (event of events; track event.uuid) {
+          <option [value]="event.uuid">{{ event.title }}</option>
+        }
+      </select>
+    </div>
     
     <form #teamForm="ngForm" (ngSubmit)="onSave()">
       <div class="form-row">
@@ -163,7 +189,7 @@
       
       <div class="form-actions">
         @if (isEditing) {
-          <button type="button" class="pdf-btn" (click)="generatePlanningPDF()">
+          <button type="button" class="pdf-btn" (click)="generatePlanningPDF()" [disabled]="!canExportPlanning()" [title]="canExportPlanning() ? 'Générer le PDF' : 'Sélectionnez un événement pour exporter'">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
@@ -173,7 +199,7 @@
             </svg>
             PDF
           </button>
-          <button type="button" class="qrcode-btn" (click)="exportPlanningQRCode()">
+          <button type="button" class="qrcode-btn" (click)="exportPlanningQRCode()" [disabled]="!canExportPlanning()" [title]="canExportPlanning() ? 'Exporter le planning' : 'Sélectionnez un événement pour exporter'">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
@@ -211,78 +237,72 @@
         </svg>
       </button>
       
-      <!-- Étape 1: Sélection des événements -->
-      @if (!isExporting) {
-        <div class="qrcode-header">
-          <h4>Export Planning</h4>
-          <p>Sélectionnez les événements à inclure dans le planning</p>
-        </div>
-        <div class="qrcode-events-selector">
-          <div class="events-selector">
-            @if (events.length === 0) {
-              <div class="no-events-message">
-                Aucun événement disponible.
-              </div>
-            } @else {
-              <div class="events-actions">
-                <button type="button" class="select-all-btn" (click)="selectAllEvents()">Tout sélectionner</button>
-                <button type="button" class="clear-all-btn" (click)="clearEventSelection()">Tout désélectionner</button>
-              </div>
-              <div class="events-list">
-                @for (event of events; track event.uuid) {
-                  <div 
-                    class="event-item" 
-                    [class.selected]="isEventSelected(event.uuid)"
-                    (click)="toggleEventSelection(event.uuid)"
-                  >
-                    <span class="event-title">{{ event.title }}</span>
-                    <div class="event-check">
-                      @if (isEventSelected(event.uuid)) {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            }
+      <!-- Affichage du QR Code -->
+      <div class="qrcode-header">
+        <h4>Export Planning - {{ getCurrentEventName() }}</h4>
+        <p>Scannez ce QR code pour récupérer le planning</p>
+      </div>
+      <div class="qrcode-content">
+        @if (qrCodeDataURL) {
+          <img [src]="qrCodeDataURL" alt="QR Code Planning" class="qrcode-image" />
+        } @else {
+          <div class="qrcode-loading">
+            <span>Génération du QR code...</span>
           </div>
-          @if (selectedEventIds.length > 0) {
-            <div class="selected-count">{{ selectedEventIds.length }} événement(s) sélectionné(s)</div>
-          }
+        }
+      </div>
+      <div class="qrcode-status">
+        <p class="status-text">{{ exportStatus }}</p>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Event Change Confirmation Popup -->
+@if (showEventChangeConfirm) {
+  <div class="confirm-overlay" (click)="cancelEventChange()">
+    <div class="confirm-dialog" (click)="$event.stopPropagation()">
+      <div class="confirm-icon warning">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <h4>Changer l'événement de l'équipe</h4>
+      <div class="event-change-summary">
+        <div class="event-from">
+          <span class="label">De :</span>
+          <span class="value">{{ getEventNameById(originalEventId!) }}</span>
         </div>
-        <div class="qrcode-actions">
-          <button type="button" class="cancel-btn" (click)="closeQRCodePopup()">Annuler</button>
-          <button type="button" class="confirm-btn" [disabled]="selectedEventIds.length === 0" (click)="confirmAndGenerateQRCode()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-              <rect x="14" y="14" width="3" height="3"></rect>
-            </svg>
-            Générer le QR Code
-          </button>
+        <div class="event-arrow">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
         </div>
-      } @else {
-        <!-- Étape 2: Affichage du QR Code -->
-        <div class="qrcode-header">
-          <h4>Export Planning - QR Code</h4>
-          <p>Scannez ce QR code pour récupérer le planning</p>
+        <div class="event-to">
+          <span class="label">Vers :</span>
+          <span class="value">{{ getEventNameById(pendingEventId!) }}</span>
         </div>
-        <div class="qrcode-content">
-          @if (qrCodeDataURL) {
-            <img [src]="qrCodeDataURL" alt="QR Code Planning" class="qrcode-image" />
-          } @else {
-            <div class="qrcode-loading">
-              <span>Génération du QR code...</span>
-            </div>
-          }
-        </div>
-        <div class="qrcode-status">
-          <p class="status-text">{{ exportStatus }}</p>
-        </div>
-      }
+      </div>
+      <p class="confirm-warning">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>Si cette équipe est assignée à des <strong>poses</strong> ou <strong>déposes</strong> d'équipements, elle sera automatiquement retirée de ces assignations.</span>
+      </p>
+      <div class="confirm-actions">
+        <button type="button" class="cancel-btn" (click)="cancelEventChange()">Annuler</button>
+        <button type="button" class="confirm-btn danger" (click)="confirmEventChange()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Confirmer le changement
+        </button>
+      </div>
     </div>
   </div>
 }

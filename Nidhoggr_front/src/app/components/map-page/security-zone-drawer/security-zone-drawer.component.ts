@@ -405,10 +405,20 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     return this.equipment.type || 'Équipement sans type';
   }
 
+  /**
+   * Retourne les équipes filtrées par l'eventId de la zone de sécurité sélectionnée
+   */
+  getTeamsForCurrentEvent(): { uuid: string; teamName: string }[] {
+    if (!this.selectedZone) return [];
+    return this.teams.filter(t => t.eventId === this.selectedZone?.eventId);
+  }
+
   // Méthode pour filtrer les équipes de pose (AutoComplete)
   filterInstallationTeams(event: AutoCompleteCompleteEvent): void {
     const query = event.query.toLowerCase();
-    const teamNames = this.teams.map(t => t.teamName);
+    // Filtrer par l'eventId de la zone de sécurité sélectionnée
+    const teamsForEvent = this.getTeamsForCurrentEvent();
+    const teamNames = teamsForEvent.map(t => t.teamName);
 
     // Ajouter l'option "Aucune" en premier
     const aucuneOption = 'Aucune';
@@ -439,14 +449,17 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const newTeam = this.teams.find(t => t.teamName === selectedName) || null;
+    const teamsForEvent = this.getTeamsForCurrentEvent();
+    const newTeam = teamsForEvent.find(t => t.teamName === selectedName) || null;
     this.selectedInstallationTeamId = newTeam?.uuid || null;
   }
 
   // Méthode pour filtrer les équipes de dépose (AutoComplete)
   filterRemovalTeams(event: AutoCompleteCompleteEvent): void {
     const query = event.query.toLowerCase();
-    const teamNames = this.teams.map(t => t.teamName);
+    // Filtrer par l'eventId de la zone de sécurité sélectionnée
+    const teamsForEvent = this.getTeamsForCurrentEvent();
+    const teamNames = teamsForEvent.map(t => t.teamName);
 
     // Ajouter l'option "Aucune" en premier
     const aucuneOption = 'Aucune';
@@ -477,7 +490,8 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const newTeam = this.teams.find(t => t.teamName === selectedName) || null;
+    const teamsForEvent = this.getTeamsForCurrentEvent();
+    const newTeam = teamsForEvent.find(t => t.teamName === selectedName) || null;
     this.selectedRemovalTeamId = newTeam?.uuid || null;
   }
 
