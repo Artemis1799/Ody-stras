@@ -652,6 +652,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         return true;
       }
 
+      // Recherche dans la description
+      if (point.comment && point.comment.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+
       // Recherche dans le numéro d'ordre
       if (point.order && point.order.toString().includes(lowerQuery)) {
         return true;

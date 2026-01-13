@@ -262,6 +262,40 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     );
   }
 
+  saveCommentOnly(): void {
+    if (!this.selectedPoint) return;
+
+    // Sauvegarder seulement le commentaire
+    const updatedPoint: Point = {
+      ...this.selectedPoint,
+      comment: this.editedComment
+    };
+
+    this.pointService.update(this.selectedPoint.uuid, updatedPoint).subscribe({
+      next: (savedPoint) => {
+        // Mettre à jour le point local immédiatement
+        if (this.selectedPoint) {
+          this.selectedPoint.comment = this.editedComment;
+          this.initialComment = this.editedComment; // Mettre à jour la valeur initiale
+        }
+        
+        // Mettre à jour le MapService pour la réactivité de la sidebar et de la map
+        const currentPoints = this.mapService['pointsSubject'].value;
+        const index = currentPoints.findIndex((p: Point) => p.uuid === savedPoint.uuid);
+        if (index !== -1) {
+          currentPoints[index] = savedPoint;
+          this.mapService.setPoints([...currentPoints]);
+        }
+        
+        this.toastService.showSuccess('Commentaire sauvegardé', 'Le commentaire du point a été mis à jour');
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.toastService.showError('Erreur', 'Impossible de sauvegarder le commentaire');
+      }
+    });
+  }
+
   saveChanges(): void {
     if (!this.selectedPoint) return;
 
