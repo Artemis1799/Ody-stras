@@ -1,20 +1,18 @@
 <div id="map" #mapContainer aria-label="Carte locale" role="region"></div>
 
 @if (showDeleteGeometryConfirm) {
-  <app-delete-popup
-    title="Supprimer l'élément"
-    itemName="cet élément de la carte"
-    warningMessage="Cette action est irréversible."
-    (confirm)="confirmDeleteGeometry()"
-    (close)="cancelDeleteGeometry()"
-  ></app-delete-popup>
-}
-
-@if (showPointTypePopup) {
-  <app-point-type-popup
-    (pointTypeSelected)="onPointTypeSelected($event)"
-    (cancelled)="onPointTypePopupCancelled()"
-  ></app-point-type-popup>
+<app-delete-popup
+  title="Supprimer l'élément"
+  itemName="cet élément de la carte"
+  warningMessage="Cette action est irréversible."
+  (confirm)="confirmDeleteGeometry()"
+  (close)="cancelDeleteGeometry()"
+></app-delete-popup>
+} @if (showPointTypePopup) {
+<app-point-type-popup
+  (pointTypeSelected)="onPointTypeSelected($event)"
+  (cancelled)="onPointTypePopupCancelled()"
+></app-point-type-popup>
 }
 
 <!-- Composants de création d'événement -->
@@ -25,9 +23,9 @@
 ></app-event-confirm-popup>
 
 @if (showGeometryEditDrawer && geometryEditData) {
-  <app-geometry-edit-drawer
-    [geometry]="geometryEditData"
-    (close)="closeGeometryEditDrawer()"
-    (geometryUpdated)="onGeometryUpdated($event)"
-  ></app-geometry-edit-drawer>
+<app-geometry-edit-drawer
+  [geometry]="geometryEditData"
+  (close)="closeGeometryEditDrawer()"
+  (geometryUpdated)="onGeometryUpdated($event)"
+></app-geometry-edit-drawer>
 }
