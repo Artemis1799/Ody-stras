@@ -287,6 +287,7 @@ export class MapService {
   openTimeline(): void {
     this.selectedPointSubject.next(null);
     this.selectedPointIndexSubject.next(null);
+    this.selectedSecurityZoneSubject.next(null);
     this.timelineVisibleSubject.next(true);
   }
 
