@@ -243,6 +243,31 @@
   }
 }
 
+// Input quantity style
+.input-quantity {
+  background: #0d1117 !important;
+  border: 1px solid #30363d !important;
+  color: #c9d1d9 !important;
+  border-radius: 10px !important;
+  padding: 0.875rem 1rem !important;
+  font-size: 0.9375rem !important;
+  transition: all 0.25s ease !important;
+  
+  &::placeholder {
+    color: #6e7681 !important;
+  }
+  
+  &:hover {
+    border-color: #2ad783 !important;
+  }
+  
+  &:focus {
+    border-color: #2ad783 !important;
+    box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.15) !important;
+    background: #161b22 !important;
+  }
+}
+
 // PrimeNG drawer overrides (structure only, input styles are global)
 :host ::ng-deep {
   .p-drawer {
