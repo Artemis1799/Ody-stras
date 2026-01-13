@@ -584,7 +584,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     // Il suffit d'ouvrir la timeline, elle récupère les données automatiquement
     const zones = this.mapService.getSecurityZones();
     if (zones.length === 0) {
-      console.warn('Aucune zone de sécurité à afficher dans la frise.');
+      console.warn('Aucun équipement à afficher dans la frise.');
       return;
     }
 
@@ -648,6 +648,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     const lowerQuery = query.toLowerCase().trim();
     return points.filter((point) => {
       // Recherche dans le commentaire (nom)
+      if (point.comment && point.comment.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+
+      // Recherche dans la description
       if (point.comment && point.comment.toLowerCase().includes(lowerQuery)) {
         return true;
       }

@@ -1,8 +1,14 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MapService, MapBounds } from '../../services/MapService';
 import { SecurityZone } from '../../models/securityZoneModel';
-import { Subscription, combineLatest } from 'rxjs';
+import { SecurityZoneService } from '../../services/SecurityZoneService';
+import { TeamService } from '../../services/TeamService';
+import { Team } from '../../models/teamModel';
+import { ToastService } from '../../services/ToastService';
+import { Subscription, combineLatest, forkJoin, of } from 'rxjs';
+import { concatMap } from 'rxjs/operators';
 
 interface TimelineZone {
   id: string;
@@ -15,7 +21,7 @@ interface TimelineZone {
 @Component({
   selector: 'app-timeline-drawer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './timeline-drawer.component.html',
   styleUrls: ['./timeline-drawer.component.scss'],
 })
@@ -27,6 +33,16 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
   // Données
   allZones: TimelineZone[] = [];
   filteredZones: TimelineZone[] = [];
+  
+  // Sélection de zones
+  selectedZoneIds: Set<string> = new Set();
+  
+  // Modale d'assignation d'équipe
+  showTeamModal = false;
+  availableTeams: Team[] = [];
+  selectedInstallationTeamId: string | null = null;
+  selectedRemovalTeamId: string | null = null;
+  isAssigning = false;
   
   // Visibilité
   isVisible = false;
@@ -44,6 +60,10 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
   geoFilterActive = true; // Filtre géospatial actif par défaut
   isDragging = false;
   
+  // Filtre par type d'équipement
+  selectedEquipmentType: string = 'all';
+  availableEquipmentTypes: string[] = [];
+  
   // Tooltip dynamique
   tooltipVisible = false;
   tooltipX = 0;
@@ -57,7 +77,10 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
 
   constructor(
     private mapService: MapService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private securityZoneService: SecurityZoneService,
+    private teamService: TeamService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -115,6 +138,15 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
       zone
     }));
 
+    // Extraire les types d'équipements uniques
+    const equipmentTypes = new Set<string>();
+    zones.forEach(zone => {
+      if (zone.equipment?.type) {
+        equipmentTypes.add(zone.equipment.type);
+      }
+    });
+    this.availableEquipmentTypes = Array.from(equipmentTypes).sort();
+
     // Calculer la plage de dates globale
     if (this.allZones.length > 0) {
       const dates: Date[] = [];
@@ -158,6 +190,11 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
    */
   private applyFilters(): void {
     let filtered = [...this.allZones];
+
+    // Filtre par type d'équipement
+    if (this.selectedEquipmentType !== 'all') {
+      filtered = filtered.filter(z => z.zone.equipment?.type === this.selectedEquipmentType);
+    }
 
     // Filtre par date: la zone doit être active à cette date
     if (this.dateFilterActive && this.selectedDate) {
@@ -269,6 +306,13 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
     if (this.geoFilterActive) {
       this.dateFilterActive = false;
     }
+    this.applyFilters();
+  }
+
+  /**
+   * Gère le changement du type d'équipement sélectionné
+   */
+  onEquipmentTypeChange(): void {
     this.applyFilters();
   }
 
@@ -468,5 +512,187 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
       return `${total} zones de sécurité`;
     }
     return `${filtered} / ${total} zones visibles`;
+  }
+
+  // ============= Sélection de zones =============
+
+  /**
+   * Vérifie si une zone est sélectionnée
+   */
+  isZoneSelected(zoneId: string): boolean {
+    return this.selectedZoneIds.has(zoneId);
+  }
+
+  /**
+   * Toggle la sélection d'une zone
+   */
+  toggleZoneSelection(zoneId: string, event: Event): void {
+    event.stopPropagation();
+    if (this.selectedZoneIds.has(zoneId)) {
+      this.selectedZoneIds.delete(zoneId);
+    } else {
+      this.selectedZoneIds.add(zoneId);
+    }
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Sélectionne toutes les zones filtrées
+   */
+  selectAllZones(): void {
+    this.filteredZones.forEach(zone => {
+      this.selectedZoneIds.add(zone.id);
+    });
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Désélectionne toutes les zones
+   */
+  deselectAllZones(): void {
+    this.selectedZoneIds.clear();
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Vérifie si toutes les zones filtrées sont sélectionnées
+   */
+  areAllZonesSelected(): boolean {
+    if (this.filteredZones.length === 0) return false;
+    return this.filteredZones.every(zone => this.selectedZoneIds.has(zone.id));
+  }
+
+  /**
+   * Toggle sélectionner/désélectionner tout
+   */
+  toggleSelectAll(): void {
+    if (this.areAllZonesSelected()) {
+      this.deselectAllZones();
+    } else {
+      this.selectAllZones();
+    }
+  }
+
+  /**
+   * Retourne le nombre de zones sélectionnées
+   */
+  getSelectedCount(): number {
+    return this.selectedZoneIds.size;
+  }
+
+  // ============= Assignation d'équipe =============
+
+  /**
+   * Ouvre la modale d'assignation d'équipe
+   */
+  openTeamAssignModal(): void {
+    if (this.selectedZoneIds.size === 0) return;
+
+    // Charger les équipes de l'événement sélectionné
+    const selectedEvent = this.mapService.getSelectedEvent();
+    if (!selectedEvent) return;
+
+    this.teamService.load();
+    // Filtrer les équipes par eventId
+    this.availableTeams = this.teamService.teams().filter(
+      team => team.eventId === selectedEvent.uuid
+    );
+    
+    this.selectedInstallationTeamId = null;
+    this.selectedRemovalTeamId = null;
+    this.showTeamModal = true;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Ferme la modale d'assignation d'équipe
+   */
+  closeTeamModal(): void {
+    this.showTeamModal = false;
+    this.selectedInstallationTeamId = null;
+    this.selectedRemovalTeamId = null;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Assigne les zones sélectionnées aux équipes choisies
+   */
+  assignZonesToTeam(): void {
+    if ((!this.selectedInstallationTeamId && !this.selectedRemovalTeamId) || this.selectedZoneIds.size === 0) return;
+
+    this.isAssigning = true;
+    
+    // Pour chaque zone, on doit faire les assignations en séquence (installation puis removal)
+    // pour éviter que les deux requêtes en parallèle ne s'écrasent mutuellement
+    const zoneAssignments$ = Array.from(this.selectedZoneIds).map(zoneId => {
+      // Créer une chaîne d'observables pour cette zone
+      let assignment$ = of(null as SecurityZone | null);
+      
+      // Si on doit assigner l'équipe d'installation
+      if (this.selectedInstallationTeamId) {
+        assignment$ = assignment$.pipe(
+          concatMap(() => this.securityZoneService.assignInstallationTeam(zoneId, this.selectedInstallationTeamId!))
+        );
+      }
+      
+      // Si on doit assigner l'équipe de retrait (après l'installation)
+      if (this.selectedRemovalTeamId) {
+        assignment$ = assignment$.pipe(
+          concatMap(() => {
+            // Si on a déjà une zone retournée par l'assignation d'installation, on l'ignore
+            // et on fait l'assignation de removal qui retournera la zone avec les deux équipes
+            return this.securityZoneService.assignRemovalTeam(zoneId, this.selectedRemovalTeamId!);
+          })
+        );
+      }
+      
+      return assignment$;
+    });
+
+    if (zoneAssignments$.length === 0) {
+      this.isAssigning = false;
+      return;
+    }
+
+    forkJoin(zoneAssignments$).subscribe({
+      next: (updatedZones) => {
+        this.isAssigning = false;
+        
+        // Mettre à jour l'affichage en temps réel via MapService
+        // Filtrer les valeurs null (ne devrait pas arriver mais par sécurité)
+        updatedZones.filter(zone => zone !== null).forEach(updatedZone => {
+          this.mapService.updateSecurityZone(updatedZone!);
+        });
+        
+        // Afficher un message de succès
+        const count = this.selectedZoneIds.size;
+        const teamNames: string[] = [];
+        if (this.selectedInstallationTeamId) {
+          const team = this.availableTeams.find(t => t.uuid === this.selectedInstallationTeamId);
+          if (team) teamNames.push(`pose: ${team.teamName}`);
+        }
+        if (this.selectedRemovalTeamId) {
+          const team = this.availableTeams.find(t => t.uuid === this.selectedRemovalTeamId);
+          if (team) teamNames.push(`dépose: ${team.teamName}`);
+        }
+        const message = `${count} zone${count > 1 ? 's assignées' : ' assignée'} (${teamNames.join(', ')})`;
+        this.toastService.showSuccess('Assignation réussie', message);
+        
+        this.selectedZoneIds.clear();
+        this.closeTeamModal();
+      },
+      error: (error) => {
+        console.error('Erreur lors de l\'assignation des équipes:', error);
+        this.toastService.showError('Erreur', 'Impossible d\'assigner les équipes aux zones');
+        this.isAssigning = false;
+      }
+    });
+  }
+
+  /**
+   * Vérifie si au moins une équipe est sélectionnée
+   */
+  hasTeamSelected(): boolean {
+    return !!this.selectedInstallationTeamId || !!this.selectedRemovalTeamId;
   }
 }

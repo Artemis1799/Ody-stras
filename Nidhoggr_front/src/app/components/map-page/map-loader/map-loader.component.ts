@@ -1885,7 +1885,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
             );
 
             this.toastService.showSuccess(
-              'Zone de sécurité créée',
+              'Equipement créée',
               'Complétez maintenant les dates de pose et dépose'
             );
 
@@ -1903,8 +1903,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.mapService.stopDrawingMode();
       },
       error: (error) => {
-        console.error('Erreur lors de la création de la zone de sécurité:', error);
-        this.toastService.showError('Erreur', 'Impossible de créer la zone de sécurité');
+        console.error('Erreur lors de la création de l\'équipement:', error);
+        this.toastService.showError('Erreur', 'Impossible de créer l\'équipement');
         this.mapService.stopDrawingMode();
       },
     });

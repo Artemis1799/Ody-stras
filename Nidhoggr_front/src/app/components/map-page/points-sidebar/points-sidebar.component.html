@@ -42,7 +42,7 @@
           (click)="switchTab('zones')"
         >
           <span class="tab-icon">🛡️</span>
-          Zones
+          Equipements
           <span class="tab-count">{{ filteredSecurityZones.length }}</span>
         </button>
       </div>
@@ -130,7 +130,7 @@
       @if (isLoading) {
         <div class="loading-state">Chargement...</div>
       } @else if (paginatedSecurityZones.length === 0) {
-        <div class="empty-state">{{ allSecurityZones.length === 0 ? 'Aucune zone de sécurité' : 'Aucun résultat' }}</div>
+        <div class="empty-state">{{ allSecurityZones.length === 0 ? 'Aucun équipements' : 'Aucun résultat' }}</div>
       } @else {
         <ul class="zones-list">
           @for (zone of paginatedSecurityZones; track zone.uuid; let i = $index) {
