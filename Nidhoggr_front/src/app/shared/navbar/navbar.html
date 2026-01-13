@@ -18,6 +18,10 @@
         <span class="pi pi-wrench"></span>
         Équipements
       </a>
+      <a routerLink="/historique" routerLinkActive="active" class="nav-link" (click)="onDropdownItemClick()">
+        <span class="pi pi-inbox"></span>
+        Historique
+      </a>
       <div class="nav-dropdown">
         <button class="nav-link dropdown-toggle" [class.active]="isPersonnelsActive" (click)="onToggleDropdown()">
           <span class="pi pi-users"></span>

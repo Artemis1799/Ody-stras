@@ -4,13 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { Event, EventStatus } from '../../models/eventModel';
 import { EventService } from '../../services/EventService';
 import { MapService } from '../../services/MapService';
-import { DeletePopupComponent } from '../delete-popup/delete-popup';
+import { ArchivePopupComponent } from '../archive-popup/archive-popup';
 import { ToastService } from '../../services/ToastService';
 
 @Component({
   selector: 'app-event-edit-popup',
   standalone: true,
-  imports: [CommonModule, FormsModule, DeletePopupComponent],
+  imports: [CommonModule, FormsModule, ArchivePopupComponent],
   templateUrl: './event-edit-popup.html',
   styleUrls: ['./event-edit-popup.scss']
 })
@@ -33,6 +33,7 @@ export class EventEditPopup implements OnInit {
   errorMessage = '';
   showDeleteConfirm = false;
   eventAreaVisible = true;
+  isArchived: boolean | undefined = false;
 
   constructor(
     private eventService: EventService,
@@ -59,6 +60,7 @@ export class EventEditPopup implements OnInit {
         this.formData.endDate = date.toISOString().slice(0, 16);
       }
     }
+    this.isArchived = this.event.isArchived;
   }
 
   onSubmit(): void {
@@ -122,26 +124,42 @@ export class EventEditPopup implements OnInit {
     });
   }
 
-  confirmDelete(): void {
+  confirmArchive(): void {
     this.showDeleteConfirm = true;
   }
 
-  cancelDelete(): void {
+  cancelArchive(): void {
     this.showDeleteConfirm = false;
   }
 
-  deleteEvent(): void {
-    this.eventService.delete(this.event.uuid).subscribe({
-      next: () => {
-        this.showDeleteConfirm = false;
-        this.toastService.showSuccess('Événement supprimé', `L'événement "${this.event.title}" a été supprimé`);
-        this.eventDeleted.emit(this.event.uuid);
-        this.close.emit();
-      },
-      error: () => {
-        this.toastService.showError('Erreur', 'Impossible de supprimer l\'événement');
-      }
-    });
+  archiveEvent(): void {
+    if (this.isArchived) {
+      // L'event est archivé, on le désarchive
+      this.eventService.unarchive(this.event.uuid).subscribe({
+        next: () => {
+          this.showDeleteConfirm = false;
+          this.toastService.showSuccess('Événement désarchivé', `L'événement "${this.event.title}" a été désarchivé`);
+          this.eventDeleted.emit(this.event.uuid);
+          this.close.emit();
+        },
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible de désarchiver l\'événement');
+        }
+      });
+    } else {
+      // L'event n'est pas archivé, on l'archive
+      this.eventService.archive(this.event.uuid).subscribe({
+        next: () => {
+          this.showDeleteConfirm = false;
+          this.toastService.showSuccess('Événement archivé', `L'événement "${this.event.title}" a été archivé`);
+          this.eventDeleted.emit(this.event.uuid);
+          this.close.emit();
+        },
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible d\'archiver l\'événement');
+        }
+      });
+    }
   }
 
   toggleEventAreaVisibility(): void {

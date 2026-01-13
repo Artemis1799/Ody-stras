@@ -14,4 +14,5 @@ export interface Event {
   status: EventStatus;
   minDurationMinutes?: number;
   maxDurationMinutes?: number;
+  isArchived?: boolean;
 }

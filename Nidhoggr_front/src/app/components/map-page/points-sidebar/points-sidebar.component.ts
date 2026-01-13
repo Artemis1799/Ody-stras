@@ -208,9 +208,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   filterEvents(event: { query: string }): void {
     const query = event.query.toLowerCase();
+    // Filtrer les événements non archivés
     const filtered = this.events
       .filter(
-        (e) => e.title.toLowerCase().includes(query)
+        (e) => !e.isArchived && e.title.toLowerCase().includes(query)
       )
       .map((e) => e.title);
     // Supprimer les doublons de noms
@@ -219,7 +220,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   onEventSelect(event: { value: string }): void {
     const eventName = event.value;
-    const selectedEventObj = this.events.find((e) => e.title === eventName);
+    const selectedEventObj = this.events.find((e) => e.title === eventName && !e.isArchived);
     if (selectedEventObj?.uuid) {
       this.selectedEvent = selectedEventObj;
       this.selectedEventName = selectedEventObj.title;
