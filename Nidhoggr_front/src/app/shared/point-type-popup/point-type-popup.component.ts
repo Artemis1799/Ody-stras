@@ -47,7 +47,7 @@ import { CommonModule } from '@angular/common';
                 </svg>
               </div>
               <div class="card-content">
-                <h5>Point normal</h5>
+                <h5>Point</h5>
                 <p>Apparaît dans la liste et le parcours</p>
               </div>
               <div class="card-arrow">
@@ -64,6 +64,24 @@ import { CommonModule } from '@angular/common';
               <div class="card-content">
                 <h5>Point d'intérêt</h5>
                 <p>Marqué spécialement, hors parcours</p>
+              </div>
+              <div class="card-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </button>
+
+            <button class="point-type-card equipment" (click)="onSelectEquipment()">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+              </div>
+              <div class="card-content">
+                <h5>Équipement</h5>
+                <p>Crée une zone d'équipement</p>
               </div>
               <div class="card-arrow">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -282,6 +300,11 @@ import { CommonModule } from '@angular/common';
           box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
         }
 
+        &.equipment:hover {
+          border-color: #2ad783;
+          box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.1);
+        }
+
         .card-icon {
           width: 44px;
           height: 44px;
@@ -308,6 +331,15 @@ import { CommonModule } from '@angular/common';
           .interest-icon {
             font-size: 1.5rem;
             font-weight: 900;
+            color: $text-primary;
+          }
+        }
+
+        &.equipment .card-icon {
+          background: linear-gradient(135deg, #2ad783 0%, #1e9065 100%);
+          box-shadow: 0 4px 12px rgba(42, 215, 131, 0.25);
+
+          svg {
             color: $text-primary;
           }
         }
@@ -377,10 +409,17 @@ import { CommonModule } from '@angular/common';
 })
 export class PointTypePopupComponent {
   @Output() pointTypeSelected = new EventEmitter<boolean>();
+  @Output() equipmentRequired = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
   onSelectPointType(isPointOfInterest: boolean): void {
     this.pointTypeSelected.emit(isPointOfInterest);
+  }
+
+  onSelectEquipment(): void {
+    console.log('[PointTypePopup] onSelectEquipment called');
+    this.equipmentRequired.emit();
+    console.log('[PointTypePopup] equipmentRequired event emitted');
   }
 
   onCancel(): void {

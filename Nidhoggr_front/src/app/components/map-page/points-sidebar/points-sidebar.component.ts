@@ -53,7 +53,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   selectedPointUuid: string | null = null;
   isLoading = false;
   errorMessage = '';
-  emptyMessage = 'Sélectionnez un évènement pour voir ses points';
+  emptyMessage = 'Sélectionnez un événement pour voir ses points';
   private pointsSubscription?: Subscription;
   private securityZonesSubscription?: Subscription;
   private selectedEventSubscription?: Subscription;
@@ -547,7 +547,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.eventStoreService.setSelectedEvent(null);
     // Vider les points
     this.mapService.setPoints([]);
-    this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
+    this.emptyMessage = 'Sélectionnez un événement pour voir ses points';
   }
 
   onEventCreationConfirmed(): void {
@@ -564,7 +564,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
           this.mapService.setSelectedEvent(null);
           this.eventStoreService.setSelectedEvent(null);
           this.mapService.setPoints([]);
-          this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
+          this.emptyMessage = 'Sélectionnez un événement pour voir ses points';
         },
         error: (error) => {
           console.error("Erreur lors de la suppression de l'événement annulé:", error);

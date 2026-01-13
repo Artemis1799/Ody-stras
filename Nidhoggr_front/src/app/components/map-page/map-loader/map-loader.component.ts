@@ -24,6 +24,8 @@ import {
   GeometryEditData,
 } from '../../../shared/geometry-edit-drawer/geometry-edit-drawer.component';
 import { ToastService } from '../../../services/ToastService';
+import { EquipmentSelectPopupComponent } from '../../../shared/equipment-select-popup/equipment-select-popup.component';
+import { Equipment } from '../../../models/equipmentModel';
 
 @Component({
   selector: 'app-map-loader',
@@ -32,6 +34,7 @@ import { ToastService } from '../../../services/ToastService';
     CommonModule,
     DeletePopupComponent,
     PointTypePopupComponent,
+    EquipmentSelectPopupComponent,
     EventCreationGuide,
     EventConfirmPopup,
     GeometryEditDrawerComponent,
@@ -92,6 +95,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   showPointTypePopup = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private pendingMarkerLayer: any = null;
+  
+  // Popup de sélection d'équipement
+  showEquipmentSelectPopup = false;
+  equipments: Equipment[] = [];
+  private selectedEquipmentService: EquipmentService | null = null;
 
   // Drawer d'édition de géométrie (Area/RoutePath)
   showGeometryEditDrawer = false;
@@ -265,6 +273,38 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
       // S'abonner aux SecurityZones pour les afficher sur la carte
       this.securityZonesSubscription = this.mapService.securityZones$.subscribe((zones) => {
+        // Récupérer les UUIDs des zones actuelles
+        const currentZoneIds = new Set(zones.map(z => z.uuid));
+        
+        // Supprimer les zones qui ne sont plus dans la liste
+        const layersToDelete: string[] = [];
+        this.geometryLayers.forEach((layer, uuid) => {
+          if (layer.shapeType === 'securityZone' && !currentZoneIds.has(uuid)) {
+            layersToDelete.push(uuid);
+          }
+        });
+        
+        // Supprimer les layers identifiés
+        layersToDelete.forEach(uuid => {
+          const layer = this.geometryLayers.get(uuid);
+          if (layer) {
+            // Retirer de tous les groupes possibles
+            if (this.drawnItems && this.drawnItems.hasLayer(layer)) {
+              this.drawnItems.removeLayer(layer);
+            }
+            if (this.map && this.map.hasLayer(layer)) {
+              this.map.removeLayer(layer);
+            }
+            // Fermer le popup si ouvert
+            if (layer.closePopup) {
+              layer.closePopup();
+            }
+            // Retirer de la map des géométries
+            this.geometryLayers.delete(uuid);
+          }
+        });
+        
+        // Ajouter les nouvelles zones
         zones.forEach((zone) => {
           this.addSecurityZoneToMap(zone);
         });
@@ -332,21 +372,29 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     // Ajouter les nouveaux markers
     points.forEach((point) => {
       if (this.map && point.latitude && point.longitude) {
-        // Déterminer le contenu du marker (vide pour les points normaux, ! pour les points d'intérêt)
-        const markerContent = point.isPointOfInterest ? '!' : '';
+        let markerIcon;
+        
+        if (point.isPointOfInterest) {
+          // Utiliser l'image pour les points d'intérêt
+          markerIcon = L.icon({
+            iconUrl: '/assets/icons/point-attention.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+          });
+        } else {
+          // Utiliser l'image pour les points normaux
+          markerIcon = L.icon({
+            iconUrl: '/assets/icons/point-classique.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+          });
+        }
 
         const marker = L.marker([point.latitude, point.longitude], {
           title: this.getPointDisplayName(point),
-          icon: L.divIcon({
-            className: 'custom-marker',
-            html: `<div class="marker-pin ${point.validated ? 'valid' : 'invalid'} ${
-              point.isPointOfInterest ? 'point-of-interest' : ''
-            }">
-                     <span class="marker-number">${markerContent}</span>
-                   </div>`,
-            iconSize: [30, 42],
-            iconAnchor: [15, 42],
-          }),
+          icon: markerIcon,
         }).addTo(this.map);
 
         // Clic sur le marker - ouvre le drawer
@@ -801,12 +849,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           rectangle: false,
           circle: false,
           marker: {
-            icon: L.divIcon({
-              className: 'custom-marker',
-              html: `<div class="marker-pin newly-created">
-                     </div>`,
-              iconSize: [30, 42],
-              iconAnchor: [15, 42],
+            icon: L.icon({
+              iconUrl: '/assets/icons/point-classique.png',
+              iconSize: [40, 40],
+              iconAnchor: [20, 40],
+              popupAnchor: [0, -40]
             }),
           },
           circlemarker: false,
@@ -1104,20 +1151,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           point.isPointOfInterest = pointData.isPointOfInterest;
         }
 
-        // Mettre à jour l'icône du marker avec le bon contenu
-        const markerContent = point.isPointOfInterest
-          ? '!'
-          : (point.order || currentPoints + 1).toString();
+        // Mettre à jour l'icône du marker avec l'image selon le type de point
+        const iconUrl = point.isPointOfInterest 
+          ? '/assets/icons/point-attention.png'
+          : '/assets/icons/point-classique.png';
+        
         layer.setIcon(
-          L.divIcon({
-            className: 'custom-marker',
-            html: `<div class="marker-pin ${point.validated ? 'valid' : 'invalid'} ${
-              point.isPointOfInterest ? 'point-of-interest' : ''
-            }">
-                     <span class="marker-number">${markerContent}</span>
-                   </div>`,
-            iconSize: [30, 42],
-            iconAnchor: [15, 42],
+          L.icon({
+            iconUrl: iconUrl,
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
           })
         );
 
@@ -1796,10 +1840,14 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     this.securityZoneService.create(securityZoneData as SecurityZone).subscribe({
       next: (createdZone) => {
-        // Ajouter la polyline à la carte
-        this.drawnItems.addLayer(layer);
+        // Associer l'UUID et le type au layer
         layer.securityZoneUuid = createdZone.uuid;
         layer.shapeType = 'securityZone';
+        
+        // Toujours ajouter la zone nouvellement créée (ignorer le filtre pour les nouvelles zones)
+        this.drawnItems.addLayer(layer);
+        
+        // Stocker dans la map
         this.geometryLayers.set(createdZone.uuid, layer);
 
         // Rendre interactive
@@ -1921,6 +1969,82 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Réinitialiser l'état de la popup
     this.showPointTypePopup = false;
+    this.pendingMarkerLayer = null;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Gère la demande de sélection d'équipement depuis la popup de type de point
+   */
+  onEquipmentRequired(): void {
+    console.log('[MapLoader] onEquipmentRequired called');
+    // Fermer la popup de type de point
+    this.showPointTypePopup = false;
+    
+    // Charger les équipements et ouvrir la popup de sélection
+    this.equipmentService.getAll().subscribe({
+      next: (equipments) => {
+        this.equipments = equipments;
+        this.showEquipmentSelectPopup = true;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des équipements:', error);
+        this.toastService.showError('Erreur', 'Impossible de charger les équipements');
+        // Annuler en cas d'erreur
+        this.onPointTypePopupCancelled();
+      }
+    });
+  }
+
+  /**
+   * Gère la sélection d'un équipement
+   */
+  onEquipmentSelected(equipment: Equipment): void {
+    if (!this.pendingMarkerLayer || !this.selectedEvent || typeof window === 'undefined') return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const L: any = (window as any).L;
+
+    // Créer un point temporaire avec les coordonnées du marker
+    const latlng = this.pendingMarkerLayer.getLatLng();
+    const tempPoint: Point = {
+      uuid: 'temp-' + Date.now(),
+      name: 'Point temporaire',
+      latitude: latlng.lat,
+      longitude: latlng.lng,
+      comment: '',
+      eventId: this.selectedEvent.uuid,
+      isPointOfInterest: false,
+      validated: false
+    };
+
+    // Fermer la popup
+    this.showEquipmentSelectPopup = false;
+    
+    // Supprimer le marker temporaire
+    if (this.map) {
+      this.map.removeLayer(this.pendingMarkerLayer);
+    }
+    this.pendingMarkerLayer = null;
+
+    // Activer le mode dessin avec le point et l'équipement
+    this.mapService.startDrawingMode(tempPoint, equipment);
+    
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Gère l'annulation de la sélection d'équipement
+   */
+  onEquipmentSelectCancelled(): void {
+    // Supprimer le marker temporaire
+    if (this.pendingMarkerLayer && this.map) {
+      this.map.removeLayer(this.pendingMarkerLayer);
+    }
+
+    // Réinitialiser l'état
+    this.showEquipmentSelectPopup = false;
     this.pendingMarkerLayer = null;
     this.cdr.detectChanges();
   }
