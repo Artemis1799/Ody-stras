@@ -2,37 +2,33 @@
   <aside class="sidebar" [class.collapsed]="isCollapsed">
     <!-- Sidebar content (hidden when collapsed) -->
     <div class="sidebar-content" *ngIf="!isCollapsed">
-      <!-- Event selector autocomplete -->
-      <div class="event-selector">
-        <p-autoComplete
-          [(ngModel)]="selectedEventName"
-          [suggestions]="filteredEvents"
-          (completeMethod)="filterEvents($event)"
-          (onSelect)="onEventSelect($event)"
-          placeholder="Sélectionner un événement..."
-          [dropdown]="true"
-          [forceSelection]="true"
-          [showEmptyMessage]="true"
-          emptyMessage="Aucun événement trouvé"
-        />
-      </div>
+    <!-- Event selector autocomplete -->
+    <div class="event-selector">
+      <p-autoComplete
+        [(ngModel)]="selectedEventName"
+        [suggestions]="filteredEvents"
+        (completeMethod)="filterEvents($event)"
+        (onSelect)="onEventSelect($event)"
+        placeholder="Sélectionner un événement..."
+        [dropdown]="true"
+        [forceSelection]="true"
+        [showEmptyMessage]="true"
+        emptyMessage="Aucun événement trouvé"
+      />
+    </div>
 
-      <!-- Search results autocomplete -->
-      <div class="search-results" *ngIf="searchResults.length > 0">
-        <div
-          *ngFor="let result of searchResults"
-          class="result-item"
-          (click)="goToLocation(result)"
-        >
-          {{ result.display_name }}
-        </div>
+    <!-- Search results autocomplete -->
+    <div class="search-results" *ngIf="searchResults.length > 0">
+      <div *ngFor="let result of searchResults" class="result-item" (click)="goToLocation(result)">
+        {{ result.display_name }}
       </div>
+    </div>
 
-      <!-- Tabs: Points / Zones de sécurité -->
-      @if (selectedEvent) {
+    <!-- Tabs: Points / Zones de sécurité -->
+    @if (selectedEvent) {
       <div class="sidebar-tabs">
-        <button
-          class="tab-btn"
+        <button 
+          class="tab-btn" 
           [class.active]="activeTab === 'points'"
           (click)="switchTab('points')"
         >
@@ -40,204 +36,183 @@
           Points
           <span class="tab-count">{{ getRegularPointsCount() }}</span>
         </button>
-        <button class="tab-btn" [class.active]="activeTab === 'zones'" (click)="switchTab('zones')">
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'zones'"
+          (click)="switchTab('zones')"
+        >
           <span class="tab-icon">🛡️</span>
           Equipements
           <span class="tab-count">{{ filteredSecurityZones.length }}</span>
         </button>
       </div>
-      }
+    }
 
-      <!-- Points Tab Content -->
-      @if (activeTab === 'points') {
+    <!-- Points Tab Content -->
+    @if (activeTab === 'points') {
       <!-- Points search -->
       @if (getRegularPointsCount() > 0) {
-      <div class="points-search-container">
-        <input
-          type="text"
-          class="points-search-input"
-          placeholder="Rechercher un point..."
-          [(ngModel)]="pointsSearchQuery"
-          (ngModelChange)="onPointsSearchChange()"
-        />
-        @if (pointsSearchQuery) {
-        <button
-          class="clear-points-search"
-          (click)="pointsSearchQuery = ''; onPointsSearchChange()"
-        >
-          ✕
-        </button>
+        <div class="points-search-container">
+          <input
+            type="text"
+            class="points-search-input"
+            placeholder="Rechercher un point..."
+            [(ngModel)]="pointsSearchQuery"
+            (ngModelChange)="onPointsSearchChange()"
+          />
+          @if (pointsSearchQuery) {
+          <button class="clear-points-search" (click)="pointsSearchQuery = ''; onPointsSearchChange()">✕</button>
         }
       </div>
-      }
+    }
 
-      <!-- Points list component -->
-      <div class="points-list-wrapper">
-        <app-points-list
-          [points]="paginatedPoints"
-          [startIndex]="(currentPage - 1) * itemsPerPage"
-          [selectedPointUuid]="selectedPointUuid"
-          [isLoading]="isLoading"
-          [errorMessage]="errorMessage"
-          [emptyMessage]="emptyMessage"
-          (pointClick)="onPointClick($event)"
-        />
-      </div>
+    <!-- Points list component -->
+    <div class="points-list-wrapper">
+      <app-points-list
+        [points]="paginatedPoints"
+        [startIndex]="(currentPage - 1) * itemsPerPage"
+        [selectedPointUuid]="selectedPointUuid"
+        [isLoading]="isLoading"
+        [errorMessage]="errorMessage"
+        [emptyMessage]="emptyMessage"
+        (pointClick)="onPointClick($event)"
+      />
+    </div>
 
-      <!-- Points pagination -->
-      @if (totalPages > 1) {
+    <!-- Points pagination -->
+    @if (totalPages > 1) {
       <div class="list-pagination">
         <div class="pagination-buttons">
-          <button
-            class="pagination-btn"
+          <button 
+            class="pagination-btn" 
             [disabled]="currentPage === 1"
             (click)="previousPointsPage()"
-          >
-            ◀
-          </button>
+          >◀</button>
           @for (page of getPointsPageNumbers(); track page) {
-          <button
-            class="pagination-btn page-number"
-            [class.active]="page === currentPage"
-            (click)="goToPointsPage(page)"
-          >
-            {{ page }}
-          </button>
+            <button 
+              class="pagination-btn page-number"
+              [class.active]="page === currentPage"
+              (click)="goToPointsPage(page)"
+            >{{ page }}</button>
           }
-          <button
-            class="pagination-btn"
+          <button 
+            class="pagination-btn" 
             [disabled]="currentPage === totalPages"
             (click)="nextPointsPage()"
-          >
-            ▶
-          </button>
+          >▶</button>
         </div>
         <div class="pagination-info">Page {{ currentPage }} / {{ totalPages }}</div>
       </div>
-      } }
+    }
+  }
 
-      <!-- Zones Tab Content -->
-      @if (activeTab === 'zones') {
-      <!-- Zones type filter -->
-      @if (allSecurityZones.length > 0) {
+  <!-- Zones Tab Content -->
+  @if (activeTab === 'zones') {
+    <!-- Zones type filter -->
+    @if (allSecurityZones.length > 0) {
       <div class="zone-type-filter">
         <label class="filter-label">Filtrer par type</label>
-        <select
+        <select 
           class="type-filter-select"
           [(ngModel)]="selectedZoneType"
           (ngModelChange)="onZoneTypeChange($event)"
         >
           <option value="all">Tous les types</option>
           @for (type of availableZoneTypes; track type) {
-          <option [value]="type">{{ type }}</option>
+            <option [value]="type">{{ type }}</option>
           }
         </select>
       </div>
-      }
+    }
 
-      <!-- Security Zones list -->
-      <div class="zones-list-wrapper">
-        @if (isLoading) {
+    <!-- Security Zones list -->
+    <div class="zones-list-wrapper">
+      @if (isLoading) {
         <div class="loading-state">Chargement...</div>
-        } @else if (paginatedSecurityZones.length === 0) {
-        <div class="empty-state">
-          {{ allSecurityZones.length === 0 ? 'Aucun équipement' : 'Aucun résultat' }}
-        </div>
-        } @else {
+      } @else if (paginatedSecurityZones.length === 0) {
+        <div class="empty-state">{{ allSecurityZones.length === 0 ? 'Aucun équipements' : 'Aucun résultat' }}</div>
+      } @else {
         <ul class="zones-list">
           @for (zone of paginatedSecurityZones; track zone.uuid; let i = $index) {
-          <li class="zone-item" (click)="onZoneClick(zone)">
-            <div class="zone-info">
-              <span class="zone-equipment">{{ getZoneEquipmentName(zone) }}</span>
-              <span class="zone-quantity">x{{ zone.quantity }}</span>
-            </div>
-            <div class="zone-dates">{{ getZoneDateRange(zone) }}</div>
-          </li>
+            <li class="zone-item" (click)="onZoneClick(zone)">
+              <div class="zone-info">
+                <span class="zone-equipment">{{ getZoneEquipmentName(zone) }}</span>
+                <span class="zone-quantity">x{{ zone.quantity }}</span>
+              </div>
+              <div class="zone-dates">{{ getZoneDateRange(zone) }}</div>
+            </li>
           }
         </ul>
-        }
-      </div>
+      }
+    </div>
 
-      <!-- Zones pagination -->
-      @if (zonesTotalPages > 1) {
+    <!-- Zones pagination -->
+    @if (zonesTotalPages > 1) {
       <div class="list-pagination">
         <div class="pagination-buttons">
-          <button
-            class="pagination-btn"
+          <button 
+            class="pagination-btn" 
             [disabled]="zonesCurrentPage === 1"
             (click)="previousZonesPage()"
-          >
-            ◀
-          </button>
+          >◀</button>
           @for (page of getZonesPageNumbers(); track page) {
-          <button
-            class="pagination-btn page-number"
-            [class.active]="page === zonesCurrentPage"
-            (click)="goToZonesPage(page)"
-          >
-            {{ page }}
-          </button>
+            <button 
+              class="pagination-btn page-number"
+              [class.active]="page === zonesCurrentPage"
+              (click)="goToZonesPage(page)"
+            >{{ page }}</button>
           }
-          <button
-            class="pagination-btn"
+          <button 
+            class="pagination-btn" 
             [disabled]="zonesCurrentPage === zonesTotalPages"
             (click)="nextZonesPage()"
-          >
-            ▶
-          </button>
+          >▶</button>
         </div>
         <div class="pagination-info">Page {{ zonesCurrentPage }} / {{ zonesTotalPages }}</div>
       </div>
-      } }
+    }
+  }
 
-      <div class="bottom-buttons">
-        @if (selectedEvent) {
-        <button
-          class="gantt-btn"
-          (click)="openGantt()"
-          [disabled]="!selectedEvent || allSecurityZones.length === 0"
+  <div class="bottom-buttons">
+    @if (selectedEvent) {
+      <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent || allSecurityZones.length === 0">
+        📊 Planning d'installation
+      </button>
+      <button class="edit-event-btn" (click)="openEventEdit()">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
-          📊 Planning d'installation
-        </button>
-        <button class="edit-event-btn" (click)="openEventEdit()">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-          Modifier l'événement
-        </button>
-        }
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        Modifier l'événement
+      </button>
+    }
 
-        <button class="equipment-btn" (click)="openEventCreate()">Créer un évènement</button>
-        <button
-          class="export-btn"
-          [class.disabled]="!selectedEvent"
-          [disabled]="!selectedEvent"
-          (click)="openExport()"
-        >
-          Exporter
-        </button>
-        <button class="import-btn" (click)="openImport()">Importer</button>
-      </div>
+    <button class="equipment-btn" (click)="openEventCreate()">Créer un évènement</button>
+    <button
+      class="export-btn"
+      [class.disabled]="!selectedEvent"
+      [disabled]="!selectedEvent"
+      (click)="openExport()"
+    >
+      Exporter
+    </button>
+    <button class="import-btn" (click)="openImport()">Importer</button>
+  </div>
     </div>
   </aside>
 
   <!-- Toggle button (outside sidebar) -->
-  <button
-    class="toggle-btn"
-    (click)="toggleSidebar()"
-    [attr.aria-label]="isCollapsed ? 'Ouvrir le menu' : 'Fermer le menu'"
-  >
+  <button class="toggle-btn" (click)="toggleSidebar()" [attr.aria-label]="isCollapsed ? 'Ouvrir le menu' : 'Fermer le menu'">
     <span class="toggle-icon" [class.open]="!isCollapsed">
       <span></span>
       <span></span>
