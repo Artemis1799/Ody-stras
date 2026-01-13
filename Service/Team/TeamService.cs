@@ -57,6 +57,27 @@ public class TeamService : ITeamService
             return null;
         }
 
+        // Si l'EventId change, on enlève cette équipe des SecurityZones de l'ancien event
+        if (existing.EventId != team.EventId)
+        {
+            var securityZonesToUpdate = await _context.SecurityZones
+                .Where(sz => sz.InstallationTeamId == id || sz.RemovalTeamId == id)
+                .Where(sz => sz.EventId == existing.EventId)
+                .ToListAsync();
+
+            foreach (var sz in securityZonesToUpdate)
+            {
+                if (sz.InstallationTeamId == id)
+                {
+                    sz.InstallationTeamId = null;
+                }
+                if (sz.RemovalTeamId == id)
+                {
+                    sz.RemovalTeamId = null;
+                }
+            }
+        }
+
         existing.TeamName = team.TeamName;
         existing.EventId = team.EventId;
 
