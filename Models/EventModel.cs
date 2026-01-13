@@ -25,7 +25,10 @@ public class Event
 
     [Required]
     public int MaxDurationMinutes { get; set; }
-    
+
+    [Required]
+    public bool IsArchived { get; set; }
+
     [JsonIgnore]
     public ICollection<Team>? Teams { get; set; }
     
