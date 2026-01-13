@@ -168,7 +168,6 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
 
     // Filtre géospatial: la zone doit être visible dans le viewport (hors timeline)
     if (this.geoFilterActive && this.currentBounds) {
-      const beforeGeoFilter = filtered.length;
       // Ajuster les bounds pour exclure la zone occupée par la timeline
       const adjustedBounds = this.getAdjustedBoundsForTimeline(this.currentBounds);
       filtered = filtered.filter(z => this.isZoneInBounds(z.zone, adjustedBounds));
@@ -404,6 +403,7 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
     return `${datePart} ${timePart}`;
   }
 
+  // eslint-disable-next-line complexity
   private generateGraduations(): void {
     if (!this.minDate || !this.maxDate || this.totalDays === 0) {
       this.graduations = [];

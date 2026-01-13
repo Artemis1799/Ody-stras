@@ -12,9 +12,7 @@ export const routes: Routes = [
   {
     path: 'evenements',
     component: LayoutComponent,
-    children: [
-      { path: '', component: MapLoaderComponent }
-    ]
+    children: [{ path: '', component: MapLoaderComponent }],
   },
   { path: 'equipments', component: EquipmentManagerComponent },
   { path: 'personnels/personnes', component: PersonnesComponent },

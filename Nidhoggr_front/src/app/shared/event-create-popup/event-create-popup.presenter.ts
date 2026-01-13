@@ -52,6 +52,7 @@ export class EventCreatePopupPresenter {
     this.errorMessage = '';
   }
 
+  // eslint-disable-next-line complexity
   validate(): boolean {
     if (!this.formData.title.trim()) {
       this.errorMessage = 'Le titre de l\'événement est requis.';

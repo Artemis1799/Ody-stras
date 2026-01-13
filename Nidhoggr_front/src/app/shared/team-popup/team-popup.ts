@@ -1,10 +1,11 @@
-import { Component, EventEmitter, Input, Output, signal, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, OnDestroy, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Team } from '../../models/teamModel';
 import { Employee } from '../../models/employeeModel';
 import { Event } from '../../models/eventModel';
 import { SecurityZone } from '../../models/securityZoneModel';
+import { Planning } from '../../models/planningModel';
 import { WS_URL } from '../constants/wsUrl';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
@@ -21,13 +22,19 @@ export interface TeamFormData {
   templateUrl: './team-popup.html',
   styleUrl: './team-popup.scss'
 })
-export class TeamPopupComponent implements OnDestroy, OnChanges {
+export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
   @Input() isEditing = false;
   @Input() team: Partial<Team> = {};
   @Input() allEmployees: Employee[] = [];
   @Input() selectedEmployees: Employee[] = [];
   @Input() events: Event[] = [];
   @Input() securityZones: SecurityZone[] = [];
+  @Input() plannings: Planning[] = [];
+  
+  // Event change confirmation
+  showEventChangeConfirm = false;
+  pendingEventId: string | null = null;
+  originalEventId: string | null = null;
   
   // Selected events for export (multi-select)
   selectedEventIds: string[] = [];
@@ -53,9 +60,20 @@ export class TeamPopupComponent implements OnDestroy, OnChanges {
   @Output() selectedEmployeesChange = new EventEmitter<Employee[]>();
   @Output() save = new EventEmitter<TeamFormData>();
   @Output() close = new EventEmitter<void>();
+  @Output() eventChangeRequested = new EventEmitter<{ teamId: string; oldEventId: string; newEventId: string }>();
+
+  ngOnInit(): void {
+    // Mémoriser l'eventId original pour la vérification de changement
+    if (this.isEditing && this.team.eventId) {
+      this.originalEventId = this.team.eventId;
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     // Pas besoin d'initialiser selectedEventIds ici, c'est fait dans la popup d'export
+    if (changes['team'] && this.isEditing) {
+      this.originalEventId = this.team.eventId || null;
+    }
   }
   
   getFilteredEmployees(): Employee[] {
@@ -81,6 +99,70 @@ export class TeamPopupComponent implements OnDestroy, OnChanges {
       this.selectedEmployees = [...this.selectedEmployees, employee];
     }
     this.selectedEmployeesChange.emit(this.selectedEmployees);
+  }
+
+  /**
+   * Récupère le nom de l'event actuel
+   */
+  getCurrentEventName(): string {
+    if (!this.team.eventId) return 'Aucun événement';
+    const event = this.events.find(e => e.uuid === this.team.eventId);
+    return event?.title || 'Événement inconnu';
+  }
+
+  /**
+   * Récupère le nom d'un event par son ID
+   */
+  getEventNameById(eventId: string): string {
+    const event = this.events.find(e => e.uuid === eventId);
+    return event?.title || 'Événement inconnu';
+  }
+
+  /**
+   * Gère le changement d'event avec vérification
+   */
+  onEventChange(newEventId: string): void {
+    // Si on est en mode édition et qu'on change vraiment d'event
+    if (this.isEditing && this.team.uuid && this.originalEventId && newEventId !== this.originalEventId) {
+      // Toujours demander confirmation car ça peut impacter les poses/déposes
+      this.pendingEventId = newEventId;
+      this.showEventChangeConfirm = true;
+      return;
+    }
+    // Mode création ou pas de changement, on peut changer directement
+    this.team.eventId = newEventId;
+  }
+
+  /**
+   * Confirme le changement d'event (va détacher les plannings et actions)
+   */
+  confirmEventChange(): void {
+    if (this.pendingEventId && this.team.uuid && this.originalEventId) {
+      // Émettre l'événement pour que le parent détache les plannings/actions
+      this.eventChangeRequested.emit({
+        teamId: this.team.uuid,
+        oldEventId: this.originalEventId,
+        newEventId: this.pendingEventId
+      });
+      this.team.eventId = this.pendingEventId;
+      this.originalEventId = this.pendingEventId;
+    }
+    this.cancelEventChange();
+  }
+
+  /**
+   * Annule le changement d'event
+   */
+  cancelEventChange(): void {
+    this.showEventChangeConfirm = false;
+    this.pendingEventId = null;
+  }
+
+  /**
+   * Vérifie si le bouton d'export planning est disponible
+   */
+  canExportPlanning(): boolean {
+    return !!this.team.eventId && !!this.team.uuid;
   }
 
   onSave(): void {
@@ -121,12 +203,6 @@ export class TeamPopupComponent implements OnDestroy, OnChanges {
 
     const teamName = this.team.teamName || 'Équipe';
     const eventName = this.events.find(e => e.uuid === this.team.eventId)?.title || '';
-    const generatedDate = new Date().toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
 
     // === EN-TÊTE DU DOCUMENT ===
     doc.setFillColor(23, 28, 34);
@@ -347,21 +423,40 @@ export class TeamPopupComponent implements OnDestroy, OnChanges {
   }
 
   /**
-   * Ouvre la popup d'export planning pour sélectionner les événements
+   * Exporte le planning via QR Code - utilise l'event de l'équipe directement
    */
   async exportPlanningQRCode(): Promise<void> {
-    if (!this.team.uuid) return;
+    if (!this.team.uuid || !this.team.eventId) return;
 
-    // Réinitialiser la sélection d'événements
-    this.selectedEventIds = [];
+    // Utiliser l'event de l'équipe directement, pas de sélection
+    this.selectedEventIds = [this.team.eventId];
     this.qrCodeDataURL = '';
-    this.exportStatus = '';
-    this.isExporting = false;
+    this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
+    this.isExporting = true;
     this.showQRCodePopup = true;
+
+    try {
+      // Générer le QR code avec l'URL du serveur WebSocket
+      this.qrCodeDataURL = await QRCode.toDataURL(WS_URL, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+
+      // Connexion au WebSocket et attente du téléphone
+      this.connectAndWaitForPhone();
+    } catch (error) {
+      console.error('❌ Erreur génération QR code:', error);
+      this.exportStatus = '❌ Erreur lors de la génération du QR code';
+      this.isExporting = false;
+    }
   }
 
   /**
-   * Confirme la sélection des événements et génère le QR Code
+   * Confirme la sélection des événements et génère le QR Code (obsolète - gardé pour compatibilité)
    */
   async confirmAndGenerateQRCode(): Promise<void> {
     if (!this.team.uuid || this.selectedEventIds.length === 0) return;
