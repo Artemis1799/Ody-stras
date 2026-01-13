@@ -12,9 +12,9 @@ build_job:
 test_job:
   stage: test
   script:
-    - dotnet test --logger "junit;LogFileName=test-results.xml" --no-build
+    - dotnet test --logger "junit;LogFileName=test-results.xml"
   artifacts:
     reports:
-      junit: test-results.xml
+      junit: "**/test-results.xml"
     paths:
-      - test-results.xml
+      - "**/test-results.xml"
