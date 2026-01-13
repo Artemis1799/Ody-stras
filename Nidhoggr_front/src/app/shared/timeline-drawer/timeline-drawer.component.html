@@ -24,6 +24,23 @@
           </svg>
           {{ geoFilterActive ? 'Filtre géospatial' : 'Géospatial off' }}
         </button>
+        
+        <!-- Bouton d'assignation d'équipe -->
+        <button 
+          class="filter-toggle assign-team-btn" 
+          [class.active]="getSelectedCount() > 0"
+          [disabled]="getSelectedCount() === 0"
+          (click)="openTeamAssignModal()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Assigner ({{ getSelectedCount() }})
+        </button>
+        
         <span class="selected-date" *ngIf="selectedDate && dateFilterActive">
           📅 {{ formatDateTime(selectedDate) }}
         </span>
@@ -85,9 +102,30 @@
 
       <!-- Barres de la frise (seulement si des zones filtrées) -->
       <div class="timeline-items-wrapper" *ngIf="filteredZones.length > 0; else noFilteredZones">
+        <!-- Header avec checkbox tout sélectionner -->
+        <div class="timeline-items-header">
+          <div class="select-all-container">
+            <input 
+              type="checkbox" 
+              id="selectAllZones"
+              class="zone-checkbox"
+              [checked]="areAllZonesSelected()"
+              (change)="toggleSelectAll()"
+            />
+            <label for="selectAllZones" class="select-all-label">Tout sélectionner</label>
+          </div>
+        </div>
+        
         <div class="timeline-items">
           <div class="timeline-item" *ngFor="let zone of filteredZones">
             <div class="item-label">
+              <input 
+                type="checkbox" 
+                class="zone-checkbox"
+                [checked]="isZoneSelected(zone.id)"
+                (change)="toggleZoneSelection(zone.id, $event)"
+                (click)="$event.stopPropagation()"
+              />
               <span class="item-title">{{ zone.title }}</span>
             </div>
 
@@ -116,11 +154,11 @@
           <div class="tooltip-title">{{ tooltipItem.title }}</div>
           <div class="tooltip-dates">
             <div class="tooltip-date">
-              <span class="date-label">📌 Installation:</span>
+              <span class="date-label">📌 Pose:</span>
               <span class="date-value">{{ formatDateTime(tooltipItem.start) }}</span>
             </div>
             <div class="tooltip-date">
-              <span class="date-label">🗑️ Retrait:</span>
+              <span class="date-label">🗑️ Dépose:</span>
               <span class="date-value">{{ formatDateTime(tooltipItem.end) }}</span>
             </div>
           </div>
@@ -141,5 +179,75 @@
         <p>Aucune zone de sécurité avec dates disponible.</p>
       </div>
     </ng-template>
+  </div>
+</div>
+
+<!-- Modale d'assignation d'équipe -->
+<div class="team-modal-overlay" *ngIf="showTeamModal" (click)="closeTeamModal()">
+  <div class="team-modal" (click)="$event.stopPropagation()">
+    <div class="team-modal-header">
+      <h3>Assigner aux équipes</h3>
+      <button class="modal-close-btn" (click)="closeTeamModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="team-modal-body">
+      <p class="modal-info">{{ getSelectedCount() }} zone(s) sélectionnée(s)</p>
+      
+      <!-- Équipe de pose -->
+      <div class="team-select-container">
+        <label for="installationTeamSelect">
+          <span class="label-icon">📌</span>
+          Équipe de pose
+        </label>
+        <select 
+          id="installationTeamSelect" 
+          class="team-select"
+          [(ngModel)]="selectedInstallationTeamId"
+        >
+          <option [ngValue]="null">Ne pas modifier</option>
+          <option *ngFor="let team of availableTeams" [value]="team.uuid">
+            {{ team.teamName }}
+          </option>
+        </select>
+      </div>
+      
+      <!-- Équipe de dépose -->
+      <div class="team-select-container">
+        <label for="removalTeamSelect">
+          <span class="label-icon">🗑️</span>
+          Équipe de dépose
+        </label>
+        <select 
+          id="removalTeamSelect" 
+          class="team-select"
+          [(ngModel)]="selectedRemovalTeamId"
+        >
+          <option [ngValue]="null">Ne pas modifier</option>
+          <option *ngFor="let team of availableTeams" [value]="team.uuid">
+            {{ team.teamName }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="no-teams-message" *ngIf="availableTeams.length === 0">
+        <p>Aucune équipe disponible pour cet événement.</p>
+      </div>
+    </div>
+    
+    <div class="team-modal-footer">
+      <button class="modal-cancel-btn" (click)="closeTeamModal()">Annuler</button>
+      <button 
+        class="modal-confirm-btn" 
+        [disabled]="!hasTeamSelected() || isAssigning"
+        (click)="assignZonesToTeam()"
+      >
+        {{ isAssigning ? 'Assignation...' : 'Assigner' }}
+      </button>
+    </div>
   </div>
 </div>
