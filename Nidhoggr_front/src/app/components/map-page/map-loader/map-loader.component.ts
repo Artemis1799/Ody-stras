@@ -1777,23 +1777,21 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Créer la SecurityZone avec le commentaire du point et la quantité calculée
     // Utiliser les dates de début et fin d'événement pour les dates de pose/dépose
-    const installationDate = this.selectedEvent.startDate ? new Date(this.selectedEvent.startDate) : new Date();
-    const removalDate = this.selectedEvent.endDate ? new Date(this.selectedEvent.endDate) : new Date();
-    
+    const installationDate = this.selectedEvent.startDate
+      ? new Date(this.selectedEvent.startDate)
+      : new Date();
+    const removalDate = this.selectedEvent.endDate
+      ? new Date(this.selectedEvent.endDate)
+      : new Date();
+
     const securityZoneData: Partial<SecurityZone> = {
       eventId: this.selectedEvent.uuid,
       equipmentId: equipment.uuid,
       quantity: quantity,
       comment: sourcePoint.comment || '', // Transférer le commentaire du point
-<<<<<<< HEAD
-      installationDate: defaultDate,
-      removalDate: defaultDate,
-      geoJson: geoJsonString,
-=======
       installationDate: installationDate,
       removalDate: removalDate,
-      geoJson: geoJsonString
->>>>>>> d9cb87d94d6bed818ebb049d6e7b51a2cbc855e2
+      geoJson: geoJsonString,
     };
 
     this.securityZoneService.create(securityZoneData as SecurityZone).subscribe({
