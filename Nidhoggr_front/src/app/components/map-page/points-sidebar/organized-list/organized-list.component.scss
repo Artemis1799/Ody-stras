@@ -1,0 +1,242 @@
+// ======================================
+// Organized List Component - Dark Theme
+// ======================================
+
+// Variables héritées du design system
+$bg-primary: #0d1117;
+$bg-secondary: #161b22;
+$bg-card: #171c22;
+$bg-elevated: #1a2028;
+$bg-hover: #20272f;
+$bg-item-hover: #1c2128;
+
+$accent-primary: #2ad783;
+$accent-secondary: #22c55e;
+
+$text-primary: #ffffff;
+$text-secondary: #c9d1d9;
+$text-muted: #8b949e;
+
+$border-primary: #30363d;
+$border-hover: #484f58;
+$border-subtle: #21262d;
+
+.organized-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 1rem;
+}
+
+.section {
+  background: $bg-card;
+  border: 1px solid $border-primary;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: $border-hover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+  background: rgba(255, 255, 255, 0.02);
+
+  &:hover {
+    background: $bg-hover;
+  }
+}
+
+.section-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex: 1;
+}
+
+// Toggle switch instead of checkbox
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  background: $bg-elevated;
+  border: 1px solid $border-primary;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: $border-hover;
+    box-shadow: 0 0 0 3px rgba($accent-primary, 0.1);
+  }
+
+  &.active {
+    background: $accent-primary;
+    border-color: $accent-primary;
+
+    .toggle-slider {
+      transform: translateX(16px);
+      background: $bg-primary;
+    }
+  }
+}
+
+.toggle-slider {
+  position: absolute;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: $text-secondary;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.section-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: $accent-primary;
+  border-radius: 5px;
+  border: 2px solid $border-primary;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: $accent-primary;
+    box-shadow: 0 0 0 3px rgba($accent-primary, 0.1);
+  }
+
+  &:checked {
+    background-color: $accent-primary;
+    border-color: $accent-primary;
+  }
+}
+
+.expand-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-muted;
+  transition: all 0.25s ease;
+  transform: rotate(-90deg);
+  border-radius: 5px;
+  flex-shrink: 0;
+
+  &.expanded {
+    transform: rotate(0deg);
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    color: $text-primary;
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.section-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: $text-primary;
+  letter-spacing: -0.01em;
+}
+
+.section-items {
+  padding: 0 1rem 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  animation: slideDown 0.2s ease;
+}
+
+.section-item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  background: $bg-elevated;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+
+  &:hover {
+    background: $bg-item-hover;
+    border-color: $border-hover;
+    transform: translateX(3px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active {
+    transform: translateX(2px);
+  }
+}
+
+.item-icon {
+  font-size: 1.125rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.item-name {
+  font-size: 0.875rem;
+  color: $text-secondary;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remaining-count {
+  padding: 0.625rem 1rem;
+  font-size: 0.8125rem;
+  color: $text-muted;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+// Animation pour l'expansion
+.section {
+  &:not(.expanded) {
+    .section-items {
+      display: none;
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

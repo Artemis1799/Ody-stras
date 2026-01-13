@@ -64,6 +64,17 @@ export class MapService {
   private highlightedSecurityZonesSubject = new BehaviorSubject<string[]>([]); // IDs des zones en surbrillance
   private sidebarCollapsedSubject = new BehaviorSubject<boolean>(false); // État de la sidebar (collapsed/expanded)
   private visibleSecurityZoneIdsSubject = new BehaviorSubject<string[] | null>(null); // IDs des zones visibles (null = toutes visibles)
+  private hiddenSecurityZoneIdsSubject = new BehaviorSubject<Set<string>>(new Set()); // IDs des zones cachées (pour la logique inverse)
+  private visiblePointIdsSubject = new BehaviorSubject<string[] | null>(null); // IDs des points visibles (null = tous visibles)
+  private hiddenPointIdsSubject = new BehaviorSubject<Set<string>>(new Set()); // IDs des points cachés (pour la logique inverse)
+  private visiblePointOfInterestIdsSubject = new BehaviorSubject<string[] | null>(null); // IDs des points d'intérêt visibles (null = tous visibles)
+  private hiddenPointOfInterestIdsSubject = new BehaviorSubject<Set<string>>(new Set()); // IDs des points d'intérêt cachés
+  private visiblePathIdsSubject = new BehaviorSubject<string[] | null>(null); // IDs des parcours visibles (null = tous visibles)
+  private hiddenPathIdsSubject = new BehaviorSubject<Set<string>>(new Set()); // IDs des parcours cachés
+  private visibleEquipmentIdsSubject = new BehaviorSubject<string[] | null>(null); // IDs des équipements (tracés) visibles (null = tous visibles)
+  private hiddenEquipmentIdsSubject = new BehaviorSubject<Set<string>>(new Set()); // IDs des équipements cachés
+  private visibleAreaIdsSubject = new BehaviorSubject<string[] | null>(null); // IDs des areas visibles (null = tous visibles)
+  private hiddenAreaIdsSubject = new BehaviorSubject<Set<string>>(new Set()); // IDs des areas cachées
   private eventAreaVisibleSubject = new BehaviorSubject<boolean>(this.loadEventAreaVisibility()); // Visibilité de l'area de l'événement
   
   // Édition de géométrie (Area ou RoutePath)
@@ -106,6 +117,11 @@ export class MapService {
   highlightedSecurityZones$: Observable<string[]> = this.highlightedSecurityZonesSubject.asObservable();
   sidebarCollapsed$: Observable<boolean> = this.sidebarCollapsedSubject.asObservable();
   visibleSecurityZoneIds$: Observable<string[] | null> = this.visibleSecurityZoneIdsSubject.asObservable();
+  visiblePointIds$: Observable<string[] | null> = this.visiblePointIdsSubject.asObservable();
+  visiblePointOfInterestIds$: Observable<string[] | null> = this.visiblePointOfInterestIdsSubject.asObservable();
+  visiblePathIds$: Observable<string[] | null> = this.visiblePathIdsSubject.asObservable();
+  visibleEquipmentIds$: Observable<string[] | null> = this.visibleEquipmentIdsSubject.asObservable();
+  visibleAreaIds$: Observable<string[] | null> = this.visibleAreaIdsSubject.asObservable();
   eventAreaVisible$: Observable<boolean> = this.eventAreaVisibleSubject.asObservable();
   geometryEdit$: Observable<GeometryEditData | null> = this.geometryEditSubject.asObservable();
   drawingMode$: Observable<DrawingMode> = this.drawingModeSubject.asObservable();
@@ -239,6 +255,10 @@ export class MapService {
 
   getPaths(): RoutePath[] {
     return this.pathsSubject.value;
+  }
+
+  getPath(pathUuid: string): RoutePath | undefined {
+    return this.pathsSubject.value.find(p => p.uuid === pathUuid);
   }
 
   addPath(path: RoutePath): void {
@@ -583,6 +603,331 @@ export class MapService {
 
   getVisibleSecurityZoneIds(): string[] | null {
     return this.visibleSecurityZoneIdsSubject.value;
+  }
+
+  /**
+   * Réinitialise les zones cachées et affiche tout (appelé lors du changement d'événement)
+   */
+  resetVisibleSecurityZones(): void {
+    this.hiddenSecurityZoneIdsSubject.next(new Set());
+    this.visibleSecurityZoneIdsSubject.next(null);
+  }
+
+  toggleSecurityZoneVisibility(zoneId: string, visible: boolean): void {
+    const currentVisible = this.visibleSecurityZoneIdsSubject.value;
+    let hidden = new Set(this.hiddenSecurityZoneIdsSubject.value);
+    
+    // Si on passe de null à un état avec masquage/affichage sélectif
+    if (currentVisible === null && !visible) {
+      // On doit masquer une zone, donc initialiser hidden avec cette zone
+      hidden.clear();
+      hidden.add(zoneId);
+    } else if (currentVisible !== null) {
+      // On a déjà un filtrage actif
+      if (visible) {
+        // Ajouter la zone aux visibles (retirer des cachées)
+        hidden.delete(zoneId);
+      } else {
+        // Retirer la zone des visibles (ajouter aux cachées)
+        hidden.add(zoneId);
+      }
+    }
+    
+    // Mettre à jour le Set des zones cachées
+    this.hiddenSecurityZoneIdsSubject.next(hidden);
+    
+    // Calculer les zones visibles à partir de toutes les zones et des zones cachées
+    const allZones = this.securityZonesSubject.value;
+    if (hidden.size === 0) {
+      console.log('All zones visible now (hidden set is empty)');
+      this.visibleSecurityZoneIdsSubject.next(null);
+    } else {
+      const visibleIds = allZones
+        .filter(z => !hidden.has(z.uuid))
+        .map(z => z.uuid);
+      
+      console.log('Setting visible zones to:', visibleIds);
+      this.visibleSecurityZoneIdsSubject.next(visibleIds);
+    }
+  }
+
+  // ============= Visible Points Filter =============
+  
+  /**
+   * Basculer la visibilité d'un point
+   */
+  togglePointVisibility(pointId: string, visible: boolean): void {
+    // Si on passe de null à un état avec masquage/affichage sélectif
+    const currentVisible = this.visiblePointIdsSubject.value;
+    let hidden = new Set(this.hiddenPointIdsSubject.value);
+    
+    // Si currentVisible est null (tous visibles), initialiser hidden avec un set vide
+    // et tous les points à visible
+    if (currentVisible === null && !visible) {
+      // On doit masquer un point, donc initialiser hidden avec ce point
+      hidden.clear();
+      hidden.add(pointId);
+    } else if (currentVisible !== null) {
+      // On a déjà un filtrage actif
+      if (visible) {
+        // Ajouter le point aux visibles (retirer des cachés)
+        hidden.delete(pointId);
+      } else {
+        // Retirer le point des visibles (ajouter aux cachés)
+        hidden.add(pointId);
+      }
+    }
+    
+    // Mettre à jour le Set des points cachés
+    this.hiddenPointIdsSubject.next(hidden);
+    
+    // Calculer les points visibles à partir de tous les points et des points cachés
+    const allPoints = this.pointsSubject.value;
+    if (hidden.size === 0) {
+      console.log('All points visible now (hidden set is empty)');
+      this.visiblePointIdsSubject.next(null);
+    } else {
+      const visibleIds = allPoints
+        .filter(p => !hidden.has(p.uuid))
+        .map(p => p.uuid);
+      
+      console.log('Setting visible points to:', visibleIds);
+      this.visiblePointIdsSubject.next(visibleIds);
+    }
+  }
+
+  /**
+   * Réinitialise les points cachés et affiche tout (appelé lors du changement d'événement)
+   */
+  resetVisiblePoints(): void {
+    this.hiddenPointIdsSubject.next(new Set());
+    this.visiblePointIdsSubject.next(null);
+  }
+
+  getVisiblePointIds(): string[] | null {
+    return this.visiblePointIdsSubject.value;
+  }
+
+  // ============= Visible Points of Interest Filter =============
+  
+  /**
+   * Basculer la visibilité d'un point d'intérêt
+   */
+  togglePointOfInterestVisibility(pointId: string, visible: boolean): void {
+    const currentVisible = this.visiblePointOfInterestIdsSubject.value;
+    let hidden = new Set(this.hiddenPointOfInterestIdsSubject.value);
+    
+    // Si on passe de null à un état avec masquage/affichage sélectif
+    if (currentVisible === null && !visible) {
+      // On doit masquer un point d'intérêt, donc initialiser hidden avec ce point
+      hidden.clear();
+      hidden.add(pointId);
+    } else if (currentVisible !== null) {
+      // On a déjà un filtrage actif
+      if (visible) {
+        // Ajouter le point aux visibles (retirer des cachés)
+        hidden.delete(pointId);
+      } else {
+        // Retirer le point des visibles (ajouter aux cachés)
+        hidden.add(pointId);
+      }
+    }
+    
+    // Mettre à jour le Set des points d'intérêt cachés
+    this.hiddenPointOfInterestIdsSubject.next(hidden);
+    
+    // Calculer les points d'intérêt visibles à partir de tous les points et des points d'intérêt cachés
+    const allPoints = this.pointsSubject.value;
+    if (hidden.size === 0) {
+      console.log('All points of interest visible now (hidden set is empty)');
+      this.visiblePointOfInterestIdsSubject.next(null);
+    } else {
+      const visibleIds = allPoints
+        .filter(p => p.isPointOfInterest && !hidden.has(p.uuid))
+        .map(p => p.uuid);
+      
+      console.log('Setting visible points of interest to:', visibleIds);
+      this.visiblePointOfInterestIdsSubject.next(visibleIds);
+    }
+  }
+
+  /**
+   * Réinitialise les points d'intérêt cachés et affiche tout (appelé lors du changement d'événement)
+   */
+  resetVisiblePointsOfInterest(): void {
+    this.hiddenPointOfInterestIdsSubject.next(new Set());
+    this.visiblePointOfInterestIdsSubject.next(null);
+  }
+
+  getVisiblePointOfInterestIds(): string[] | null {
+    return this.visiblePointOfInterestIdsSubject.value;
+  }
+
+  // ============= Visible Paths Filter =============
+  
+  /**
+   * Basculer la visibilité d'un parcours
+   */
+  togglePathVisibility(pathId: string, visible: boolean): void {
+    const currentVisible = this.visiblePathIdsSubject.value;
+    let hidden = new Set(this.hiddenPathIdsSubject.value);
+    
+    // Si on passe de null à un état avec masquage/affichage sélectif
+    if (currentVisible === null && !visible) {
+      // On doit masquer un parcours, donc initialiser hidden avec ce parcours
+      hidden.clear();
+      hidden.add(pathId);
+    } else if (currentVisible !== null) {
+      // On a déjà un filtrage actif
+      if (visible) {
+        // Ajouter le parcours aux visibles (retirer des cachés)
+        hidden.delete(pathId);
+      } else {
+        // Retirer le parcours des visibles (ajouter aux cachés)
+        hidden.add(pathId);
+      }
+    }
+    
+    // Mettre à jour le Set des parcours cachés
+    this.hiddenPathIdsSubject.next(hidden);
+    
+    // Calculer les parcours visibles à partir de TOUS les parcours (incluant les équipements) et des parcours cachés
+    const allPaths = this.pathsSubject.value;
+    if (hidden.size === 0) {
+      console.log('All paths visible now (hidden set is empty)');
+      this.visiblePathIdsSubject.next(null);
+    } else {
+      const visibleIds = allPaths
+        .filter(p => !hidden.has(p.uuid))
+        .map(p => p.uuid);
+      
+      console.log('Setting visible paths to:', visibleIds);
+      this.visiblePathIdsSubject.next(visibleIds);
+    }
+  }
+
+  /**
+   * Réinitialise les parcours cachés et affiche tout (appelé lors du changement d'événement)
+   */
+  resetVisiblePaths(): void {
+    this.hiddenPathIdsSubject.next(new Set());
+    this.visiblePathIdsSubject.next(null);
+  }
+
+  getVisiblePathIds(): string[] | null {
+    return this.visiblePathIdsSubject.value;
+  }
+
+  // ============= Visible Equipment Filter =============
+  
+  /**
+   * Basculer la visibilité d'un équipement (tracé)
+   */
+  toggleEquipmentVisibility(equipmentId: string, visible: boolean): void {
+    const currentVisible = this.visibleEquipmentIdsSubject.value;
+    let hidden = new Set(this.hiddenEquipmentIdsSubject.value);
+    
+    // Si on passe de null à un état avec masquage/affichage sélectif
+    if (currentVisible === null && !visible) {
+      // On doit masquer un équipement, donc initialiser hidden avec cet équipement
+      hidden.clear();
+      hidden.add(equipmentId);
+    } else if (currentVisible !== null) {
+      // On a déjà un filtrage actif
+      if (visible) {
+        // Ajouter l'équipement aux visibles (retirer des cachés)
+        hidden.delete(equipmentId);
+      } else {
+        // Retirer l'équipement des visibles (ajouter aux cachés)
+        hidden.add(equipmentId);
+      }
+    }
+    
+    // Mettre à jour le Set des équipements cachés
+    this.hiddenEquipmentIdsSubject.next(hidden);
+    
+    // Calculer les équipements visibles à partir de tous les équipements et des équipements cachés
+    const allPaths = this.pathsSubject.value;
+    const allEquipments = allPaths.filter(p => p.name && p.name.startsWith('Chemin '));
+    
+    if (hidden.size === 0) {
+      console.log('All equipments visible now (hidden set is empty)');
+      this.visibleEquipmentIdsSubject.next(null);
+    } else {
+      const visibleIds = allEquipments
+        .filter(e => !hidden.has(e.uuid))
+        .map(e => e.uuid);
+      
+      console.log('Setting visible equipments to:', visibleIds);
+      this.visibleEquipmentIdsSubject.next(visibleIds);
+    }
+  }
+
+  /**
+   * Réinitialise les équipements cachés et affiche tout (appelé lors du changement d'événement)
+   */
+  resetVisibleEquipments(): void {
+    this.hiddenEquipmentIdsSubject.next(new Set());
+    this.visibleEquipmentIdsSubject.next(null);
+  }
+
+  getVisibleEquipmentIds(): string[] | null {
+    return this.visibleEquipmentIdsSubject.value;
+  }
+
+  // ============= Visible Areas Filter =============
+  
+  /**
+   * Basculer la visibilité d'une area
+   */
+  toggleAreaVisibility(areaId: string, visible: boolean): void {
+    const currentVisible = this.visibleAreaIdsSubject.value;
+    let hidden = new Set(this.hiddenAreaIdsSubject.value);
+    
+    // Si on passe de null à un état avec masquage/affichage sélectif
+    if (currentVisible === null && !visible) {
+      // On doit masquer une area, donc initialiser hidden avec cette area
+      hidden.clear();
+      hidden.add(areaId);
+    } else if (currentVisible !== null) {
+      // On a déjà un filtrage actif
+      if (visible) {
+        // Ajouter l'area aux visibles (retirer des cachées)
+        hidden.delete(areaId);
+      } else {
+        // Retirer l'area des visibles (ajouter aux cachées)
+        hidden.add(areaId);
+      }
+    }
+    
+    // Mettre à jour le Set des areas cachées
+    this.hiddenAreaIdsSubject.next(hidden);
+    
+    // Calculer les areas visibles à partir de toutes les areas et des areas cachées
+    const allAreas = this.areasSubject.value;
+    if (hidden.size === 0) {
+      console.log('All areas visible now (hidden set is empty)');
+      this.visibleAreaIdsSubject.next(null);
+    } else {
+      const visibleIds = allAreas
+        .filter(a => !hidden.has(a.uuid))
+        .map(a => a.uuid);
+      
+      console.log('Setting visible areas to:', visibleIds);
+      this.visibleAreaIdsSubject.next(visibleIds);
+    }
+  }
+
+  /**
+   * Réinitialise les areas cachées et affiche tout (appelé lors du changement d'événement)
+   */
+  resetVisibleAreas(): void {
+    this.hiddenAreaIdsSubject.next(new Set());
+    this.visibleAreaIdsSubject.next(null);
+  }
+
+  getVisibleAreaIds(): string[] | null {
+    return this.visibleAreaIdsSubject.value;
   }
 
   // ============= Event Area Visibility =============
