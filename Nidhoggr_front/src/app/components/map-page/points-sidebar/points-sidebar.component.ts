@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AutoComplete } from 'primeng/autocomplete';
-import { EventStoreService } from '../../../services/EventStoreService';
+import { EventStoreService } from '../../../store-services/EventStore-Service';
 import { PointService } from '../../../services/PointService';
 import { EventService } from '../../../services/EventService';
 import { AreaService } from '../../../services/AreaService';
