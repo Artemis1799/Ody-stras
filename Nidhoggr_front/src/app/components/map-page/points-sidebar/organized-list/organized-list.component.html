@@ -1,40 +1,20 @@
 <div class="organized-list">
+  <div class="organized-list-header">
+    <h3 class="organized-list-title">Filtres</h3>
+  </div>
   @for (section of sections; track section.id) {
-    <div class="section" [class.expanded]="section.isExpanded">
+    <div class="section">
       <!-- Section header -->
-      <div class="section-header" (click)="toggleSection(section)">
+      <div class="section-header">
         <div class="section-left">
           <!-- Toggle switch instead of checkbox -->
           <div class="toggle-switch" [class.active]="isSectionFullyVisible(section)" (click)="toggleSectionSelection(section, $event)">
             <div class="toggle-slider"></div>
           </div>
-          <button class="expand-btn" [class.expanded]="section.isExpanded">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
           <span class="section-icon">{{ section.icon }}</span>
           <span class="section-title">{{ section.title }}</span>
         </div>
       </div>
-
-      <!-- Section items -->
-      @if (section.isExpanded) {
-        <div class="section-items">
-          @for (item of section.items; track item.id) {
-            <div class="section-item" (click)="onItemClick(item)">
-              <span class="item-icon">{{ item.icon }}</span>
-              <span class="item-name">{{ item.name }}</span>
-            </div>
-          }
-          
-          @if (getRemainingCount(section) > 0) {
-            <div class="remaining-count">
-              ... {{ getRemainingCount(section) }} autres
-            </div>
-          }
-        </div>
-      }
     </div>
   }
 </div>

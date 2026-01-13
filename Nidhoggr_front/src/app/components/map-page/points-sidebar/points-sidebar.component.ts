@@ -191,42 +191,36 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
     // S'abonner aux changements de visibilité des zones
     this.visibleZoneIdsSubscription = this.mapService.visibleSecurityZoneIds$.subscribe((ids) => {
-      console.log('🟡 PointsSidebar - visibleZoneIds changed:', ids);
       this.visibleZoneIds = ids;
       this.cdr.markForCheck();
     });
 
     // S'abonner aux changements de visibilité des points
     this.visiblePointIdsSubscription = this.mapService.visiblePointIds$.subscribe((ids) => {
-      console.log('🔵 PointsSidebar - visiblePointIds changed:', ids);
       this.visiblePointIds = ids;
       this.cdr.markForCheck();
     });
 
     // S'abonner aux changements de visibilité des points d'intérêt
     this.visiblePointOfInterestIdsSubscription = this.mapService.visiblePointOfInterestIds$.subscribe((ids) => {
-      console.log('⭐ PointsSidebar - visiblePointOfInterestIds changed:', ids);
       this.visiblePointOfInterestIds = ids;
       this.cdr.markForCheck();
     });
 
     // S'abonner aux changements de visibilité des parcours
     this.visiblePathIdsSubscription = this.mapService.visiblePathIds$.subscribe((ids) => {
-      console.log('🏃 PointsSidebar - visiblePathIds changed:', ids);
       this.visiblePathIds = ids;
       this.cdr.markForCheck();
     });
 
     // S'abonner aux changements de visibilité des équipements
     this.visibleEquipmentIdsSubscription = this.mapService.visibleEquipmentIds$.subscribe((ids) => {
-      console.log('🚗 PointsSidebar - visibleEquipmentIds changed:', ids);
       this.visibleEquipmentIds = ids;
       this.cdr.markForCheck();
     });
 
     // S'abonner aux changements de visibilité des areas
     this.visibleAreaIdsSubscription = this.mapService.visibleAreaIds$.subscribe((ids) => {
-      console.log('🗺️ PointsSidebar - visibleAreaIds changed:', ids);
       this.visibleAreaIds = ids;
       this.cdr.markForCheck();
     });
@@ -596,14 +590,27 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   onEventCreated(event: Event): void {
     // Ajouter l'événement à la liste locale
     this.events.push(event);
-    // Sélectionner automatiquement le nouvel événement
-    this.selectedEvent = event;
-    this.selectedEventName = event.title;
-    this.mapService.setSelectedEvent(event);
-    // Charger les points (vide pour un nouvel événement)
-    this.loadPointsForEvent(event.uuid);
-    // Démarrer le mode création d'événement (dessin zone puis chemin)
-    this.mapService.startEventCreation(event);
+    
+    // Désélectionner l'ancien événement pour nettoyer la carte
+    this.mapService.setSelectedEvent(null);
+    
+    // Petit délai pour que le nettoyage se fasse
+    setTimeout(() => {
+      // Sélectionner le nouvel événement
+      this.selectedEvent = event;
+      this.selectedEventName = event.title;
+      this.mapService.setSelectedEvent(event);
+      // Charger les points (vide pour un nouvel événement)
+      this.loadPointsForEvent(event.uuid);
+      
+      // Naviguer vers la page événements
+      this.router.navigate(['/evenements']).then(() => {
+        // Une fois la navigation terminée, démarrer le mode création
+        setTimeout(() => {
+          this.mapService.startEventCreation(event);
+        }, 100);
+      });
+    }, 50);
   }
 
   openEventEdit(): void {
@@ -812,7 +819,6 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   toggleRightDrawer(): void {
     this.showRightDrawer = !this.showRightDrawer;
-    console.log('toggleRightDrawer called, showRightDrawer:', this.showRightDrawer);
     this.cdr.markForCheck();
   }
 
@@ -981,51 +987,21 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   onItemVisibilityChange(event: {item: any, visible: boolean}): void {
     if (event.item.type === 'zone') {
       const zone = event.item.data as SecurityZone;
-      console.log('🟢 PointsSidebar - onItemVisibilityChange received (zone):', {
-        zoneId: zone.uuid,
-        zoneName: zone.equipment?.type,
-        visible: event.visible
-      });
       this.mapService.toggleSecurityZoneVisibility(zone.uuid, event.visible);
     } else if (event.item.type === 'point') {
       const point = event.item.data as Point;
-      console.log('🔵 PointsSidebar - onItemVisibilityChange received (point):', {
-        pointId: point.uuid,
-        pointName: point.name,
-        visible: event.visible
-      });
       this.mapService.togglePointVisibility(point.uuid, event.visible);
     } else if (event.item.type === 'point-of-interest') {
       const point = event.item.data as Point;
-      console.log('⭐ PointsSidebar - onItemVisibilityChange received (point-of-interest):', {
-        pointId: point.uuid,
-        pointName: point.name,
-        visible: event.visible
-      });
       this.mapService.togglePointOfInterestVisibility(point.uuid, event.visible);
     } else if (event.item.type === 'path') {
       const path = event.item.data as RoutePath;
-      console.log('🏃 PointsSidebar - onItemVisibilityChange received (path):', {
-        pathId: path.uuid,
-        pathName: path.name,
-        visible: event.visible
-      });
       this.mapService.togglePathVisibility(path.uuid, event.visible);
     } else if (event.item.type === 'equipment') {
       const equipment = event.item.data as RoutePath;
-      console.log('🚗 PointsSidebar - onItemVisibilityChange received (equipment):', {
-        equipmentId: equipment.uuid,
-        equipmentName: equipment.name,
-        visible: event.visible
-      });
       this.mapService.toggleEquipmentVisibility(equipment.uuid, event.visible);
     } else if (event.item.type === 'area') {
       const area = event.item.data as Area;
-      console.log('🗺️ PointsSidebar - onItemVisibilityChange received (area):', {
-        areaId: area.uuid,
-        areaName: area.name,
-        visible: event.visible
-      });
       this.mapService.toggleAreaVisibility(area.uuid, event.visible);
     }
   }

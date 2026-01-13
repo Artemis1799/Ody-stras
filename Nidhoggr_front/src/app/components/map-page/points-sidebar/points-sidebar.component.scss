@@ -1247,6 +1247,7 @@ $danger: #f87171;
   background: rgba(0, 0, 0, 0.5);
   z-index: 999;
   animation: fadeIn 0.3s ease;
+  pointer-events: none; 
 }
 
 .right-drawer {

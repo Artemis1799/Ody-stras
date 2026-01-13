@@ -28,6 +28,21 @@ $border-subtle: #21262d;
   padding: 1rem;
 }
 
+.organized-list-header {
+  padding: 0.5rem 0 0.75rem 0;
+  border-bottom: 1px solid $border-subtle;
+  margin-bottom: 0.5rem;
+}
+
+.organized-list-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: $text-muted;
+  margin: 0;
+}
+
 .section {
   background: $bg-card;
   border: 1px solid $border-primary;

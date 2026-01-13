@@ -71,7 +71,7 @@ export class OrganizedListComponent implements OnChanges {
 
       this.sections.push({
         id: 'points',
-        title: 'Points à sécuriser',
+        title: 'Points',
         icon: '📍',
         isExpanded: true,
         isSelected: true,
@@ -134,39 +134,16 @@ export class OrganizedListComponent implements OnChanges {
       });
     }
 
-    // Section: Zones de sécurité (SecurityZones)
-    const securityZoneItems = this.securityZones.map(zone => ({
-      id: zone.uuid,
-      name: zone.equipment?.type || `Zone de sécurité sans nom`,
-      icon: '🚨',
-      type: 'zone' as const,
-      data: zone
-    }));
-
-    if (securityZoneItems.length > 0) {
-      const displayCount = 4;
-      const displayItems = securityZoneItems.slice(0, displayCount);
-
-      this.sections.push({
-        id: 'zones',
-        title: 'Zones de sécurité',
-        icon: '🚨',
-        isExpanded: true,
-        isSelected: true,
-        items: displayItems,
-        allItems: securityZoneItems,
-        count: securityZoneItems.length
-      });
-    }
-
-    // Section: Zones (Areas - géométries)
-    const areaItems = this.areas.map(area => ({
-      id: area.uuid,
-      name: area.name || `Zone sans nom`,
-      icon: '🗺️',
-      type: 'area' as const,
-      data: area
-    }));
+    // Section: Zones (Areas - géométries, exclure l'area de base de l'événement)
+    const areaItems = this.areas
+      .filter(area => !area.name || !area.name.startsWith('Zone '))
+      .map(area => ({
+        id: area.uuid,
+        name: area.name || `Zone sans nom`,
+        icon: '🗺️',
+        type: 'area' as const,
+        data: area
+      }));
 
     if (areaItems.length > 0) {
       const displayCount = 4;
@@ -241,10 +218,28 @@ export class OrganizedListComponent implements OnChanges {
       section.allItems.forEach(item => {
         const isCurrentlyVisible = this.isItemVisible(item);
         if (isCurrentlyVisible !== newVisibility) {
-          console.log(`🔵 Section toggle - ${section.id}: ${item.name} -> ${newVisibility}`);
           this.itemVisibilityChange.emit({ item, visible: newVisibility });
         }
       });
+      
+      // Si on toggle la section équipements, affecter aussi les zones de sécurité
+      if (section.id === 'equipment-paths') {
+        // Créer des items pour toutes les zones de sécurité et émettre les changements
+        this.securityZones.forEach(zone => {
+          const zoneItem: OrganizedItem = {
+            id: zone.uuid,
+            name: zone.equipment?.type || `Zone de sécurité sans nom`,
+            icon: '🚨',
+            type: 'zone' as const,
+            data: zone
+          };
+          
+          const isCurrentlyVisible = this.isItemVisible(zoneItem);
+          if (isCurrentlyVisible !== newVisibility) {
+            this.itemVisibilityChange.emit({ item: zoneItem, visible: newVisibility });
+          }
+        });
+      }
     }
   }
 
@@ -256,14 +251,6 @@ export class OrganizedListComponent implements OnChanges {
     event.stopPropagation();
     const isCurrentlyVisible = this.isItemVisible(item);
     const newVisibility = !isCurrentlyVisible;
-    console.log('🔵 OrganizedList - toggleItemVisibility:', {
-      itemId: item.id,
-      itemName: item.name,
-      currentlyVisible: isCurrentlyVisible,
-      newVisibility: newVisibility,
-      allVisibleIds: this.visibleZoneIds
-    });
-    console.log('🔵 OrganizedList - About to emit itemVisibilityChange with visible:', newVisibility);
     this.itemVisibilityChange.emit({ item, visible: newVisibility });
   }
 

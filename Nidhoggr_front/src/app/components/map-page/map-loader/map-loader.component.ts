@@ -24,6 +24,7 @@ import {
   GeometryEditData,
 } from '../../../shared/geometry-edit-drawer/geometry-edit-drawer.component';
 import { ToastService } from '../../../services/ToastService';
+import { Equipment } from '../../../models/equipmentModel';
 
 @Component({
   selector: 'app-map-loader',
@@ -265,15 +266,41 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
       // S'abonner aux SecurityZones pour les afficher sur la carte
       this.securityZonesSubscription = this.mapService.securityZones$.subscribe((zones) => {
+        // Récupérer les UUIDs des zones actuelles
+        const currentZoneIds = new Set(zones.map(z => z.uuid));
+        
+        // Supprimer les zones qui ne sont plus dans la liste
+        const layersToDelete: string[] = [];
+        this.geometryLayers.forEach((layer, uuid) => {
+          if (layer.shapeType === 'securityZone' && !currentZoneIds.has(uuid)) {
+            layersToDelete.push(uuid);
+          }
+        });
+        
+        // Supprimer les layers identifiés
+        layersToDelete.forEach(uuid => {
+          const layer = this.geometryLayers.get(uuid);
+          if (layer) {
+            // Retirer de tous les groupes possibles
+            if (this.drawnItems && this.drawnItems.hasLayer(layer)) {
+              this.drawnItems.removeLayer(layer);
+            }
+            if (this.map && this.map.hasLayer(layer)) {
+              this.map.removeLayer(layer);
+            }
+            // Fermer le popup si ouvert
+            if (layer.closePopup) {
+              layer.closePopup();
+            }
+            // Retirer de la map des géométries
+            this.geometryLayers.delete(uuid);
+          }
+        });
+        
+        // Ajouter les nouvelles zones
         zones.forEach((zone) => {
           this.addSecurityZoneToMap(zone);
         });
-        // Appliquer la visibilité après que toutes les zones aient été ajoutées
-        // Au premier chargement, afficher toutes les zones (null = tout afficher)
-        const visibleIds = this.mapService.getVisibleSecurityZoneIds();
-        console.log('Initial visibleIds from MapService:', visibleIds);
-        // Si c'est le premier chargement (visibleIds === null), afficher toutes les zones
-        this.updateSecurityZonesVisibility(visibleIds);
       });
 
       // Émettre les bounds initiaux de la carte
@@ -297,31 +324,6 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // S'abonner au filtre des zones visibles (filtre équipement de la sidebar)
       this.mapService.visibleSecurityZoneIds$.subscribe((visibleIds) => {
         this.updateSecurityZonesVisibility(visibleIds);
-      });
-
-      // S'abonner au filtre des points visibles (filtre de la sidebar)
-      this.mapService.visiblePointIds$.subscribe((visibleIds) => {
-        this.updatePointsVisibility(visibleIds);
-      });
-
-      // S'abonner au filtre des points d'intérêt visibles (filtre de la sidebar)
-      this.mapService.visiblePointOfInterestIds$.subscribe((visibleIds) => {
-        this.updatePointsOfInterestVisibility(visibleIds);
-      });
-
-      // S'abonner au filtre des parcours visibles (filtre de la sidebar)
-      this.mapService.visiblePathIds$.subscribe((visibleIds) => {
-        this.updatePathsVisibility(visibleIds);
-      });
-
-      // S'abonner au filtre des équipements visibles (filtre de la sidebar)
-      this.mapService.visibleEquipmentIds$.subscribe((visibleIds) => {
-        this.updateEquipmentVisibility(visibleIds);
-      });
-
-      // S'abonner au filtre des areas visibles (filtre de la sidebar)
-      this.mapService.visibleAreaIds$.subscribe((visibleIds) => {
-        this.updateAreasVisibility(visibleIds);
       });
 
       // S'abonner à la visibilité de l'area de l'événement
@@ -363,21 +365,29 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     // Ajouter les nouveaux markers
     points.forEach((point) => {
       if (this.map && point.latitude && point.longitude) {
-        // Déterminer le contenu du marker (vide pour les points normaux, ! pour les points d'intérêt)
-        const markerContent = point.isPointOfInterest ? '!' : '';
+        let markerIcon;
+        
+        if (point.isPointOfInterest) {
+          // Utiliser l'image pour les points d'intérêt
+          markerIcon = L.icon({
+            iconUrl: '/assets/icons/point-attention.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+          });
+        } else {
+          // Utiliser l'image pour les points normaux
+          markerIcon = L.icon({
+            iconUrl: '/assets/icons/point-classique.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+          });
+        }
 
         const marker = L.marker([point.latitude, point.longitude], {
           title: this.getPointDisplayName(point),
-          icon: L.divIcon({
-            className: 'custom-marker',
-            html: `<div class="marker-pin ${point.validated ? 'valid' : 'invalid'} ${
-              point.isPointOfInterest ? 'point-of-interest' : ''
-            }">
-                     <span class="marker-number">${markerContent}</span>
-                   </div>`,
-            iconSize: [30, 42],
-            iconAnchor: [15, 42],
-          }),
+          icon: markerIcon,
         }).addTo(this.map);
 
         // Clic sur le marker - ouvre le drawer
@@ -485,262 +495,30 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
    * @param visibleIds - tableau d'IDs des zones à afficher, ou null pour afficher toutes les zones
    */
   private updateSecurityZonesVisibility(visibleIds: string[] | null): void {
-    if (!this.map) {
-      console.error('❌ updateSecurityZonesVisibility: map is null!');
-      return;
-    }
-    
-    console.log('🔄 updateSecurityZonesVisibility called with:', visibleIds);
-    console.log('Total geometry layers:', this.geometryLayers.size);
-    
-    let addedCount = 0;
-    let removedCount = 0;
-    
+    if (!this.drawnItems) return;
+
     // Parcourir toutes les security zones sur la carte
     this.geometryLayers.forEach((layer, uuid) => {
-      if (layer.shapeType !== 'securityZone') {
-        return;
-      }
-      
+      if (layer.shapeType !== 'securityZone') return;
+
       // Si visibleIds est null, afficher toutes les zones
       // Sinon, afficher uniquement les zones dont l'ID est dans la liste
       const shouldBeVisible = visibleIds === null || visibleIds.includes(uuid);
-      const isCurrentlyOnMap = this.map.hasLayer(layer);
-      
-      console.log(`Zone ${uuid.substring(0, 8)}: shouldBeVisible=${shouldBeVisible}, isCurrentlyOnMap=${isCurrentlyOnMap}`);
-      
-      if (shouldBeVisible && !isCurrentlyOnMap) {
-        // Ajouter à la map
-        console.log(`✅ Adding zone ${uuid.substring(0, 8)} to map`);
-        layer.addTo(this.map);
-        addedCount++;
-      } else if (!shouldBeVisible && isCurrentlyOnMap) {
-        // Retirer de la map
-        console.log(`❌ Removing zone ${uuid.substring(0, 8)} from map`);
-        this.map.removeLayer(layer);
-        removedCount++;
+
+      if (shouldBeVisible) {
+        // Afficher la zone si elle n'est pas déjà affichée
+        if (!this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.addLayer(layer);
+        }
+      } else {
+        // Masquer la zone
+        if (this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.removeLayer(layer);
+        }
       }
     });
-    
-    console.log(`✨ updateSecurityZonesVisibility complete - Added: ${addedCount}, Removed: ${removedCount}`);
   }
 
-  /**
-   * Met à jour la visibilité des points sur la carte
-   * @param visibleIds - tableau d'IDs des points à afficher, ou null pour afficher tous les points
-   */
-  private updatePointsVisibility(visibleIds: string[] | null): void {
-    if (!this.map) {
-      console.error('❌ updatePointsVisibility: map is null!');
-      return;
-    }
-    
-    console.log('🔄 updatePointsVisibility called with:', visibleIds);
-    console.log('Total markers:', this.markers.size);
-    
-    let hiddenCount = 0;
-    let shownCount = 0;
-    
-    // Parcourir tous les markers sur la carte
-    this.markers.forEach((marker, pointUuid) => {
-      // Si visibleIds est null, afficher tous les points
-      // Sinon, afficher uniquement les points dont l'ID est dans la liste
-      const shouldBeVisible = visibleIds === null || visibleIds.includes(pointUuid);
-      const isCurrentlyOnMap = this.map.hasLayer(marker);
-      
-      if (shouldBeVisible && !isCurrentlyOnMap) {
-        // Ajouter à la map
-        console.log(`✅ Adding point ${pointUuid.substring(0, 8)} to map`);
-        marker.addTo(this.map);
-        shownCount++;
-      } else if (!shouldBeVisible && isCurrentlyOnMap) {
-        // Retirer de la map
-        console.log(`❌ Removing point ${pointUuid.substring(0, 8)} from map`);
-        this.map.removeLayer(marker);
-        hiddenCount++;
-      }
-    });
-    
-    console.log(`✨ updatePointsVisibility complete - Shown: ${shownCount}, Hidden: ${hiddenCount}`);
-  }
-
-  /**
-   * Met à jour la visibilité des points d'intérêt sur la carte
-   * @param visibleIds - tableau d'IDs des points d'intérêt à afficher, ou null pour afficher tous
-   */
-  private updatePointsOfInterestVisibility(visibleIds: string[] | null): void {
-    if (!this.map) {
-      console.error('❌ updatePointsOfInterestVisibility: map is null!');
-      return;
-    }
-    
-    console.log('🔄 updatePointsOfInterestVisibility called with:', visibleIds);
-    console.log('Total markers:', this.markers.size);
-    
-    let hiddenCount = 0;
-    let shownCount = 0;
-    
-    // Parcourir tous les markers sur la carte
-    this.markers.forEach((marker, pointUuid) => {
-      // Récupérer le point pour vérifier s'il s'agit d'un point d'intérêt
-      const point = this.mapService.getPoints().find(p => p.uuid === pointUuid);
-      if (!point || !point.isPointOfInterest) {
-        return; // Ignorer les points non-intérêt
-      }
-      
-      // Si visibleIds est null, afficher tous les points d'intérêt
-      // Sinon, afficher uniquement les points dont l'ID est dans la liste
-      const shouldBeVisible = visibleIds === null || visibleIds.includes(pointUuid);
-      const isCurrentlyOnMap = this.map.hasLayer(marker);
-      
-      if (shouldBeVisible && !isCurrentlyOnMap) {
-        // Ajouter à la map
-        console.log(`✅ Adding point of interest ${pointUuid.substring(0, 8)} to map`);
-        marker.addTo(this.map);
-        shownCount++;
-      } else if (!shouldBeVisible && isCurrentlyOnMap) {
-        // Retirer de la map
-        console.log(`❌ Removing point of interest ${pointUuid.substring(0, 8)} from map`);
-        this.map.removeLayer(marker);
-        hiddenCount++;
-      }
-    });
-    
-    console.log(`✨ updatePointsOfInterestVisibility complete - Shown: ${shownCount}, Hidden: ${hiddenCount}`);
-  }
-
-  /**
-   * Met à jour la visibilité des parcours (RoutePath layers)
-   * @param visibleIds - IDs des parcours visibles, null = tous visibles
-   */
-  private updatePathsVisibility(visibleIds: string[] | null): void {
-    if (!this.map || !this.drawnItems) {
-      console.error('❌ updatePathsVisibility: map or drawnItems is null!');
-      return;
-    }
-    
-    console.log('🔄 updatePathsVisibility called with:', visibleIds);
-    console.log('Total geometry layers:', this.geometryLayers.size);
-    
-    let hiddenCount = 0;
-    let shownCount = 0;
-    
-    // Parcourir tous les geometry layers (areas, paths et équipements)
-    this.geometryLayers.forEach((layer, pathUuid) => {
-      // Ignorer les areas, traiter TOUS les paths (incluant les équipements)
-      if (layer.shapeType !== 'path') {
-        return;
-      }
-      
-      // Si visibleIds est null, afficher tous les parcours
-      // Sinon, afficher uniquement les parcours dont l'ID est dans la liste
-      const shouldBeVisible = visibleIds === null || visibleIds.includes(pathUuid);
-      const isCurrentlyOnMap = this.drawnItems.hasLayer(layer);
-      
-      if (shouldBeVisible && !isCurrentlyOnMap) {
-        // Ajouter au groupe drawnItems (où les paths sont stockés)
-        console.log(`✅ Adding path ${pathUuid.substring(0, 8)} to drawnItems`);
-        this.drawnItems.addLayer(layer);
-        shownCount++;
-      } else if (!shouldBeVisible && isCurrentlyOnMap) {
-        // Retirer du groupe drawnItems
-        console.log(`❌ Removing path ${pathUuid.substring(0, 8)} from drawnItems`);
-        this.drawnItems.removeLayer(layer);
-        hiddenCount++;
-      }
-    });
-    
-    console.log(`✨ updatePathsVisibility complete - Shown: ${shownCount}, Hidden: ${hiddenCount}`);
-  }
-
-  private updateEquipmentVisibility(visibleIds: string[] | null): void {
-    if (!this.map || !this.drawnItems) {
-      console.error('❌ updateEquipmentVisibility: map or drawnItems is null!');
-      return;
-    }
-    
-    console.log('🔄 updateEquipmentVisibility called with:', visibleIds);
-    console.log('Total geometry layers:', this.geometryLayers.size);
-    
-    let hiddenCount = 0;
-    let shownCount = 0;
-    
-    // Parcourir tous les geometry layers (areas, paths)
-    this.geometryLayers.forEach((layer, pathUuid) => {
-      // Ignorer les areas et les paths normaux, ne traiter que les équipements
-      if (layer.shapeType !== 'path') {
-        return;
-      }
-      
-      // Vérifier si ce path est un équipement en utilisant le flag stocké sur la couche
-      if (!layer.isEquipment) {
-        return; // Ce n'est pas un équipement
-      }
-      
-      // Si visibleIds est null, afficher tous les équipements
-      // Sinon, afficher uniquement les équipements dont l'ID est dans la liste
-      const shouldBeVisible = visibleIds === null || visibleIds.includes(pathUuid);
-      const isCurrentlyOnMap = this.drawnItems.hasLayer(layer);
-      
-      if (shouldBeVisible && !isCurrentlyOnMap) {
-        // Ajouter au groupe drawnItems (où les équipements sont stockés)
-        console.log(`✅ Adding equipment ${pathUuid.substring(0, 8)} to drawnItems`);
-        this.drawnItems.addLayer(layer);
-        shownCount++;
-      } else if (!shouldBeVisible && isCurrentlyOnMap) {
-        // Retirer du groupe drawnItems
-        console.log(`❌ Removing equipment ${pathUuid.substring(0, 8)} from drawnItems`);
-        this.drawnItems.removeLayer(layer);
-        hiddenCount++;
-      }
-    });
-    
-    console.log(`✨ updateEquipmentVisibility complete - Shown: ${shownCount}, Hidden: ${hiddenCount}`);
-  }
-
-  /**
-   * Met à jour la visibilité des areas (géométries polygones)
-   * @param visibleIds - IDs des areas visibles, null = tous visibles
-   */
-  private updateAreasVisibility(visibleIds: string[] | null): void {
-    if (!this.map || !this.drawnItems) {
-      console.error('❌ updateAreasVisibility: map or drawnItems is null!');
-      return;
-    }
-    
-    console.log('🔄 updateAreasVisibility called with:', visibleIds);
-    console.log('Total geometry layers:', this.geometryLayers.size);
-    
-    let hiddenCount = 0;
-    let shownCount = 0;
-    
-    // Parcourir tous les geometry layers (areas, paths)
-    this.geometryLayers.forEach((layer, areaUuid) => {
-      // Ignorer les paths, ne traiter que les areas
-      if (layer.shapeType !== 'area') {
-        return;
-      }
-      
-      // Si visibleIds est null, afficher toutes les areas
-      // Sinon, afficher uniquement les areas dont l'ID est dans la liste
-      const shouldBeVisible = visibleIds === null || visibleIds.includes(areaUuid);
-      const isCurrentlyOnMap = this.drawnItems.hasLayer(layer);
-      
-      if (shouldBeVisible && !isCurrentlyOnMap) {
-        // Ajouter au groupe drawnItems (où les areas sont stockées)
-        console.log(`✅ Adding area ${areaUuid.substring(0, 8)} to drawnItems`);
-        this.drawnItems.addLayer(layer);
-        shownCount++;
-      } else if (!shouldBeVisible && isCurrentlyOnMap) {
-        // Retirer du groupe drawnItems
-        console.log(`❌ Removing area ${areaUuid.substring(0, 8)} from drawnItems`);
-        this.drawnItems.removeLayer(layer);
-        hiddenCount++;
-      }
-    });
-    
-    console.log(`✨ updateAreasVisibility complete - Shown: ${shownCount}, Hidden: ${hiddenCount}`);
-  }
   /**
    * Met à jour la visibilité de l'area de l'événement (zone créée lors de la création de l'événement)
    * @param visible - true pour afficher, false pour masquer
@@ -864,33 +642,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       const layer = this.geometryLayers.get(zone.uuid);
       if (layer && layer.bindPopup) {
         layer.bindPopup(popupContent).openPopup();
-        
-        // Ajouter un handler de clic sur le popup pour ouvrir le drawer
-        setTimeout(() => {
-          const popup = layer.getPopup();
-          if (popup && popup._container) {
-            popup._container.onclick = (e: any) => {
-              e.stopPropagation();
-              this.mapService.selectSecurityZone(zone);
-            };
-          }
-        }, 100);
       } else {
         // Créer un popup temporaire si le layer n'est pas trouvé
-        const popup = L.popup()
-          .setLatLng([lat, lon])
-          .setContent(popupContent)
-          .openOn(this.map);
-        
-        // Ajouter un handler de clic sur le popup temporaire
-        setTimeout(() => {
-          if (popup._container) {
-            popup._container.onclick = (e: any) => {
-              e.stopPropagation();
-              this.mapService.selectSecurityZone(zone);
-            };
-          }
-        }, 100);
         L.popup().setLatLng([lat, lon]).setContent(popupContent).openOn(this.map);
       }
     };
@@ -1089,12 +842,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           rectangle: false,
           circle: false,
           marker: {
-            icon: L.divIcon({
-              className: 'custom-marker',
-              html: `<div class="marker-pin newly-created">
-                     </div>`,
-              iconSize: [30, 42],
-              iconAnchor: [15, 42],
+            icon: L.icon({
+              iconUrl: '/assets/icons/point-classique.png',
+              iconSize: [40, 40],
+              iconAnchor: [20, 40],
+              popupAnchor: [0, -40]
             }),
           },
           circlemarker: false,
@@ -1207,14 +959,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // Ajouter au groupe drawnItems seulement si visible
       if (shouldBeVisible) {
         this.drawnItems.addLayer(layer);
-        console.log(`✅ Area ${area.uuid.substring(0, 8)} added to drawnItems (name: ${area.name})`);
-      } else {
-        console.log(`⏸️ Area ${area.uuid.substring(0, 8)} not added to drawnItems - hidden (name: ${area.name})`);
       }
 
       // Stocker dans la map (même si masquée, pour pouvoir la réafficher plus tard)
       this.geometryLayers.set(area.uuid, layer);
-      console.log(`📍 Area ${area.uuid.substring(0, 8)} stored in geometryLayers`);
 
       // Rendre interactive
       this.makeLayerInteractive(layer);
@@ -1248,32 +996,15 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         weight: 4,
       });
 
-      // Associer l'UUID et le type à la couche
+      // Associer l'UUID à la couche
       layer.pathUuid = path.uuid;
       layer.shapeType = 'path';
-      
-      // Vérifier si c'est un équipement et le stocker sur la couche
-      const isEquipment = path.name && path.name.startsWith('Chemin ');
-      layer.isEquipment = isEquipment;
 
-      // Stocker dans la map d'abord
+      // Ajouter au groupe drawnItems
+      this.drawnItems.addLayer(layer);
+
+      // Stocker dans la map
       this.geometryLayers.set(path.uuid, layer);
-
-      // Déterminer si ce path doit être visible en fonction de son type
-      let shouldBeVisible = false;
-      if (isEquipment) {
-        // Pour les équipements, vérifier visibleEquipmentIds
-        const visibleEquipmentIds = this.mapService.getVisibleEquipmentIds();
-        shouldBeVisible = visibleEquipmentIds === null || visibleEquipmentIds.includes(path.uuid);
-      } else {
-        // Pour les paths normaux, vérifier visiblePathIds
-        const visiblePathIds = this.mapService.getVisiblePathIds();
-        shouldBeVisible = visiblePathIds === null || visiblePathIds.includes(path.uuid);
-      }
-      
-      if (shouldBeVisible) {
-        this.drawnItems.addLayer(layer);
-      }
 
       // Rendre interactive
       this.makeLayerInteractive(layer);
@@ -1314,17 +1045,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       layer.securityZoneUuid = zone.uuid;
       layer.shapeType = 'securityZone';
 
-      // Ajouter à la map de stockage
-      this.geometryLayers.set(zone.uuid, layer);
-      console.log(`📍 Zone ${zone.uuid.substring(0, 8)} stored in geometryLayers`);
-
-      // Vérifier la visibilité de la zone et l'ajouter à la map si visible
+      // Vérifier si cette zone doit être visible selon le filtre actuel
       const visibleIds = this.mapService.getVisibleSecurityZoneIds();
       const shouldBeVisible = visibleIds === null || visibleIds.includes(zone.uuid);
-      
+
+      // Ajouter au groupe drawnItems seulement si visible
       if (shouldBeVisible) {
-        layer.addTo(this.map);
+        this.drawnItems.addLayer(layer);
       }
+
+      // Stocker dans la map (même si masquée, pour pouvoir la réafficher plus tard)
+      this.geometryLayers.set(zone.uuid, layer);
 
       // Rendre interactive (avec comportement spécifique aux SecurityZones)
       this.makeSecurityZoneInteractive(layer, zone);
@@ -1413,20 +1144,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           point.isPointOfInterest = pointData.isPointOfInterest;
         }
 
-        // Mettre à jour l'icône du marker avec le bon contenu
-        const markerContent = point.isPointOfInterest
-          ? '!'
-          : (point.order || currentPoints + 1).toString();
+        // Mettre à jour l'icône du marker avec l'image selon le type de point
+        const iconUrl = point.isPointOfInterest 
+          ? '/assets/icons/point-attention.png'
+          : '/assets/icons/point-classique.png';
+        
         layer.setIcon(
-          L.divIcon({
-            className: 'custom-marker',
-            html: `<div class="marker-pin ${point.validated ? 'valid' : 'invalid'} ${
-              point.isPointOfInterest ? 'point-of-interest' : ''
-            }">
-                     <span class="marker-number">${markerContent}</span>
-                   </div>`,
-            iconSize: [30, 42],
-            iconAnchor: [15, 42],
+          L.icon({
+            iconUrl: iconUrl,
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
           })
         );
 
@@ -2105,10 +1833,14 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     this.securityZoneService.create(securityZoneData as SecurityZone).subscribe({
       next: (createdZone) => {
-        // Ajouter la polyline à la carte
-        this.drawnItems.addLayer(layer);
+        // Associer l'UUID et le type au layer
         layer.securityZoneUuid = createdZone.uuid;
         layer.shapeType = 'securityZone';
+        
+        // Toujours ajouter la zone nouvellement créée (ignorer le filtre pour les nouvelles zones)
+        this.drawnItems.addLayer(layer);
+        
+        // Stocker dans la map
         this.geometryLayers.set(createdZone.uuid, layer);
 
         // Rendre interactive
@@ -2146,7 +1878,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
             );
 
             this.toastService.showSuccess(
-              'Equipement créée',
+              'Zone de sécurité créée',
               'Complétez maintenant les dates de pose et dépose'
             );
 
@@ -2164,8 +1896,8 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         this.mapService.stopDrawingMode();
       },
       error: (error) => {
-        console.error('Erreur lors de la création de l\'équipement:', error);
-        this.toastService.showError('Erreur', 'Impossible de créer l\'équipement');
+        console.error('Erreur lors de la création de la zone de sécurité:', error);
+        this.toastService.showError('Erreur', 'Impossible de créer la zone de sécurité');
         this.mapService.stopDrawingMode();
       },
     });

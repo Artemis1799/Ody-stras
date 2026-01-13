@@ -473,6 +473,18 @@ export class MapService {
     });
   }
 
+  skipZoneCreation(): void {
+    // Passer l'étape de la zone et aller directement au tracé
+    const current = this.eventCreationModeSubject.value;
+    if (current.active && current.step === 'drawing-zone') {
+      this.eventCreationModeSubject.next({
+        ...current,
+        step: 'drawing-path',
+        zoneGeoJson: null // Pas de zone créée
+      });
+    }
+  }
+
   completeEventCreation(): void {
     this.eventCreationModeSubject.next({
       active: false,
@@ -640,15 +652,12 @@ export class MapService {
     // Calculer les zones visibles à partir de toutes les zones et des zones cachées
     const allZones = this.securityZonesSubject.value;
     if (hidden.size === 0) {
-      console.log('All zones visible now (hidden set is empty)');
       this.visibleSecurityZoneIdsSubject.next(null);
     } else {
       const visibleIds = allZones
         .filter(z => !hidden.has(z.uuid))
         .map(z => z.uuid);
-      
-      console.log('Setting visible zones to:', visibleIds);
-      this.visibleSecurityZoneIdsSubject.next(visibleIds);
+        this.visibleSecurityZoneIdsSubject.next(visibleIds);
     }
   }
 
@@ -685,15 +694,12 @@ export class MapService {
     // Calculer les points visibles à partir de tous les points et des points cachés
     const allPoints = this.pointsSubject.value;
     if (hidden.size === 0) {
-      console.log('All points visible now (hidden set is empty)');
       this.visiblePointIdsSubject.next(null);
     } else {
       const visibleIds = allPoints
         .filter(p => !hidden.has(p.uuid))
         .map(p => p.uuid);
-      
-      console.log('Setting visible points to:', visibleIds);
-      this.visiblePointIdsSubject.next(visibleIds);
+        this.visiblePointIdsSubject.next(visibleIds);
     }
   }
 
@@ -740,14 +746,12 @@ export class MapService {
     // Calculer les points d'intérêt visibles à partir de tous les points et des points d'intérêt cachés
     const allPoints = this.pointsSubject.value;
     if (hidden.size === 0) {
-      console.log('All points of interest visible now (hidden set is empty)');
       this.visiblePointOfInterestIdsSubject.next(null);
     } else {
       const visibleIds = allPoints
         .filter(p => p.isPointOfInterest && !hidden.has(p.uuid))
         .map(p => p.uuid);
       
-      console.log('Setting visible points of interest to:', visibleIds);
       this.visiblePointOfInterestIdsSubject.next(visibleIds);
     }
   }
@@ -795,14 +799,11 @@ export class MapService {
     // Calculer les parcours visibles à partir de TOUS les parcours (incluant les équipements) et des parcours cachés
     const allPaths = this.pathsSubject.value;
     if (hidden.size === 0) {
-      console.log('All paths visible now (hidden set is empty)');
       this.visiblePathIdsSubject.next(null);
     } else {
       const visibleIds = allPaths
         .filter(p => !hidden.has(p.uuid))
         .map(p => p.uuid);
-      
-      console.log('Setting visible paths to:', visibleIds);
       this.visiblePathIdsSubject.next(visibleIds);
     }
   }
@@ -852,14 +853,11 @@ export class MapService {
     const allEquipments = allPaths.filter(p => p.name && p.name.startsWith('Chemin '));
     
     if (hidden.size === 0) {
-      console.log('All equipments visible now (hidden set is empty)');
       this.visibleEquipmentIdsSubject.next(null);
     } else {
       const visibleIds = allEquipments
         .filter(e => !hidden.has(e.uuid))
         .map(e => e.uuid);
-      
-      console.log('Setting visible equipments to:', visibleIds);
       this.visibleEquipmentIdsSubject.next(visibleIds);
     }
   }
@@ -907,14 +905,11 @@ export class MapService {
     // Calculer les areas visibles à partir de toutes les areas et des areas cachées
     const allAreas = this.areasSubject.value;
     if (hidden.size === 0) {
-      console.log('All areas visible now (hidden set is empty)');
       this.visibleAreaIdsSubject.next(null);
     } else {
       const visibleIds = allAreas
         .filter(a => !hidden.has(a.uuid))
         .map(a => a.uuid);
-      
-      console.log('Setting visible areas to:', visibleIds);
       this.visibleAreaIdsSubject.next(visibleIds);
     }
   }
