@@ -611,7 +611,7 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
       // Si on doit assigner l'équipe de retrait (après l'installation)
       if (this.selectedRemovalTeamId) {
         assignment$ = assignment$.pipe(
-          concatMap((zone) => {
+          concatMap(() => {
             // Si on a déjà une zone retournée par l'assignation d'installation, on l'ignore
             // et on fait l'assignation de removal qui retournera la zone avec les deux équipes
             return this.securityZoneService.assignRemovalTeam(zoneId, this.selectedRemovalTeamId!);
