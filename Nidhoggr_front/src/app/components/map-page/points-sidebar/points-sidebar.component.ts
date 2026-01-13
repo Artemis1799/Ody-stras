@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AutoComplete } from 'primeng/autocomplete';
+import { EventStoreService } from '../../../services/EventStoreService';
 import { PointService } from '../../../services/PointService';
 import { EventService } from '../../../services/EventService';
 import { AreaService } from '../../../services/AreaService';
@@ -106,7 +107,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     private mapService: MapService,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private nominatimService: NominatimService
+    private nominatimService: NominatimService,
+    private eventStoreService: EventStoreService
   ) {
     // Initialiser points$ après l'injection de mapService
     this.points$ = this.mapService.points$;
@@ -121,6 +123,18 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.eventsSubscription = this.events$.subscribe((events) => {
       this.events = events;
       this.cdr.markForCheck();
+
+      // Après le chargement des événements, restaurer l'événement depuis l'URL s'il existe
+      const eventUuidFromUrl = this.eventStoreService.initializeFromUrl();
+      if (eventUuidFromUrl) {
+        const eventFromUrl = events.find((e) => e.uuid === eventUuidFromUrl);
+        if (eventFromUrl) {
+          this.selectedEvent = eventFromUrl;
+          this.selectedEventName = eventFromUrl.title;
+          this.mapService.setSelectedEvent(eventFromUrl);
+          this.loadPointsAndCenterMap(eventFromUrl.uuid);
+        }
+      }
     });
 
     // S'abonner aux changements de points pour déclencher la détection de changements
@@ -223,6 +237,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.selectedEventName = selectedEventObj.title;
       // Émettre l'événement sélectionné dans le service pour les autres composants
       this.mapService.setSelectedEvent(selectedEventObj);
+      // Persister dans le store et l'URL
+      this.eventStoreService.setSelectedEvent(selectedEventObj);
       this.loadPointsAndCenterMap(selectedEventObj.uuid);
     }
   }
@@ -320,7 +336,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       padding: [50, 50],
       paddingTopLeft: [350, 50], // Compenser la sidebar
       paddingBottomRight: [50, 50],
-      maxZoom: 18,
+      maxZoom: 16, // Réduire le zoom max pour mieux voir l'ensemble
+      minZoom: 2, // Permettre un zoom out jusqu'à niveau 2
       animate: true,
       duration: 0.5,
     });
@@ -523,6 +540,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.selectedEvent = null;
     this.selectedEventName = '';
     this.mapService.setSelectedEvent(null);
+    // Supprimer du store et de l'URL
+    this.eventStoreService.setSelectedEvent(null);
     // Vider les points
     this.mapService.setPoints([]);
     this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
@@ -540,6 +559,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
           this.selectedEvent = null;
           this.selectedEventName = '';
           this.mapService.setSelectedEvent(null);
+          this.eventStoreService.setSelectedEvent(null);
           this.mapService.setPoints([]);
           this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
         },
