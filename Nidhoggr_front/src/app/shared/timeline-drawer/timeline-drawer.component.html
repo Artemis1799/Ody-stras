@@ -3,6 +3,22 @@
     <!-- Contrôles de filtres -->
     <div class="filter-controls">
       <div class="filter-buttons">
+        <!-- Filtre par type d'équipement -->
+        <div class="equipment-filter" *ngIf="availableEquipmentTypes.length > 0">
+          <label for="equipmentTypeSelect" class="filter-label">Type d'équipement</label>
+          <select 
+            id="equipmentTypeSelect"
+            class="equipment-select"
+            [(ngModel)]="selectedEquipmentType"
+            (ngModelChange)="onEquipmentTypeChange()"
+          >
+            <option value="all">Tous les types</option>
+            <option *ngFor="let type of availableEquipmentTypes" [value]="type">
+              {{ type }}
+            </option>
+          </select>
+        </div>
+        
         <button 
           class="filter-toggle" 
           [class.active]="dateFilterActive"

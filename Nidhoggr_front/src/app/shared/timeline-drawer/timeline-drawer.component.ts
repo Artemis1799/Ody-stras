@@ -6,6 +6,7 @@ import { SecurityZone } from '../../models/securityZoneModel';
 import { SecurityZoneService } from '../../services/SecurityZoneService';
 import { TeamService } from '../../services/TeamService';
 import { Team } from '../../models/teamModel';
+import { ToastService } from '../../services/ToastService';
 import { Subscription, combineLatest, forkJoin, of } from 'rxjs';
 import { concatMap } from 'rxjs/operators';
 
@@ -59,6 +60,10 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
   geoFilterActive = true; // Filtre géospatial actif par défaut
   isDragging = false;
   
+  // Filtre par type d'équipement
+  selectedEquipmentType: string = 'all';
+  availableEquipmentTypes: string[] = [];
+  
   // Tooltip dynamique
   tooltipVisible = false;
   tooltipX = 0;
@@ -74,7 +79,8 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
     private mapService: MapService,
     private cdr: ChangeDetectorRef,
     private securityZoneService: SecurityZoneService,
-    private teamService: TeamService
+    private teamService: TeamService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -132,6 +138,15 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
       zone
     }));
 
+    // Extraire les types d'équipements uniques
+    const equipmentTypes = new Set<string>();
+    zones.forEach(zone => {
+      if (zone.equipment?.type) {
+        equipmentTypes.add(zone.equipment.type);
+      }
+    });
+    this.availableEquipmentTypes = Array.from(equipmentTypes).sort();
+
     // Calculer la plage de dates globale
     if (this.allZones.length > 0) {
       const dates: Date[] = [];
@@ -175,6 +190,11 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
    */
   private applyFilters(): void {
     let filtered = [...this.allZones];
+
+    // Filtre par type d'équipement
+    if (this.selectedEquipmentType !== 'all') {
+      filtered = filtered.filter(z => z.zone.equipment?.type === this.selectedEquipmentType);
+    }
 
     // Filtre par date: la zone doit être active à cette date
     if (this.dateFilterActive && this.selectedDate) {
@@ -286,6 +306,13 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
     if (this.geoFilterActive) {
       this.dateFilterActive = false;
     }
+    this.applyFilters();
+  }
+
+  /**
+   * Gère le changement du type d'équipement sélectionné
+   */
+  onEquipmentTypeChange(): void {
     this.applyFilters();
   }
 
@@ -637,11 +664,26 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
           this.mapService.updateSecurityZone(updatedZone!);
         });
         
+        // Afficher un message de succès
+        const count = this.selectedZoneIds.size;
+        const teamNames: string[] = [];
+        if (this.selectedInstallationTeamId) {
+          const team = this.availableTeams.find(t => t.uuid === this.selectedInstallationTeamId);
+          if (team) teamNames.push(`pose: ${team.teamName}`);
+        }
+        if (this.selectedRemovalTeamId) {
+          const team = this.availableTeams.find(t => t.uuid === this.selectedRemovalTeamId);
+          if (team) teamNames.push(`dépose: ${team.teamName}`);
+        }
+        const message = `${count} zone${count > 1 ? 's assignées' : ' assignée'} (${teamNames.join(', ')})`;
+        this.toastService.showSuccess('Assignation réussie', message);
+        
         this.selectedZoneIds.clear();
         this.closeTeamModal();
       },
       error: (error) => {
         console.error('Erreur lors de l\'assignation des équipes:', error);
+        this.toastService.showError('Erreur', 'Impossible d\'assigner les équipes aux zones');
         this.isAssigning = false;
       }
     });

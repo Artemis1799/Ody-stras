@@ -611,6 +611,54 @@ $sidebar-width: 320px;
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .equipment-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .filter-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: $text-secondary;
+      white-space: nowrap;
+    }
+    
+    .equipment-select {
+      padding: 6px 32px 6px 10px;
+      background: $bg-primary;
+      border: 1px solid $border-primary;
+      border-radius: 8px;
+      color: $text-primary;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      min-width: 150px;
+      
+      &:hover {
+        border-color: $border-hover;
+        background-color: rgba(255, 255, 255, 0.02);
+      }
+      
+      &:focus {
+        outline: none;
+        border-color: $accent-primary;
+        box-shadow: 0 0 0 2px rgba(42, 215, 131, 0.2);
+      }
+      
+      option {
+        background: $bg-primary;
+        color: $text-primary;
+        padding: 8px;
+      }
+    }
   }
 
   .filter-toggle {
