@@ -9,7 +9,7 @@
   <ng-template #header class="drawer-header-template">
     <div class="drawer-header">
       <div class="header-content">
-        <h3>Zone de sécurité</h3>
+        <h3>Equipements</h3>
         <span class="step-indicator complete">Étape 2/2</span>
       </div>
       <button 
@@ -157,9 +157,9 @@
 
 @if (showDeleteConfirm && selectedZone) {
   <app-delete-popup
-    [title]="'Supprimer la zone de sécurité'"
+    [title]="'Supprimer l'équipement'"
     [itemName]="getEquipmentDisplayName()"
-    [warningMessage]="'Cette action est irréversible. La zone de sécurité sera supprimée.'"
+    [warningMessage]="'Cette action est irréversible. L'équipement sera supprimée.'"
     (confirm)="deleteZone()"
     (close)="cancelDeleteZone()"
   ></app-delete-popup>

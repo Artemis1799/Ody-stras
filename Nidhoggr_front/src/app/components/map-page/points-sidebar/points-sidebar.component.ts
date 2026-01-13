@@ -584,7 +584,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     // Il suffit d'ouvrir la timeline, elle récupère les données automatiquement
     const zones = this.mapService.getSecurityZones();
     if (zones.length === 0) {
-      console.warn('Aucune zone de sécurité à afficher dans la frise.');
+      console.warn('Aucun équipement à afficher dans la frise.');
       return;
     }
 

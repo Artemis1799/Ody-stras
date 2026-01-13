@@ -322,7 +322,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
         this.handleTeamAssignments(savedZone, installationTeamChanged, removalTeamChanged);
       },
       error: () => {
-        this.toastService.showError('Erreur', 'Impossible de modifier la zone de sécurité');
+        this.toastService.showError('Erreur', 'Impossible de modifier l\'équipement');
       }
     });
   }
@@ -331,7 +331,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     // Si aucun changement d'équipe, on termine
     if (!installationTeamChanged && !removalTeamChanged) {
       this.mapService.updateSecurityZone(zone);
-      this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+      this.toastService.showSuccess('Equipement modifiée', 'Les modifications ont été enregistrées avec succès');
       this.closeDrawer();
       return;
     }
@@ -345,7 +345,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
               this.handleRemovalTeamAssignment(updatedZone);
             } else {
               this.mapService.updateSecurityZone(updatedZone);
-              this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+              this.toastService.showSuccess('Equipement modifiée', 'Les modifications ont été enregistrées avec succès');
               this.closeDrawer();
             }
           },
@@ -361,7 +361,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
               this.handleRemovalTeamAssignment(updatedZone);
             } else {
               this.mapService.updateSecurityZone(updatedZone);
-              this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+              this.toastService.showSuccess('Equipement modifiée', 'Les modifications ont été enregistrées avec succès');
               this.closeDrawer();
             }
           },
@@ -381,7 +381,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
       this.securityZoneService.assignRemovalTeam(zone.uuid, this.selectedRemovalTeamId).subscribe({
         next: (finalZone) => {
           this.mapService.updateSecurityZone(finalZone);
-          this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+          this.toastService.showSuccess('Equipement modifiée', 'Les modifications ont été enregistrées avec succès');
           this.closeDrawer();
         },
         error: () => {
@@ -393,7 +393,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
       this.securityZoneService.unassignRemovalTeam(zone.uuid).subscribe({
         next: (finalZone) => {
           this.mapService.updateSecurityZone(finalZone);
-          this.toastService.showSuccess('Zone de sécurité modifiée', 'Les modifications ont été enregistrées avec succès');
+          this.toastService.showSuccess('Equipement modifiée', 'Les modifications ont été enregistrées avec succès');
           this.closeDrawer();
         },
         error: () => {
@@ -530,10 +530,10 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
       next: () => {
         // Retirer de la liste du MapService
         this.mapService.removeSecurityZone(zoneToDelete.uuid);
-        this.toastService.showSuccess('Zone supprimée', 'La zone de sécurité a été supprimée');
+        this.toastService.showSuccess('Zone supprimée', 'L\'équipement a été supprimée');
       },
       error: () => {
-        this.toastService.showError('Erreur', 'Impossible de supprimer la zone de sécurité');
+        this.toastService.showError('Erreur', 'Impossible de supprimer l\'équipement');
       }
     });
   }
