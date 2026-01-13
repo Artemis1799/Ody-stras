@@ -116,9 +116,11 @@
     [allEmployees]="allEmployees()"
     [events]="events()"
     [securityZones]="securityZones()"
+    [plannings]="plannings()"
     [(selectedEmployees)]="selectedEmployees"
     (save)="onTeamSave($event)"
     (close)="closeDialog()"
+    (eventChangeRequested)="onEventChangeRequested($event)"
   ></app-team-popup>
 }
 

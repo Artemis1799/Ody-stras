@@ -61,6 +61,7 @@ export class EventEditPopup implements OnInit {
     }
   }
 
+  // eslint-disable-next-line complexity
   onSubmit(): void {
     if (!this.formData.title?.trim()) {
       this.errorMessage = 'Le titre de l\'événement est requis';

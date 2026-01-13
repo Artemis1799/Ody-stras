@@ -107,6 +107,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     this.teamService.load();
   }
 
+  // eslint-disable-next-line complexity
   openDrawer(zone: SecurityZone): void {
     // Fermer le drawer des points s'il est ouvert
     this.mapService.selectPoint(null);
@@ -224,12 +225,12 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     const R = 6371000; // Rayon de la Terre en mètres
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
               Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
@@ -284,6 +285,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     this.mapService.selectSecurityZone(null);
   }
 
+  // eslint-disable-next-line complexity
   hasChanges(): boolean {
     const installDateChanged = this.installationDate?.getTime() !== this.initialInstallationDate?.getTime();
     const removalDateChanged = this.removalDate?.getTime() !== this.initialRemovalDate?.getTime();
@@ -416,10 +418,20 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     return this.equipment.type || 'Équipement sans type';
   }
 
+  /**
+   * Retourne les équipes filtrées par l'eventId de la zone de sécurité sélectionnée
+   */
+  getTeamsForCurrentEvent(): { uuid: string; teamName: string }[] {
+    if (!this.selectedZone) return [];
+    return this.teams.filter(t => t.eventId === this.selectedZone?.eventId);
+  }
+
   // Méthode pour filtrer les équipes de pose (AutoComplete)
   filterInstallationTeams(event: AutoCompleteCompleteEvent): void {
     const query = event.query.toLowerCase();
-    const teamNames = this.teams.map(t => t.teamName);
+    // Filtrer par l'eventId de la zone de sécurité sélectionnée
+    const teamsForEvent = this.getTeamsForCurrentEvent();
+    const teamNames = teamsForEvent.map(t => t.teamName);
 
     // Ajouter l'option "Aucune" en premier
     const aucuneOption = 'Aucune';
@@ -450,14 +462,17 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const newTeam = this.teams.find(t => t.teamName === selectedName) || null;
+    const teamsForEvent = this.getTeamsForCurrentEvent();
+    const newTeam = teamsForEvent.find(t => t.teamName === selectedName) || null;
     this.selectedInstallationTeamId = newTeam?.uuid || null;
   }
 
   // Méthode pour filtrer les équipes de dépose (AutoComplete)
   filterRemovalTeams(event: AutoCompleteCompleteEvent): void {
     const query = event.query.toLowerCase();
-    const teamNames = this.teams.map(t => t.teamName);
+    // Filtrer par l'eventId de la zone de sécurité sélectionnée
+    const teamsForEvent = this.getTeamsForCurrentEvent();
+    const teamNames = teamsForEvent.map(t => t.teamName);
 
     // Ajouter l'option "Aucune" en premier
     const aucuneOption = 'Aucune';
@@ -488,7 +503,8 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const newTeam = this.teams.find(t => t.teamName === selectedName) || null;
+    const teamsForEvent = this.getTeamsForCurrentEvent();
+    const newTeam = teamsForEvent.find(t => t.teamName === selectedName) || null;
     this.selectedRemovalTeamId = newTeam?.uuid || null;
   }
 
