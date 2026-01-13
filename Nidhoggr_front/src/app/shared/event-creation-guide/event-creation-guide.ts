@@ -22,7 +22,6 @@ export class EventCreationGuide implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscription = this.mapService.eventCreationMode$.subscribe(mode => {
-      const previousStep = this.mode?.step;
       this.mode = mode;
       // Réinitialiser l'état minimisé lors du changement d'étape
       if (mode.step === 'drawing-zone' || mode.step === 'drawing-path') {

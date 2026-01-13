@@ -203,12 +203,6 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
 
     const teamName = this.team.teamName || 'Équipe';
     const eventName = this.events.find(e => e.uuid === this.team.eventId)?.title || '';
-    const generatedDate = new Date().toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
 
     // === EN-TÊTE DU DOCUMENT ===
     doc.setFillColor(23, 28, 34);

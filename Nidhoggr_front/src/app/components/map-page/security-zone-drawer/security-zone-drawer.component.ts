@@ -107,6 +107,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     this.teamService.load();
   }
 
+  // eslint-disable-next-line complexity
   openDrawer(zone: SecurityZone): void {
     // Fermer le drawer des points s'il est ouvert
     this.mapService.selectPoint(null);
@@ -224,12 +225,12 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     const R = 6371000; // Rayon de la Terre en mètres
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
               Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
@@ -284,6 +285,7 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     this.mapService.selectSecurityZone(null);
   }
 
+  // eslint-disable-next-line complexity
   hasChanges(): boolean {
     const installDateChanged = this.installationDate?.getTime() !== this.initialInstallationDate?.getTime();
     const removalDateChanged = this.removalDate?.getTime() !== this.initialRemovalDate?.getTime();

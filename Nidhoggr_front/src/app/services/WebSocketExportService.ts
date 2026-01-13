@@ -235,7 +235,7 @@ export class WebSocketExportService {
   /**
    * Traite un point reçu (création ou modification)
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, complexity
   private async processPoint(pointData: any): Promise<void> {
     console.log('RAW pointData received:', JSON.stringify(pointData, null, 2));
     
