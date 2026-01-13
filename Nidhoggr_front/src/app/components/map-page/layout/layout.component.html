@@ -1,10 +1,13 @@
 <div class="layout">
-  <app-points-sidebar></app-points-sidebar>
-  
+  <app-points-sidebar #sidebar></app-points-sidebar>
+
   <main class="content">
+    <div class="map-header">
+      <h1 class="event-title">{{ selectedEventName }}</h1>
+    </div>
     <router-outlet></router-outlet>
   </main>
-  
+
   <app-point-drawer></app-point-drawer>
   <app-point-of-interest-drawer></app-point-of-interest-drawer>
   <app-security-zone-drawer></app-security-zone-drawer>
