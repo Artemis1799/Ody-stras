@@ -6,11 +6,14 @@ import { EmployeeService } from '../../../services/EmployeeService';
 import { TeamEmployeeService } from '../../../services/TeamEmployeeService';
 import { EventService } from '../../../services/EventService';
 import { SecurityZoneService } from '../../../services/SecurityZoneService';
+import { PlanningService } from '../../../services/PlanningService';
+import { ActionService } from '../../../services/ActionService';
 import { Team } from '../../../models/teamModel';
 import { Employee } from '../../../models/employeeModel';
 import { TeamEmployee } from '../../../models/teamEmployeeModel';
 import { Event } from '../../../models/eventModel';
 import { SecurityZone } from '../../../models/securityZoneModel';
+import { Planning } from '../../../models/planningModel';
 import { forkJoin } from 'rxjs';
 import { TeamPopupComponent, TeamFormData } from '../../../shared/team-popup/team-popup';
 import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
@@ -35,10 +38,15 @@ export class TeamsComponent implements OnInit {
   private teamEmployeeService = inject(TeamEmployeeService);
   private eventService = inject(EventService);
   private securityZoneService = inject(SecurityZoneService);
+  private planningService = inject(PlanningService);
+  private actionService = inject(ActionService);
   private toastService = inject(ToastService);
   
   // Security zones signal
   securityZones = signal<SecurityZone[]>([]);
+  
+  // Plannings signal
+  plannings = signal<Planning[]>([]);
   
   // Signals calculés pour combiner les données
   readonly teams = computed<TeamWithEmployees[]>(() => {
@@ -102,6 +110,50 @@ export class TeamsComponent implements OnInit {
     this.teamEmployeeService.load();
     this.eventService.load();
     this.securityZoneService.getAll().subscribe(zones => this.securityZones.set(zones));
+    this.planningService.getAll().subscribe(plannings => this.plannings.set(plannings));
+  }
+
+  /**
+   * Gère le changement d'event d'une équipe - détache les plannings
+   * Note: Le détachement des security zones est géré automatiquement par l'API
+   */
+  onEventChangeRequested(data: { teamId: string; oldEventId: string; newEventId: string }): void {
+    const { teamId } = data;
+    
+    // Trouver et détacher le planning lié à cette équipe
+    const teamPlanning = this.plannings().find(p => p.teamId === teamId);
+    
+    if (teamPlanning) {
+      const updatedPlanning: Planning = {
+        ...teamPlanning,
+        teamId: ''
+      };
+      
+      this.planningService.update(teamPlanning.uuid, updatedPlanning).subscribe({
+        next: () => {
+          this.planningService.getAll().subscribe(plannings => this.plannings.set(plannings));
+          this.toastService.showSuccess(
+            'Équipe détachée', 
+            'Le planning et les équipements ont été détachés de cette équipe'
+          );
+        },
+        error: (error) => {
+          console.error('Erreur lors de la mise à jour du planning:', error);
+          this.toastService.showError('Erreur', 'Impossible de détacher le planning');
+        }
+      });
+    } else {
+      // Pas de planning, mais on affiche quand même un message pour les security zones détachées par l'API
+      this.toastService.showSuccess(
+        'Équipe mise à jour', 
+        'Les équipements ont été détachés de cette équipe'
+      );
+    }
+    
+    // Recharger les security zones pour refléter les changements faits par l'API
+    this.securityZoneService.getAll().subscribe(zones => {
+      this.securityZones.set(zones);
+    });
   }
 
   openCreateDialog(): void {

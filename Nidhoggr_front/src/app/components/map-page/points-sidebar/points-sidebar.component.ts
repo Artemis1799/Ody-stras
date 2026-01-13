@@ -547,7 +547,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
   }
 
-  onEventCreationConfirmed(event: Event): void {
+  onEventCreationConfirmed(): void {
     this.mapService.triggerReloadEvent();
   }
 

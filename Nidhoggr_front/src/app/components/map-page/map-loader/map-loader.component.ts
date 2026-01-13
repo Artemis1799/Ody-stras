@@ -330,7 +330,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     this.markers.clear();
 
     // Ajouter les nouveaux markers
-    points.forEach((point, index) => {
+    points.forEach((point) => {
       if (this.map && point.latitude && point.longitude) {
         // Déterminer le contenu du marker (vide pour les points normaux, ! pour les points d'intérêt)
         const markerContent = point.isPointOfInterest ? '!' : '';
@@ -512,7 +512,6 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Calculer directement le centre décalé pour compenser le drawer
     // Le drawer fait 26.25rem (420px), donc on décale de 210px (la moitié)
-    const containerWidth = this.map.getContainer().offsetWidth;
     const drawerWidth = 420; // 26.25rem
     const offsetX = drawerWidth / 2;
 
@@ -667,12 +666,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     const R = 6371000; // Rayon de la Terre en mètres
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
 
     const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
@@ -884,6 +883,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   /**
    * Ajoute une Area (polygon) à la carte
    */
+  // eslint-disable-next-line complexity
   private addAreaToMap(area: Area): void {
     if (!this.map || !this.drawnItems || typeof window === 'undefined') return;
 
@@ -1031,18 +1031,15 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private onGeometryCreated(e: any): void {
     if (!this.drawnItems || typeof window === 'undefined') return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const L: any = (window as any).L;
-
     // Si on est en mode création d'événement, rediriger vers les handlers appropriés
     if (this.mapService.isEventCreationActive()) {
       const creationMode = this.mapService.getEventCreationMode();
 
       if (creationMode.step === 'drawing-zone') {
-        this.onEventZoneDrawn(e, L);
+        this.onEventZoneDrawn(e);
         return;
       } else if (creationMode.step === 'drawing-path') {
-        this.onEventPathDrawn(e, L);
+        this.onEventPathDrawn(e);
         return;
       }
       return;
@@ -1362,6 +1359,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getGeometryInfo(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     layer: any
   ): { type: 'area' | 'path'; uuid: string; name?: string; description?: string } | null {
     if (layer.areaUuid) {
@@ -1691,6 +1689,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   /**
    * Gère les changements du mode dessin pour les SecurityZones
    */
+  // eslint-disable-next-line complexity
   private handleDrawingModeChange(mode: DrawingMode): void {
     if (!this.map || typeof window === 'undefined') return;
 
@@ -1716,6 +1715,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       });
 
       // Écouter la création de la polyline
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.map.once('draw:created', (e: any) => {
         this.onSecurityZoneDrawn(e);
       });
@@ -1746,7 +1746,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   /**
    * Gère la création d'une SecurityZone après le dessin de la polyline
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, complexity
   private onSecurityZoneDrawn(e: any): void {
     const layer = e.layer;
     const { sourcePoint, equipment } = this.currentDrawingMode;
@@ -1872,8 +1872,10 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     // Stocker l'UUID pour récupérer la zone à jour lors du clic
     const zoneUuid = zone.uuid;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     layer.on('click', (e: any) => {
       if (typeof window === 'undefined') return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const L: any = (window as any).L;
       L.DomEvent.stopPropagation(e);
 
@@ -1926,6 +1928,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   /**
    * Gère les changements du mode création d'événement (zone puis chemin)
    */
+  // eslint-disable-next-line complexity
   private handleEventCreationModeChange(mode: EventCreationMode): void {
     if (!this.map || typeof window === 'undefined') return;
 
@@ -2071,7 +2074,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
    * Callback quand la zone de l'événement est dessinée
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private onEventZoneDrawn(e: any, L: any): void {
+  private onEventZoneDrawn(e: any): void {
     const layer = e.layer;
 
     const geoJson = this.leafletToGeoJSON(layer);
@@ -2104,7 +2107,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
    * Callback quand le chemin de l'événement est dessiné
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private onEventPathDrawn(e: any, L: any): void {
+  private onEventPathDrawn(e: any): void {
     const layer = e.layer;
 
     const geoJson = this.leafletToGeoJSON(layer);
@@ -2164,8 +2167,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   /**
    * Nettoie complètement le mode création d'événement
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private cleanupEventCreationDrawing(L: any): void {
+  private cleanupEventCreationDrawing(): void {
     // Désactiver les handlers
     if (this.polygonDrawHandler) {
       this.polygonDrawHandler.disable();
@@ -2198,21 +2200,18 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   /**
    * Appelé quand l'événement est confirmé depuis le popup
    */
-  onEventConfirmed(event: Event): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const L: any = (window as any).L;
-    this.cleanupEventCreationDrawing(L);
+  onEventConfirmed(): void {
+    this.cleanupEventCreationDrawing();
   }
 
   /**
    * Appelé quand la création d'événement est annulée depuis le popup
    */
   onEventCreationCancelled(): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const L: any = (window as any).L;
-    this.cleanupEventCreationDrawing(L);
+    this.cleanupEventCreationDrawing();
   }
 
+  // eslint-disable-next-line complexity
   ngOnDestroy(): void {
     // Réinitialiser l'événement sélectionné
     this.mapService.setSelectedEvent(null);
