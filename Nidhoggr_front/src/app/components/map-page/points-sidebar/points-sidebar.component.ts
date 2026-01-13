@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AutoComplete } from 'primeng/autocomplete';
+import { EventStoreService } from '../../../store-services/EventStore-Service';
 import { PointService } from '../../../services/PointService';
 import { EventService } from '../../../services/EventService';
 import { AreaService } from '../../../services/AreaService';
@@ -129,7 +130,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     private mapService: MapService,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private nominatimService: NominatimService
+    private nominatimService: NominatimService,
+    private eventStoreService: EventStoreService
   ) {
     // Initialiser points$ après l'injection de mapService
     this.points$ = this.mapService.points$;
@@ -145,6 +147,18 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.eventsSubscription = this.events$.subscribe((events) => {
       this.events = events;
       this.cdr.markForCheck();
+
+      // Après le chargement des événements, restaurer l'événement depuis l'URL s'il existe
+      const eventUuidFromUrl = this.eventStoreService.initializeFromUrl();
+      if (eventUuidFromUrl) {
+        const eventFromUrl = events.find((e) => e.uuid === eventUuidFromUrl);
+        if (eventFromUrl) {
+          this.selectedEvent = eventFromUrl;
+          this.selectedEventName = eventFromUrl.title;
+          this.mapService.setSelectedEvent(eventFromUrl);
+          this.loadPointsAndCenterMap(eventFromUrl.uuid);
+        }
+      }
     });
 
     // S'abonner aux changements de points pour déclencher la détection de changements
@@ -293,9 +307,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   filterEvents(event: { query: string }): void {
     const query = event.query.toLowerCase();
+    // Filtrer les événements non archivés
     const filtered = this.events
       .filter(
-        (e) => e.title.toLowerCase().includes(query)
+        (e) => !e.isArchived && e.title.toLowerCase().includes(query)
       )
       .map((e) => e.title);
     // Supprimer les doublons de noms
@@ -304,12 +319,14 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   onEventSelect(event: { value: string }): void {
     const eventName = event.value;
-    const selectedEventObj = this.events.find((e) => e.title === eventName);
+    const selectedEventObj = this.events.find((e) => e.title === eventName && !e.isArchived);
     if (selectedEventObj?.uuid) {
       this.selectedEvent = selectedEventObj;
       this.selectedEventName = selectedEventObj.title;
       // Émettre l'événement sélectionné dans le service pour les autres composants
       this.mapService.setSelectedEvent(selectedEventObj);
+      // Persister dans le store et l'URL
+      this.eventStoreService.setSelectedEvent(selectedEventObj);
       this.loadPointsAndCenterMap(selectedEventObj.uuid);
     }
   }
@@ -326,7 +343,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       points: this.pointService.getByEventId(eventId),
       areas: this.areaService.getByEventId(eventId),
       paths: this.pathService.getByEventId(eventId),
-      securityZones: this.securityZoneService.getByEventId(eventId)
+      securityZones: this.securityZoneService.getByEventId(eventId),
     }).subscribe({
       next: ({ points, areas, paths, securityZones }) => {
         // Trier les points
@@ -391,13 +408,13 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     });
 
     // Ajouter les coordonnées des areas
-    areas.forEach(a => {
+    areas.forEach((a) => {
       const geoJson = typeof a.geoJson === 'string' ? JSON.parse(a.geoJson) : a.geoJson;
       this.extractGeometryCoords(geoJson, allCoords);
     });
 
     // Ajouter les coordonnées des paths
-    paths.forEach(p => {
+    paths.forEach((p) => {
       const geoJson = typeof p.geoJson === 'string' ? JSON.parse(p.geoJson) : p.geoJson;
       this.extractGeometryCoords(geoJson, allCoords);
     });
@@ -414,7 +431,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       padding: [50, 50],
       paddingTopLeft: [350, 50], // Compenser la sidebar
       paddingBottomRight: [50, 50],
-      maxZoom: 18,
+      maxZoom: 16, // Réduire le zoom max pour mieux voir l'ensemble
+      minZoom: 2, // Permettre un zoom out jusqu'à niveau 2
       animate: true,
       duration: 0.5,
     });
@@ -617,12 +635,14 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.selectedEvent = null;
     this.selectedEventName = '';
     this.mapService.setSelectedEvent(null);
+    // Supprimer du store et de l'URL
+    this.eventStoreService.setSelectedEvent(null);
     // Vider les points
     this.mapService.setPoints([]);
     this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
   }
 
-  onEventCreationConfirmed(event: Event): void {
+  onEventCreationConfirmed(): void {
     this.mapService.triggerReloadEvent();
   }
 
@@ -634,12 +654,13 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
           this.selectedEvent = null;
           this.selectedEventName = '';
           this.mapService.setSelectedEvent(null);
+          this.eventStoreService.setSelectedEvent(null);
           this.mapService.setPoints([]);
           this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
         },
         error: (error) => {
-          console.error('Erreur lors de la suppression de l\'événement annulé:', error);
-        }
+          console.error("Erreur lors de la suppression de l'événement annulé:", error);
+        },
       });
     }
   }
@@ -650,15 +671,15 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       console.warn("Aucun événement sélectionné — impossible d'afficher la frise.");
       return;
     }
-    
+
     // La timeline utilise maintenant les SecurityZones du MapService
     // Il suffit d'ouvrir la timeline, elle récupère les données automatiquement
     const zones = this.mapService.getSecurityZones();
     if (zones.length === 0) {
-      console.warn('Aucune zone de sécurité à afficher dans la frise.');
+      console.warn('Aucun équipement à afficher dans la frise.');
       return;
     }
-    
+
     // Ouvrir la timeline via le service (ferme automatiquement le point drawer)
     this.mapService.openTimeline();
   }
@@ -675,11 +696,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   applyPointsFiltersAndPagination(): void {
     // Filtrer d'abord les points d'intérêt
-    const regularPoints = this.allPoints.filter(point => !point.isPointOfInterest);
-    
+    const regularPoints = this.allPoints.filter((point) => !point.isPointOfInterest);
+
     // Filtrer les points selon la recherche
     const filtered = this.filterPoints(regularPoints, this.pointsSearchQuery);
-    
+
     // Trier les points par date d'installation
     this.filteredPoints = this.sortPointsByInstalledDate(filtered);
 
@@ -719,6 +740,11 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     const lowerQuery = query.toLowerCase().trim();
     return points.filter((point) => {
       // Recherche dans le commentaire (nom)
+      if (point.comment && point.comment.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+
+      // Recherche dans la description
       if (point.comment && point.comment.toLowerCase().includes(lowerQuery)) {
         return true;
       }
@@ -810,7 +836,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   extractAvailableZoneTypes(zones: SecurityZone[]): void {
     const typesSet = new Set<string>();
-    zones.forEach(zone => {
+    zones.forEach((zone) => {
       if (zone.equipment?.type) {
         typesSet.add(zone.equipment.type);
       }
@@ -820,7 +846,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   applyZonesFiltersAndPagination(): void {
     // Filtrer les zones par type
-    this.filteredSecurityZones = this.filterZonesByType(this.allSecurityZones, this.selectedZoneType);
+    this.filteredSecurityZones = this.filterZonesByType(
+      this.allSecurityZones,
+      this.selectedZoneType
+    );
 
     // Mettre à jour les zones visibles sur la carte
     if (this.selectedZoneType === 'all' || !this.selectedZoneType) {
@@ -828,12 +857,15 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.mapService.setVisibleSecurityZoneIds(null);
     } else {
       // Filtre actif -> n'afficher que les zones filtrées
-      const visibleIds = this.filteredSecurityZones.map(z => z.uuid);
+      const visibleIds = this.filteredSecurityZones.map((z) => z.uuid);
       this.mapService.setVisibleSecurityZoneIds(visibleIds);
     }
 
     // Calculer la pagination
-    this.zonesTotalPages = Math.max(1, Math.ceil(this.filteredSecurityZones.length / this.itemsPerPage));
+    this.zonesTotalPages = Math.max(
+      1,
+      Math.ceil(this.filteredSecurityZones.length / this.itemsPerPage)
+    );
 
     // Ajuster la page courante si nécessaire
     if (this.zonesCurrentPage > this.zonesTotalPages) {
@@ -906,16 +938,18 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   getZoneDateRange(zone: SecurityZone): string {
-    const install = zone.installationDate ? new Date(zone.installationDate).toLocaleDateString('fr-FR') : '?';
+    const install = zone.installationDate
+      ? new Date(zone.installationDate).toLocaleDateString('fr-FR')
+      : '?';
     const removal = zone.removalDate ? new Date(zone.removalDate).toLocaleDateString('fr-FR') : '?';
     return `${install} - ${removal}`;
   }
 
   // ============= Point Count Methods =============
-  
+
   getRegularPointsCount(): number {
     // Compter uniquement les points qui ne sont pas des points d'intérêt
-    return this.allPoints.filter(point => !point.isPointOfInterest).length;
+    return this.allPoints.filter((point) => !point.isPointOfInterest).length;
   }
 
   // ============= Organized List Methods =============

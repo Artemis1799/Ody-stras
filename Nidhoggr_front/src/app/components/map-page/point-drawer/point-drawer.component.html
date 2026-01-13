@@ -31,14 +31,25 @@
       <!-- Commentaire -->
       <div class="form-row">
         <label for="comment">Commentaire</label>
-        <input 
-          id="comment" 
-          type="text" 
-          pInputText 
-          [(ngModel)]="editedComment"
-          placeholder="Ajouter un commentaire..."
-          class="w-full input-comment"
-        />
+        <div class="comment-input-group">
+          <input 
+            id="comment" 
+            type="text" 
+            pInputText 
+            [(ngModel)]="editedComment"
+            placeholder="Ajouter un commentaire..."
+            class="w-full input-comment"
+          />
+          <button 
+            type="button" 
+            class="btn-save-comment"
+            (click)="saveCommentOnly()"
+            [disabled]="editedComment === initialComment"
+            title="Sauvegarder le commentaire"
+          >
+            <span class="pi pi-check"></span>
+          </button>
+        </div>
       </div>
 
       <!-- Équipement -->

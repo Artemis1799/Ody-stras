@@ -171,12 +171,21 @@
       </div>
       
       <div class="form-actions">
-        <button type="button" class="delete-btn" (click)="confirmDelete()">
+        <button *ngIf="!isArchived" type="button" class="archive-btn" (click)="confirmArchive()">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 8v13H3V8"></path>
+            <path d="M1 3h22v5H1z"></path>
+            <path d="M10 12h4"></path>
           </svg>
-          Supprimer
+          Archiver
+        </button>
+         <button *ngIf="isArchived" type="button" class="archive-btn" (click)="confirmArchive()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8v13H3V8"></path>
+            <path d="M1 3h22v5H1z"></path>
+            <path d="M10 12h4"></path>
+          </svg>
+          Désarchiver
         </button>
         <div class="right-actions">
           <button type="button" class="cancel-btn" (click)="close.emit()">
@@ -207,11 +216,12 @@
 </div>
 
 @if (showDeleteConfirm) {
-  <app-delete-popup
-    title="Supprimer cet événement"
+  <app-archive-popup
+    title="Archiver cet événement"
     [itemName]="event.title"
-    warningMessage="Cette action supprimera également tous les points et géométries associés à cet événement."
-    (confirm)="deleteEvent()"
-    (close)="cancelDelete()"
-  ></app-delete-popup>
+    warningMessage="L'événement sera déplacé dans l'historique et ne sera plus visible dans la liste des événements actifs."
+    (confirm)="archiveEvent()"
+    (close)="cancelArchive()"
+    [isToArchive]="!isArchived"
+  ></app-archive-popup>
 }
