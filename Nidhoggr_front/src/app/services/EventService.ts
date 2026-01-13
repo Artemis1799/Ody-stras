@@ -21,6 +21,12 @@ export class EventService {
   readonly initialized = this._initialized.asReadonly();
   
   readonly count = computed(() => this._events().length);
+  
+  // Signal pour les événements actifs (non archivés)
+  readonly activeEvents = computed(() => this._events().filter(e => !e.isArchived));
+  
+  // Signal pour les événements archivés
+  readonly archivedEvents = computed(() => this._events().filter(e => e.isArchived));
 
   constructor(private http: HttpClient) {}
 
@@ -120,5 +126,26 @@ export class EventService {
     return this.http.delete<{ deletedCount: number }>(this.apiUrl).pipe(
       tap(() => this._events.set([]))
     );
+  }
+
+  /** Archive un événement (met isArchived à true) */
+  archive(id: string): Observable<Event> {
+    const event = this._events().find(e => e.uuid === id);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+    
+    const archivedEvent: Event = { ...event, isArchived: true };
+    return this.update(id, archivedEvent);
+  }
+
+  unarchive(id: string): Observable<Event> {
+    const event = this._events().find(e => e.uuid === id);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+    
+    const archivedEvent: Event = { ...event, isArchived: false };
+    return this.update(id, archivedEvent);
   }
 }
