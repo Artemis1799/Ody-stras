@@ -398,6 +398,8 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
   onZoneHoverEnd(): void {
     this.tooltipVisible = false;
     this.tooltipItem = null;
+    // Retirer le glow du layer de la zone
+    this.mapService.clearSecurityZoneGlow();
   }
 
   close(): void {
