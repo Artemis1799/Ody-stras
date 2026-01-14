@@ -47,7 +47,7 @@ export async function insert<T>(
 
     await db.runAsync(query, values);
   } catch (e) {
-    console.log(e);
+    console.error("Error in insert:", e);
   }
 }
 
@@ -67,7 +67,7 @@ export async function insertOrReplace<T>(
 
     await db.runAsync(query, values);
   } catch (e) {
-    console.log(e);
+    console.error("Error in insertOrReplace:", e);
   }
 }
 
