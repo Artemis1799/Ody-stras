@@ -120,6 +120,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   allAreas: Area[] = [];
   visibleAreaIds: string[] | null = null;
   private visibleAreaIdsSubscription?: Subscription;
+  private areasSubscription?: Subscription;
 
   constructor(
     private pointService: PointService,
@@ -184,7 +185,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     });
 
     // S'abonner aux changements d'areas
-    const areasSubscription = this.mapService.areas$.subscribe((areas) => {
+    this.areasSubscription = this.mapService.areas$.subscribe((areas) => {
       this.allAreas = areas;
       this.cdr.markForCheck();
     });
@@ -283,6 +284,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.visiblePathIdsSubscription?.unsubscribe();
     this.visibleEquipmentIdsSubscription?.unsubscribe();
     this.visibleAreaIdsSubscription?.unsubscribe();
+    this.areasSubscription?.unsubscribe();
   }
 
   loadEvents(): void {
@@ -960,7 +962,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   // ============= Organized List Methods =============
   
-  onOrganizedItemClick(item: any): void {
+  onOrganizedItemClick(item: {type: string; data: Point | SecurityZone | RoutePath | Area}): void {
     if (item.type === 'point') {
       const point = item.data as Point;
       this.onPointClick(point);
@@ -984,7 +986,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     }
   }
 
-  onItemVisibilityChange(event: {item: any, visible: boolean}): void {
+  onItemVisibilityChange(event: {item: {type: string; data: Point | SecurityZone | RoutePath | Area}, visible: boolean}): void {
     if (event.item.type === 'zone') {
       const zone = event.item.data as SecurityZone;
       this.mapService.toggleSecurityZoneVisibility(zone.uuid, event.visible);

@@ -24,7 +24,13 @@ import {
   GeometryEditData,
 } from '../../../shared/geometry-edit-drawer/geometry-edit-drawer.component';
 import { ToastService } from '../../../services/ToastService';
-import { Equipment } from '../../../models/equipmentModel';
+
+// Interface pour le style d'une polyline
+interface PolylineStyle {
+  color: string;
+  weight: number;
+  opacity: number;
+}
 
 @Component({
   selector: 'app-map-loader',
@@ -78,11 +84,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private eventCreationZoneLayer: any = null; // Layer temporaire pour la zone en création
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private eventCreationPathLayer: any = null; // Layer temporaire pour le path en création
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private hoveredSecurityZoneLayer: any = null; // Layer de la zone avec glow actuellement
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private hoveredSecurityZoneBorderLayer: any = null; // Layer de la bordure rouge
-  private hoveredSecurityZoneOriginalStyle: any = null; // Style original avant glow
+  private hoveredSecurityZoneLayer: L.Polyline | null = null; // Layer de la zone avec glow actuellement
+  private hoveredSecurityZoneBorderLayer: L.Polyline | null = null; // Layer de la bordure rouge
+  private hoveredSecurityZoneOriginalStyle: PolylineStyle | null = null; // Style original avant glow
   private platformId = inject(PLATFORM_ID);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private selectedLayer: any = null;
@@ -702,7 +706,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         }
 
         this.hoveredSecurityZoneLayer = layer;
-        this.hoveredSecurityZoneLayer.bringToFront();
+        if (this.hoveredSecurityZoneLayer) {
+          this.hoveredSecurityZoneLayer.bringToFront();
+        }
       }
     } catch (error) {
       console.error('Error applying glow:', error);
@@ -2377,42 +2383,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     this.cleanupEventCreationDrawing();
   }
 
-  // eslint-disable-next-line complexity
   ngOnDestroy(): void {
     // Réinitialiser l'événement sélectionné
     this.mapService.setSelectedEvent(null);
 
     // Arrêter le mode dessin si actif
     this.mapService.stopDrawingMode();
-
-    // Nettoyer les subscriptions
-    if (this.pointsSubscription) {
-      this.pointsSubscription.unsubscribe();
-    }
-    if (this.selectedEventSubscription) {
-      this.selectedEventSubscription.unsubscribe();
-    }
-    if (this.shapesSubscription) {
-      this.shapesSubscription.unsubscribe();
-    }
-    if (this.focusPointSubscription) {
-      this.focusPointSubscription.unsubscribe();
-    }
-    if (this.focusSecurityZoneSubscription) {
-      this.focusSecurityZoneSubscription.unsubscribe();
-    }
-    if (this.clearSecurityZoneGlowSubscription) {
-      this.clearSecurityZoneGlowSubscription.unsubscribe();
-    }
-    if (this.drawingModeSubscription) {
-      this.drawingModeSubscription.unsubscribe();
-    }
-    if (this.eventCreationModeSubscription) {
-      this.eventCreationModeSubscription.unsubscribe();
-    }
-    if (this.securityZonesSubscription) {
-      this.securityZonesSubscription.unsubscribe();
-    }
 
     // Nettoyer les markers
     this.markers.forEach((marker) => {
