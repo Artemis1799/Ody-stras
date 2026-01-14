@@ -488,11 +488,9 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
    * Connecte au WebSocket et attend qu'un téléphone se connecte
    */
   private connectAndWaitForPhone(): void {
-    console.log('🔌 Connexion au WebSocket:', WS_URL);
     this.ws = new WebSocket(WS_URL);
 
     this.ws.onopen = () => {
-      console.log('✅ WebSocket connecté');
       this.ws?.send(JSON.stringify({ type: 'web_waiting_planning', teamUuid: this.team.uuid }));
       this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
     };
@@ -500,14 +498,11 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
     this.ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        console.log('📨 Message reçu:', message.type);
 
         if (message.type === 'phone_requesting') {
-          console.log('📱 Téléphone connecté, envoi du planning...');
           this.exportStatus = '🔄 Téléphone détecté ! Envoi du planning...';
           this.sendPlanningData();
         } else if (message.type === 'export_confirmed') {
-          console.log('✅ Export confirmé:', message);
           this.exportStatus = '✅ Planning envoyé au téléphone !';
           
           setTimeout(() => {
@@ -528,7 +523,6 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
     };
 
     this.ws.onclose = () => {
-      console.log('🔌 WebSocket déconnecté');
       this.ws = null;
     };
 
@@ -607,12 +601,7 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
         geoJson: z.geoJson
       }))
     };
-
-    // Console.log le JSON
-    console.log('📋 Planning JSON export:', JSON.stringify(planningData, null, 2));
-
     this.ws.send(JSON.stringify(planningData));
-    console.log('✅ Planning envoyé au serveur WebSocket');
     this.exportStatus = '📤 Envoi du planning...';
   }
 

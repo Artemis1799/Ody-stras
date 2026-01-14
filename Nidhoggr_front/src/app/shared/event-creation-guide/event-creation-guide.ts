@@ -21,8 +21,7 @@ export class EventCreationGuide implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.subscription = this.mapService.eventCreationMode$.subscribe(mode => {
-      this.mode = mode;
+    this.subscription = this.mapService.eventCreationMode$.subscribe(mode => {      this.mode = mode;
       // Réinitialiser l'état minimisé lors du changement d'étape
       if (mode.step === 'drawing-zone' || mode.step === 'drawing-path') {
         this.isMinimized = false;
@@ -65,6 +64,11 @@ export class EventCreationGuide implements OnInit, OnDestroy {
 
   onCancel(): void {
     this.mapService.cancelEventCreation();
+  }
+
+  onSkipZone(): void {
+    // Passer l'étape de la zone et aller directement au path
+    this.mapService.skipZoneCreation();
   }
 
   onValidateModification(): void {

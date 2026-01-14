@@ -82,11 +82,9 @@ export class ExportPopup implements OnInit, OnDestroy {
    * Connecte au WebSocket et attend qu'un téléphone se connecte
    */
   private connectAndWaitForPhone(): void {
-    console.log('🔌 Connexion au WebSocket:', WS_URL);
     this.ws = new WebSocket(WS_URL);
 
     this.ws.onopen = () => {
-      console.log('✅ WebSocket connecté');
       // S'enregistrer comme client web en attente
       this.ws?.send(JSON.stringify({ type: 'web_waiting', eventUuid: this.event.uuid }));
       this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
@@ -95,11 +93,9 @@ export class ExportPopup implements OnInit, OnDestroy {
     this.ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        console.log('📨 Message reçu:', message.type);
 
         // Un téléphone demande les données
         if (message.type === 'phone_requesting') {
-          console.log('📱 Téléphone connecté, récupération des données...');
           this.exportStatus = '🔄 Téléphone détecté ! Récupération des données...';
           
           // Maintenant on récupère et envoie les données
@@ -107,7 +103,6 @@ export class ExportPopup implements OnInit, OnDestroy {
         }
         // Confirmation que les données ont été envoyées
         else if (message.type === 'export_confirmed') {
-          console.log('✅ Export confirmé:', message);
           this.exportStatus = `✅ ${message.summary.points} points envoyés au téléphone !`;
           
           setTimeout(() => {
@@ -127,7 +122,6 @@ export class ExportPopup implements OnInit, OnDestroy {
     };
 
     this.ws.onclose = () => {
-      console.log('🔌 WebSocket déconnecté');
       this.ws = null;
     };
 
@@ -154,13 +148,6 @@ export class ExportPopup implements OnInit, OnDestroy {
       equipments: this.equipmentService.getAll()
     }).subscribe({
       next: ({ areas, paths, equipments }) => {
-        console.log('✅ Données récupérées pour export vers mobile');
-        console.log('   📋 Event:', this.event.title);
-        console.log('   📐 Areas:', areas.length);
-        console.log('   📐 Paths:', paths.length);
-        console.log('   🔧 Équipements:', equipments.length);
-        console.log('   ⚠️ Points exclus de l\'export (seront créés sur mobile)');
-        
         this.exportStatus = '📤 Envoi des données au téléphone...';
 
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -185,11 +172,7 @@ export class ExportPopup implements OnInit, OnDestroy {
             note: 'Export sans points - les points seront créés sur le mobile'
           }
         };
-
-        console.log('📤 JSON envoyé au serveur WebSocket:', JSON.stringify(message, null, 2));
-
         this.ws.send(JSON.stringify(message));
-        console.log('✅ Données envoyées au serveur (event + areas + paths + équipements)');
       },
       error: (error) => {
         console.error('❌ Erreur récupération données:', error);
