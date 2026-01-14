@@ -24,6 +24,13 @@ import {
   GeometryEditData,
 } from '../../../shared/geometry-edit-drawer/geometry-edit-drawer.component';
 import { ToastService } from '../../../services/ToastService';
+
+// Interface pour le style d'une polyline
+interface PolylineStyle {
+  color: string;
+  weight: number;
+  opacity: number;
+}
 import { EquipmentSelectPopupComponent } from '../../../shared/equipment-select-popup/equipment-select-popup.component';
 import { Equipment } from '../../../models/equipmentModel';
 
@@ -54,6 +61,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private shapesSubscription?: Subscription;
   private focusPointSubscription?: Subscription;
   private focusSecurityZoneSubscription?: Subscription;
+  private clearSecurityZoneGlowSubscription?: Subscription;
   private drawingModeSubscription?: Subscription;
   private securityZonesSubscription?: Subscription;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,6 +87,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private eventCreationZoneLayer: any = null; // Layer temporaire pour la zone en création
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private eventCreationPathLayer: any = null; // Layer temporaire pour le path en création
+  private hoveredSecurityZoneLayer: L.Polyline | null = null; // Layer de la zone avec glow actuellement
+  private hoveredSecurityZoneBorderLayer: L.Polyline | null = null; // Layer de la bordure rouge
+  private hoveredSecurityZoneOriginalStyle: PolylineStyle | null = null; // Style original avant glow
   private platformId = inject(PLATFORM_ID);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private selectedLayer: any = null;
@@ -259,6 +270,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // S'abonner au focus sur une security zone (depuis la sidebar)
       this.focusSecurityZoneSubscription = this.mapService.focusSecurityZone$.subscribe((zone) => {
         this.centerMapOnSecurityZone(zone);
+      });
+
+      // S'abonner au signal pour retirer le glow
+      this.clearSecurityZoneGlowSubscription = this.mapService.clearSecurityZoneGlow$.subscribe(() => {
+        this.removeGlowFromSecurityZone();
       });
 
       // S'abonner au mode dessin pour les SecurityZones
@@ -577,6 +593,9 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private centerMapOnSecurityZone(zone: SecurityZone): void {
     if (!this.map || !zone.geoJson) return;
 
+    // Appliquer le glow au layer de la zone
+    this.applyGlowToSecurityZone(zone.uuid);
+
     try {
       const geometry = JSON.parse(zone.geoJson);
       let coordinates: number[][] = [];
@@ -618,6 +637,119 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       }
     } catch {
       // Erreur de parsing, ne rien faire
+    }
+  }
+
+  /**
+   * Applique un effet de glow au layer d'une security zone
+   */
+  private applyGlowToSecurityZone(zoneUuid: string): void {
+    try {
+      // Retirer le glow de la zone précédente de manière sûre
+      if (this.hoveredSecurityZoneLayer && this.hoveredSecurityZoneOriginalStyle) {
+        try {
+          if (this.map && this.map.hasLayer(this.hoveredSecurityZoneLayer)) {
+            this.hoveredSecurityZoneLayer.setStyle(this.hoveredSecurityZoneOriginalStyle);
+            const polylineElement = this.hoveredSecurityZoneLayer.getElement();
+            if (polylineElement) {
+              polylineElement.classList.remove('glow-effect');
+            }
+          }
+
+          // Retirer l'ancienne bordure rouge
+          if (this.hoveredSecurityZoneBorderLayer && this.map && this.map.hasLayer(this.hoveredSecurityZoneBorderLayer)) {
+            this.map.removeLayer(this.hoveredSecurityZoneBorderLayer);
+          }
+        } catch (error) {
+          console.debug('Error removing previous glow:', error);
+        }
+      }
+
+      // Appliquer le glow au nouveau layer
+      const layer = this.geometryLayers.get(zoneUuid);
+      if (layer && this.map && this.map.hasLayer(layer)) {
+        // Stocker le style original
+        this.hoveredSecurityZoneOriginalStyle = {
+          color: layer.options.color || '#ff6b6b',
+          weight: layer.options.weight || 4,
+          opacity: layer.options.opacity || 1,
+        };
+
+        // Appliquer le style avec glow
+        layer.setStyle({
+          color: '#2ad783', // Vert du design system
+          weight: 6,
+          opacity: 1,
+          dashArray: undefined,
+          lineCap: 'round',
+          lineJoin: 'round',
+        });
+
+        // Ajouter la classe CSS pour le glow
+        const polylineElement = layer.getElement();
+        if (polylineElement) {
+          polylineElement.classList.add('glow-effect');
+        }
+
+        // Créer une ligne rouge en-dessous comme bordure
+        if (typeof window !== 'undefined') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const L: any = (window as any).L;
+          
+          // Récupérer les coordonnées de la ligne verte
+          const coords = layer.getLatLngs();
+          
+          const borderLayer = L.polyline(coords, {
+            color: 'black',
+            weight: 12,
+            opacity: 1,
+            dashArray: undefined,
+            lineCap: 'round',
+            lineJoin: 'round',
+          });
+          
+          // Ajouter la bordure à la carte (elle doit être en-dessous)
+          this.drawnItems.addLayer(borderLayer);
+          this.hoveredSecurityZoneBorderLayer = borderLayer;
+        }
+
+        this.hoveredSecurityZoneLayer = layer;
+        if (this.hoveredSecurityZoneLayer) {
+          this.hoveredSecurityZoneLayer.bringToFront();
+        }
+      }
+    } catch (error) {
+      console.error('Error applying glow:', error);
+    }
+  }
+
+  /**
+   * Retire l'effet de glow de la zone survolée
+   */
+  private removeGlowFromSecurityZone(): void {
+    if (this.hoveredSecurityZoneLayer && this.hoveredSecurityZoneOriginalStyle) {
+      try {
+        // Vérifier que le layer existe toujours sur la carte
+        if (this.map && this.map.hasLayer(this.hoveredSecurityZoneLayer)) {
+          this.hoveredSecurityZoneLayer.setStyle(this.hoveredSecurityZoneOriginalStyle);
+          const polylineElement = this.hoveredSecurityZoneLayer.getElement();
+          if (polylineElement) {
+            polylineElement.classList.remove('glow-effect');
+          }
+        }
+
+        // Retirer la bordure rouge
+        if (this.hoveredSecurityZoneBorderLayer && this.map && this.map.hasLayer(this.hoveredSecurityZoneBorderLayer)) {
+          this.map.removeLayer(this.hoveredSecurityZoneBorderLayer);
+        }
+      } catch (error) {
+        // Ignorer les erreurs si le layer a été supprimé
+        console.debug('Layer already removed:', error);
+      }
+      
+      this.hoveredSecurityZoneLayer = null;
+      this.hoveredSecurityZoneBorderLayer = null;
+      this.hoveredSecurityZoneOriginalStyle = null;
     }
   }
 
@@ -2332,39 +2464,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     this.cleanupEventCreationDrawing();
   }
 
-  // eslint-disable-next-line complexity
   ngOnDestroy(): void {
     // Réinitialiser l'événement sélectionné
     this.mapService.setSelectedEvent(null);
 
     // Arrêter le mode dessin si actif
     this.mapService.stopDrawingMode();
-
-    // Nettoyer les subscriptions
-    if (this.pointsSubscription) {
-      this.pointsSubscription.unsubscribe();
-    }
-    if (this.selectedEventSubscription) {
-      this.selectedEventSubscription.unsubscribe();
-    }
-    if (this.shapesSubscription) {
-      this.shapesSubscription.unsubscribe();
-    }
-    if (this.focusPointSubscription) {
-      this.focusPointSubscription.unsubscribe();
-    }
-    if (this.focusSecurityZoneSubscription) {
-      this.focusSecurityZoneSubscription.unsubscribe();
-    }
-    if (this.drawingModeSubscription) {
-      this.drawingModeSubscription.unsubscribe();
-    }
-    if (this.eventCreationModeSubscription) {
-      this.eventCreationModeSubscription.unsubscribe();
-    }
-    if (this.securityZonesSubscription) {
-      this.securityZonesSubscription.unsubscribe();
-    }
 
     // Nettoyer les markers
     this.markers.forEach((marker) => {
