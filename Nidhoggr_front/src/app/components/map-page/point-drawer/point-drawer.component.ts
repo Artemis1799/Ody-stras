@@ -64,6 +64,10 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   private selectedPointIndexSubscription?: Subscription;
   private equipmentsSubscription?: Subscription;
 
+  get isEventArchived(): boolean {
+    return this.mapService.isSelectedEventArchived();
+  }
+
   constructor(
     private mapService: MapService,
     private pointService: PointService,

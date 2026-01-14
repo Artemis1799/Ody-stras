@@ -183,7 +183,7 @@
 
       <div class="form-actions">
         <button type="button" class="cancel-btn" (click)="close.emit()">Annuler</button>
-        <button type="submit" class="submit-btn" [disabled]="isSubmitting">
+        <button type="submit" class="submit-btn" [disabled]="isSubmitting || isEventArchived">
           <svg
             *ngIf="isSubmitting"
             class="spinner"

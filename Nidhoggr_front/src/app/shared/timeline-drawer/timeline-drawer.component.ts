@@ -84,6 +84,10 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
     private toastService: ToastService
   ) {}
 
+  get isEventArchived(): boolean {
+    return this.mapService.isSelectedEventArchived();
+  }
+
   ngOnInit(): void {
     // Combiner les observables: visibilité, zones, bounds
     const combined$ = combineLatest([

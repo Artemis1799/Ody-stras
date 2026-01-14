@@ -6,6 +6,7 @@ import { Employee } from '../../models/employeeModel';
 import { Event } from '../../models/eventModel';
 import { SecurityZone } from '../../models/securityZoneModel';
 import { Planning } from '../../models/planningModel';
+import { MapService } from '../../services/MapService';
 import { WS_URL } from '../constants/wsUrl';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
@@ -30,6 +31,12 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
   @Input() events: Event[] = [];
   @Input() securityZones: SecurityZone[] = [];
   @Input() plannings: Planning[] = [];
+  
+  constructor(private mapService: MapService) {}
+
+  get isEventArchived(): boolean {
+    return this.mapService.isSelectedEventArchived();
+  }
   
   // Event change confirmation
   showEventChangeConfirm = false;

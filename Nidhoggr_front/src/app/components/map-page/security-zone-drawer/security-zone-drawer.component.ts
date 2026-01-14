@@ -80,6 +80,10 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
     private toastService: ToastService
   ) {}
 
+  get isEventArchived(): boolean {
+    return this.mapService.isSelectedEventArchived();
+  }
+
   get teams() {
     return this.teamService.teams();
   }

@@ -132,6 +132,7 @@
           type="button" 
           class="btn btn-danger"
           (click)="confirmDeleteZone()"
+          [disabled]="isEventArchived"
         >
           <span class="pi pi-trash"></span>
           Supprimer
@@ -139,7 +140,7 @@
         <button 
           type="button" 
           class="btn btn-primary"
-          [disabled]="!canSave()"
+          [disabled]="!canSave() || isEventArchived"
           (click)="saveChanges()"
         >
           <span class="pi pi-check"></span>
