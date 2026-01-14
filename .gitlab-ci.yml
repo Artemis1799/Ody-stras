@@ -3,6 +3,7 @@ image: mcr.microsoft.com/dotnet/sdk:10.0.100
 stages:
   - build
   - test
+  - coverage
 
 build_job:
   stage: build
@@ -18,3 +19,21 @@ test_job:
       junit: "**/test-results.xml"
     paths:
       - "**/test-results.xml"
+
+coverage_job:
+  stage: coverage
+  script:
+    - dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
+    - dotnet tool install -g dotnet-reportgenerator-globaltool
+    - export PATH="$PATH:$HOME/.dotnet/tools"
+    - reportgenerator -reports:"coverage/**/coverage.cobertura.xml" -targetdir:"coveragereport" -reporttypes:"TextSummary"
+    - cat coveragereport/Summary.txt
+  coverage: '/Line coverage:\s*(\d+(?:\.\d+)?)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/**/coverage.cobertura.xml
+    paths:
+      - coverage/
+      - coveragereport/
