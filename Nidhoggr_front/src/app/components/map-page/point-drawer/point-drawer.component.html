@@ -22,33 +22,27 @@
 
   <ng-container *ngIf="selectedPoint" class="drawer-content">
     <div class="unified-section">
-      <!-- Instructions pour l'étape 1 -->
-      <div class="step-instructions">
-        <p>Sélectionnez le type d'équipement pour ce point, puis placez-le sur la carte.</p>
-      </div>
 
       <!-- Commentaire -->
       <div class="form-row">
         <label for="comment">Commentaire</label>
-        <div class="comment-input-group">
-          <input 
-            id="comment" 
-            type="text" 
-            pInputText 
-            [(ngModel)]="editedComment"
-            placeholder="Ajouter un commentaire..."
-            class="w-full input-comment"
-          />
-          <button 
-            type="button" 
-            class="btn-save-comment"
-            (click)="saveCommentOnly()"
-            [disabled]="editedComment === initialComment"
-            title="Sauvegarder le commentaire"
-          >
-            <span class="pi pi-check"></span>
-          </button>
-        </div>
+        <input 
+          id="comment" 
+          type="text" 
+          pInputText 
+          [(ngModel)]="editedComment"
+          placeholder="Ajouter un commentaire..."
+          class="w-full"
+        />
+      </div>
+
+      <!-- Statut validé -->
+      <div class="form-row">
+        <label for="validated">Point validé</label>
+        <p-toggleSwitch 
+          inputId="validated" 
+          [(ngModel)]="isValidated"
+        />
       </div>
 
       <!-- Équipement -->
@@ -98,8 +92,8 @@
           [disabled]="!canProceedToDrawing()"
           (click)="proceedToDrawing()"
         >
-          <span class="pi pi-map-marker"></span>
-          Placer l'équipement sur la carte
+          <span class="pi pi-save"></span>
+          Enregistrer
         </button>
       </div>
     </div>

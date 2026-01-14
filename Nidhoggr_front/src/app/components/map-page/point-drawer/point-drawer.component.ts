@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Drawer } from 'primeng/drawer';
 import { InputText } from 'primeng/inputtext';
+import { ToggleSwitch } from 'primeng/toggleswitch';
 import { AutoComplete, AutoCompleteCompleteEvent, AutoCompleteSelectEvent } from 'primeng/autocomplete';
 import { MapService } from '../../../services/MapService';
 import { PointService } from '../../../services/PointService';
@@ -22,6 +23,7 @@ import { ToastService } from '../../../services/ToastService';
     FormsModule,
     Drawer,
     InputText,
+    ToggleSwitch,
     AutoComplete,
     PhotoViewer,
     DeletePopupComponent
@@ -45,10 +47,12 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   
   // Copie locale pour l'édition (commentaire seulement en étape 1)
   editedComment = '';
+  isValidated = false;
 
   // Valeurs initiales pour détecter les modifications
   initialComment = '';
   initialEquipmentId: string | undefined = undefined;
+  initialValidated = false;
 
   // Gestion des photos
   showPhotoViewer = false;
@@ -143,10 +147,12 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     
     this.selectedPoint = point;
     this.editedComment = point.comment || '';
+    this.isValidated = point.validated || false;
 
     // Sauvegarder les valeurs initiales pour détecter les modifications
     this.initialComment = this.editedComment;
     this.initialEquipmentId = point.equipmentId;
+    this.initialValidated = point.validated || false;
 
     // Charger l'équipement actuel si présent
     if (point.equipmentId) {
@@ -229,8 +235,13 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     const currentEquipmentId = this.selectedEquipment?.uuid;
     return (
       this.editedComment !== this.initialComment ||
-      currentEquipmentId !== this.initialEquipmentId
+      currentEquipmentId !== this.initialEquipmentId ||
+      this.isValidated !== this.initialValidated
     );
+  }
+
+  get isEventArchived(): boolean {
+    return this.mapService.isSelectedEventArchived();
   }
 
   /**
@@ -303,7 +314,8 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     const updatedPoint: Point = {
       ...this.selectedPoint,
       comment: this.editedComment,
-      equipmentId: this.selectedEquipment?.uuid || ''
+      equipmentId: this.selectedEquipment?.uuid || '',
+      validated: this.isValidated
     };
 
     // Sauvegarder le point
@@ -313,6 +325,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
         if (this.selectedPoint) {
           this.selectedPoint.comment = this.editedComment;
           this.selectedPoint.equipmentId = this.selectedEquipment?.uuid || '';
+          this.selectedPoint.validated = this.isValidated;
         }
         
         // Mettre à jour le MapService pour la réactivité de la sidebar et de la map
@@ -325,8 +338,12 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
         
         this.toastService.showSuccess('Point modifié', 'Le point a été modifié avec succès');
         
-        // Fermer le drawer après sauvegarde
-        this.closeDrawer();
+        // Mettre à jour les valeurs initiales pour la prochaine modification
+        this.initialComment = this.editedComment;
+        this.initialEquipmentId = this.selectedEquipment?.uuid || '';
+        this.initialValidated = this.isValidated;
+        
+        this.cdr.markForCheck();
       },
       error: () => {
         this.toastService.showError('Erreur', 'Impossible de modifier le point');
