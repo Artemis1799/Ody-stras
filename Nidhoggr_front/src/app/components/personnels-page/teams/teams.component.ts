@@ -55,7 +55,13 @@ export class TeamsComponent implements OnInit {
     const teamEmployees = this.teamEmployeeService.teamEmployees();
     const events = this.eventService.events();
     
-    return teams.map(team => {
+    // Filtrer les équipes dont l'événement n'est pas archivé
+    const nonArchivedTeams = teams.filter(team => {
+      const event = events.find((e: Event) => e.uuid === team.eventId);
+      return !event?.isArchived;
+    });
+    
+    return nonArchivedTeams.map(team => {
       const employeeIds = teamEmployees
         .filter((te: TeamEmployee) => te.teamId === team.uuid)
         .map((te: TeamEmployee) => te.employeeId);
