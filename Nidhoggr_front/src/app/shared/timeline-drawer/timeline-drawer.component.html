@@ -3,22 +3,6 @@
     <!-- Contrôles de filtres -->
     <div class="filter-controls">
       <div class="filter-buttons">
-        <!-- Filtre par type d'équipement -->
-        <div class="equipment-filter" *ngIf="availableEquipmentTypes.length > 0">
-          <label for="equipmentTypeSelect" class="filter-label">Type d'équipement</label>
-          <select 
-            id="equipmentTypeSelect"
-            class="equipment-select"
-            [(ngModel)]="selectedEquipmentType"
-            (ngModelChange)="onEquipmentTypeChange()"
-          >
-            <option value="all">Tous les types</option>
-            <option *ngFor="let type of availableEquipmentTypes" [value]="type">
-              {{ type }}
-            </option>
-          </select>
-        </div>
-        
         <button 
           class="filter-toggle" 
           [class.active]="dateFilterActive"
@@ -41,6 +25,12 @@
           {{ geoFilterActive ? 'Filtre géospatial' : 'Géospatial off' }}
         </button>
         
+        <span class="selected-date" *ngIf="selectedDate && dateFilterActive">
+          📅 {{ formatDateTime(selectedDate) }}
+        </span>
+      </div>
+
+      <div class="filter-buttons-right">
         <!-- Bouton d'assignation d'équipe -->
         <button 
           class="filter-toggle assign-team-btn" 
@@ -56,10 +46,22 @@
           </svg>
           Assigner ({{ getSelectedCount() }})
         </button>
-        
-        <span class="selected-date" *ngIf="selectedDate && dateFilterActive">
-          📅 {{ formatDateTime(selectedDate) }}
-        </span>
+
+        <!-- Filtre par type d'équipement à droite du bouton Assigner -->
+        <div class="equipment-filter-inline" *ngIf="availableEquipmentTypes.length > 0">
+          <label for="equipmentTypeSelect" class="filter-label">Type d'équipement</label>
+          <select 
+            id="equipmentTypeSelect"
+            class="equipment-select"
+            [(ngModel)]="selectedEquipmentType"
+            (ngModelChange)="onEquipmentTypeChange()"
+          >
+            <option value="all">Tous les types</option>
+            <option *ngFor="let type of availableEquipmentTypes" [value]="type">
+              {{ type }}
+            </option>
+          </select>
+        </div>
       </div>
       <button class="timeline-close" (click)="close()">
         <svg
@@ -90,6 +92,18 @@
         (mouseleave)="onAxisMouseUp()"
         [class.dragging-active]="isDragging"
       >
+        <!-- Tout sélectionner à gauche de la timeline axis -->
+        <div class="select-all-with-timeline" *ngIf="filteredZones.length > 0">
+          <input 
+            type="checkbox" 
+            id="selectAllZones"
+            class="zone-checkbox"
+            [checked]="areAllZonesSelected()"
+            (change)="toggleSelectAll()"
+          />
+          <label for="selectAllZones" class="select-all-label">Tout sélectionner</label>
+        </div>
+
         <div class="timeline-axis-container" #timelineAxis>
           <div class="timeline-graduations">
             <div
@@ -118,19 +132,6 @@
 
       <!-- Barres de la frise (seulement si des zones filtrées) -->
       <div class="timeline-items-wrapper" *ngIf="filteredZones.length > 0; else noFilteredZones">
-        <!-- Header avec checkbox tout sélectionner -->
-        <div class="timeline-items-header">
-          <div class="select-all-container">
-            <input 
-              type="checkbox" 
-              id="selectAllZones"
-              class="zone-checkbox"
-              [checked]="areAllZonesSelected()"
-              (change)="toggleSelectAll()"
-            />
-            <label for="selectAllZones" class="select-all-label">Tout sélectionner</label>
-          </div>
-        </div>
         
         <div class="timeline-items">
           <div class="timeline-item" *ngFor="let zone of filteredZones">
