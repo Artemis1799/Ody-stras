@@ -51,6 +51,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-right: 0.2rem;
 
     &::before {
       content: '';
@@ -69,6 +70,7 @@
 
       &::after {
         content: 'Aucun événement';
+        margin-right: 0.5rem;
       }
     }
   }

@@ -61,6 +61,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   private securityZonesSubscription?: Subscription;
   private selectedEventSubscription?: Subscription;
   private eventsSubscription?: Subscription;
+  private areasSubscription?: Subscription;
 
   // Onglet actif: 'points' ou 'zones' ou 'organized'
   activeTab: 'points' | 'zones' = 'points';
@@ -184,7 +185,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     });
 
     // S'abonner aux changements d'areas
-    const areasSubscription = this.mapService.areas$.subscribe((areas) => {
+    this.areasSubscription = this.mapService.areas$.subscribe((areas) => {
       this.allAreas = areas;
       this.cdr.markForCheck();
     });
@@ -233,6 +234,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       if (event) {
         this.selectedEvent = event;
         this.selectedEventName = event.title;
+        this.loadPointsAndCenterMap(event.uuid);
       } else {
         this.selectedEvent = null;
         this.selectedEventName = '';
@@ -277,6 +279,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.eventsSubscription?.unsubscribe();
     this.searchSubscription?.unsubscribe();
     this.pathsSubscription?.unsubscribe();
+    this.areasSubscription?.unsubscribe();
     this.visibleZoneIdsSubscription?.unsubscribe();
     this.visiblePointIdsSubscription?.unsubscribe();
     this.visiblePointOfInterestIdsSubscription?.unsubscribe();
@@ -646,7 +649,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.eventStoreService.setSelectedEvent(null);
     // Vider les points
     this.mapService.setPoints([]);
-    this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
+    this.emptyMessage = 'Sélectionnez un événement pour voir ses points';
   }
 
   onEventCreationConfirmed(): void {
@@ -663,7 +666,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
           this.mapService.setSelectedEvent(null);
           this.eventStoreService.setSelectedEvent(null);
           this.mapService.setPoints([]);
-          this.emptyMessage = 'Sélectionnez un évènement pour voir ses points';
+          this.emptyMessage = 'Sélectionnez un événement pour voir ses points';
         },
         error: (error) => {
           console.error("Erreur lors de la suppression de l'événement annulé:", error);
@@ -959,7 +962,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   // ============= Organized List Methods =============
-  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onOrganizedItemClick(item: any): void {
     if (item.type === 'point') {
       const point = item.data as Point;
@@ -983,7 +986,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.focusOnPath(path);
     }
   }
-
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onItemVisibilityChange(event: {item: any, visible: boolean}): void {
     if (event.item.type === 'zone') {
       const zone = event.item.data as SecurityZone;
