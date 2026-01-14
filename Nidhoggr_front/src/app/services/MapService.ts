@@ -183,6 +183,11 @@ export class MapService {
     return this.selectedEventSubject.value;
   }
 
+  isSelectedEventArchived(): boolean {
+    const selectedEvent = this.selectedEventSubject.value;
+    return selectedEvent?.isArchived === true;
+  }
+
   // ============= Events =============
   
   setEvents(events: Event[]): void {

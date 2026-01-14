@@ -41,6 +41,10 @@ export class EventEditPopup implements OnInit {
     private toastService: ToastService
   ) {}
 
+  get isEventArchived(): boolean {
+    return this.event?.isArchived === true;
+  }
+
   ngOnInit(): void {
     // Récupérer l'état actuel de la visibilité de l'area
     this.eventAreaVisible = this.mapService.getEventAreaVisible();

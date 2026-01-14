@@ -7,6 +7,7 @@ import { GeometryEditData } from '../../models/geometryEditModel';
 import { AreaService } from '../../services/AreaService';
 import { PathService } from '../../services/PathService';
 import { ToastService } from '../../services/ToastService';
+import { MapService } from '../../services/MapService';
 import { NgIf } from '@angular/common';
 
 export type { GeometryEditData, GeometryType } from '../../models/geometryEditModel';
@@ -48,8 +49,13 @@ export class GeometryEditDrawerComponent implements OnInit {
   constructor(
     private areaService: AreaService,
     private pathService: PathService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private mapService: MapService
   ) {}
+
+  get isEventArchived(): boolean {
+    return this.mapService.isSelectedEventArchived();
+  }
 
   ngOnInit(): void {
     if (this.geometry) {

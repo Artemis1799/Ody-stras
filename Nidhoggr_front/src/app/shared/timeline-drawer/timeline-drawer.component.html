@@ -261,7 +261,7 @@
       <button class="modal-cancel-btn" (click)="closeTeamModal()">Annuler</button>
       <button 
         class="modal-confirm-btn" 
-        [disabled]="!hasTeamSelected() || isAssigning"
+        [disabled]="!hasTeamSelected() || isAssigning || isEventArchived"
         (click)="assignZonesToTeam()"
       >
         {{ isAssigning ? 'Assignation...' : 'Assigner' }}
