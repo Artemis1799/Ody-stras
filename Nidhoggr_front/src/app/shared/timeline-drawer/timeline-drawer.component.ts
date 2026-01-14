@@ -381,9 +381,9 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
       this.focusedZoneId = null;
       this.mapService.clearSecurityZoneGlow();
     } else {
-      // Sinon, focuser la nouvelle zone
+      // Sinon, focuser la nouvelle zone avec glow
       this.focusedZoneId = zone.id;
-      this.mapService.focusOnSecurityZone(zone.zone);
+      this.mapService.focusOnSecurityZoneWithGlow(zone.zone);
     }
   }
 

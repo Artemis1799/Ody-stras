@@ -61,6 +61,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private shapesSubscription?: Subscription;
   private focusPointSubscription?: Subscription;
   private focusSecurityZoneSubscription?: Subscription;
+  private focusSecurityZoneWithGlowSubscription?: Subscription;
   private clearSecurityZoneGlowSubscription?: Subscription;
   private drawingModeSubscription?: Subscription;
   private securityZonesSubscription?: Subscription;
@@ -269,7 +270,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
       // S'abonner au focus sur une security zone (depuis la sidebar)
       this.focusSecurityZoneSubscription = this.mapService.focusSecurityZone$.subscribe((zone) => {
-        this.centerMapOnSecurityZone(zone);
+        this.centerMapOnSecurityZone(zone, false);
+      });
+
+      // S'abonner au focus sur une security zone avec glow (depuis la timeline)
+      this.focusSecurityZoneWithGlowSubscription = this.mapService.focusSecurityZoneWithGlow$.subscribe((zone) => {
+        this.centerMapOnSecurityZone(zone, true);
       });
 
       // S'abonner au signal pour retirer le glow
@@ -590,11 +596,13 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  private centerMapOnSecurityZone(zone: SecurityZone): void {
+  private centerMapOnSecurityZone(zone: SecurityZone, applyGlow: boolean = false): void {
     if (!this.map || !zone.geoJson) return;
 
-    // Appliquer le glow au layer de la zone
-    this.applyGlowToSecurityZone(zone.uuid);
+    // Appliquer le glow seulement si c'est depuis la timeline
+    if (applyGlow) {
+      this.applyGlowToSecurityZone(zone.uuid);
+    }
 
     try {
       const geometry = JSON.parse(zone.geoJson);
