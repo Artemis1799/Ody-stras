@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <!-- Tabs: Points / Zones de sécurité -->
+    <!-- Tabs: Points / Zones -->
     @if (selectedEvent) {
       <div class="sidebar-tabs">
         <button 
@@ -220,6 +220,46 @@
     </span>
   </button>
 </div>
+
+<!-- Right drawer button (on map) -->
+<button type="button" class="drawer-right-btn" [class.collapsed]="isCollapsed" (click)="toggleRightDrawer(); $event.preventDefault(); $event.stopPropagation()" [attr.aria-label]="'Ouvrir le filtre'" title="Afficher le filtre">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+  </svg>
+</button>
+
+@if (showRightDrawer) {
+  <div class="right-drawer-overlay" (click)="toggleRightDrawer()"></div>
+  <div class="right-drawer" (click)="$event.stopPropagation()">
+    <div class="right-drawer-header">
+      <button class="close-btn" (click)="toggleRightDrawer()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="right-drawer-content">
+      <!-- Organized List in Right Drawer -->
+      @if (selectedEvent) {
+        <app-organized-list
+          [points]="allPoints"
+          [paths]="allPaths"
+          [securityZones]="allSecurityZones"
+          [areas]="allAreas"
+          [visibleZoneIds]="visibleZoneIds"
+          [visiblePointIds]="visiblePointIds"
+          [visiblePointOfInterestIds]="visiblePointOfInterestIds"
+          [visiblePathIds]="visiblePathIds"
+          [visibleEquipmentIds]="visibleEquipmentIds"
+          [visibleAreaIds]="visibleAreaIds"
+          (itemClick)="onOrganizedItemClick($event)"
+          (itemVisibilityChange)="onItemVisibilityChange($event)"
+        />
+      }
+    </div>
+  </div>
+}
 
 @if (showImportPopup) {
 <app-import-popup (close)="closeImport()"></app-import-popup>

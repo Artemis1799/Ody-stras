@@ -236,9 +236,7 @@ export class WebSocketExportService {
    * Traite un point reçu (création ou modification)
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, complexity
-  private async processPoint(pointData: any): Promise<void> {
-    console.log('RAW pointData received:', JSON.stringify(pointData, null, 2));
-    
+  private async processPoint(pointData: any): Promise<void> {    
     // Le mobile peut envoyer en PascalCase ou camelCase
     const uuid = pointData.UUID || pointData.uuid;
     
@@ -321,11 +319,9 @@ export class WebSocketExportService {
       error: (err) => {
         if (err.status === 404) {
           // Le point n'existe pas -> CREATE (garder l'UUID du mobile)
-          console.log('Creating point with data:', JSON.stringify(point, null, 2));
           this.pointService.create(point).subscribe({
             next: (created) => {
               this.existingPoints.set(created.uuid, created);
-              console.log('Point created successfully:', created.uuid);
             },
             error: (createErr) => {
               console.error('Error creating point:', createErr);

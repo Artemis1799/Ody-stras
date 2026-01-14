@@ -61,6 +61,10 @@
           <button class="guide-validate" (click)="onValidateModification()" title="Valider les modifications">
             ✓ Valider
           </button>
+        } @else if (currentStep === 'drawing-zone') {
+          <button class="guide-skip" (click)="onSkipZone()" title="Passer cette étape">
+            Passer
+          </button>
         }
         
         <button class="guide-minimize" (click)="toggleMinimize()" title="Minimiser">

@@ -1,0 +1,20 @@
+<div class="organized-list">
+  <div class="organized-list-header">
+    <h3 class="organized-list-title">Filtres</h3>
+  </div>
+  @for (section of sections; track section.id) {
+    <div class="section">
+      <!-- Section header -->
+      <div class="section-header">
+        <div class="section-left">
+          <!-- Toggle switch instead of checkbox -->
+          <div class="toggle-switch" [class.active]="isSectionFullyVisible(section)" (click)="toggleSectionSelection(section, $event)">
+            <div class="toggle-slider"></div>
+          </div>
+          <span class="section-icon">{{ section.icon }}</span>
+          <span class="section-title">{{ section.title }}</span>
+        </div>
+      </div>
+    </div>
+  }
+</div>
