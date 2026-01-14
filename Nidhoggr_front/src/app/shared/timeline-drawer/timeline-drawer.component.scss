@@ -393,6 +393,13 @@ $sidebar-width: 320px;
       transform: translateY(-2px);
     }
 
+    &.focused {
+      background: linear-gradient(135deg, #52d273 0%, #2ad783 100%);
+      box-shadow: 0 0 8px rgba(42, 215, 131, 0.6), 0 4px 16px rgba(42, 215, 131, 0.4);
+      transform: translateY(-2px);
+      filter: brightness(1.15);
+    }
+
     .bar-label {
       font-size: 12px;
       color: $bg-card;

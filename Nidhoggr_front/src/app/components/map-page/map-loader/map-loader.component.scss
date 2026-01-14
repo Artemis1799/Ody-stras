@@ -141,5 +141,5 @@
 
 // Effet de glow pour les équipements au hover
 :host ::ng-deep .glow-effect {
-  filter: drop-shadow(0 0 3px #2ad783) drop-shadow(0 0 6px #2ad783) drop-shadow(0 0 9px #2ad783);
+  // Glow retiré
 }
