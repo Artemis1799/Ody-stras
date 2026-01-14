@@ -293,39 +293,17 @@ npm test -- TestName      # Lancer un test spécifique
 ### Plan d'Atténuation des Risques
 
 **Phase 1 (Immédiat)** :
-1. ✅ Ajouter tests database.tsx (CRUD + erreurs)
+1. ✅ Ajouter tests queries.tsx (CRUD + erreurs)
 2. ✅ Tester timeout WebSocket
 3. ✅ Tester mode offline (file d'attente)
 
 **Phase 2 (Sprint suivant)** :
-4. ✅ Tests manuels sur devices Android/iOS
+4. ✅ Tests manuels sur mobile Android/iOS
 5. ✅ Documentation tests manuels complémentaires
 
 ---
 
-## 2.5 Quels outils de tests sont utilisés ?
-
-### Outils et Versions
-
-| Outil | Version | Usage |
-|-------|---------|-------|
-| **Jest** | ^29.x | Test runner, Assertions, Mocks |
-| **React Test Renderer** | ^18.x | Rendu composants en mémoire pour tests d'intégration |
-| **Babel Runtime** | ^7.x | Transpilation |
-
-**Commande de test** : `npm run test:coverage` (Génère un rapport HTML dans `coverage/lcov-report/index.html`).
-
----
-
-## 2.6 Quel est le planning de la mise en place de vos tests ? Qui, quoi, quand ?
-
-### Équipe et Responsabilités
-
-| Rôle | Personne | Responsabilités |
-|------|----------|-----------------|
-| **Tech Lead** | Équipe Dev | Définition stratégie, revue tests |
-| **Développeur Mobile** | Équipe Dev | Implémentation tests, maintenance |
-| **QA** | Équipe QA | Tests manuels device, validation couverture |
+## 2.5 Quel est le planning de la mise en place de vos tests ? Qui, quoi, quand ?
 
 ### Phases de Mise en Place
 
@@ -333,11 +311,10 @@ npm test -- TestName      # Lancer un test spécifique
 
 | Tâche | Statut | Date | Livrables |
 |-------|--------|------|-----------|
-| Tests V0/V1 existants | ✅ | 13/01/2026 | 22 tests CreatePoint, Event, Map, Photos |
+| Tests V0/V1 existants | ✅ | 12/11/2025 | 22 tests CreatePoint, Event, Map, Photos |
 | Tests V2 Planning | ✅ | 13/01/2026 | 6 tests PlanningNavigation |
 | Tests DB Utils | ✅ | 13/01/2026 | 6 tests génération SQL |
-| Tests Custom | ✅ | 13/01/2026 | 3 tests HomeScreen, Points, Import |
-| **Total** | **36 PASS / 1 SKIP** | - | **100% réussite** ✅ |
+| Tests Custom | ✅ | 12/11/2025 | 3 tests HomeScreen, Points, Import |
 
 #### 🟡 **Phase 1 : Tests Critiques (P0) - Sprint Actuel**
 
@@ -346,7 +323,6 @@ npm test -- TestName      # Lancer un test spécifique
 
 | Tâche | Assigné | Deadline | Couverture Cible |
 |-------|---------|----------|------------------|
-| Tests database.tsx CRUD + erreurs | Dev Mobile | J+2 | 0% → 60% |
 | Tests WebSocket timeout/erreurs | Dev Mobile | J+3 | 23% → 60% |
 | Tests GPS perdu pendant validation | Dev Mobile | J+4 | 38% → 65% |
 | Tests mode offline | Dev Mobile | J+5 | 0% → 50% |
@@ -375,9 +351,9 @@ npm test -- TestName      # Lancer un test spécifique
 
 | Tâche | Priorité | Deadline |
 |-------|----------|----------|
-| Tests transactions DB | Backlog | Q1 2026 |
-| Tests performance | Backlog | Q1 2026 |
-| Tests accessibilité | Backlog | Q2 2026 |
+| Tests transactions DB | Backlog | 15/01/2026 |
+| Tests performance | Backlog | 15/01/2026 |
+| Tests accessibilité | Backlog | 15/01/2026 |
 
 ### Processus de Maintenance
 
