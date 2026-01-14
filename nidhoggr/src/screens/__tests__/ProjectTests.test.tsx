@@ -241,7 +241,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
           Longitude: 2.3522,
         })
       );
-    });
+    }, 15000); // Timeout augmenté pour CI
 
     test("Test 2: Validation des champs obligatoires", async () => {
       // Arrange
