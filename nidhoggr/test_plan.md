@@ -1,6 +1,6 @@
 # Plan de Test - Application Mobile Nidhoggr
-**Version** : 1.0  
-**Date** : 13 janvier 2026  
+**Version** : 1.2  
+**Date** : 14 janvier 2026  
 **Projet** : Nidhoggr - Gestion logistique événements Eurométropole de Strasbourg  
 **Auteur** : Équipe Développement Mobile
 
@@ -62,11 +62,11 @@ Nous priorisons les tests selon la **criticité métier** :
 
 | Type | Raison de l'exclusion |
 |------|----------------------|
-| **E2E Tests** | Pas de device réel, environnement mocké suffisant |
-| **Performance Tests** | Pas de métriques 60fps, mesure manuelle sur device |
-| **Visual Regression** | Pas de snapshot testing, design variable |
-| **Accessibility Tests** | Pas de tests screen reader, validation manuelle |
-| **Security Tests** | Pas de pen-testing, revue code suffisante |
+| **E2E Tests** | Pas d'appareil réel, environnement simulé suffisant |
+| **Performance Tests** | Pas de métriques 60 images/s, mesure manuelle sur appareil |
+| **Visual Regression** | Pas de tests de capture d'écran, design variable |
+| **Accessibility Tests** | Pas de tests de lecteur d'écran, validation manuelle |
+| **Security Tests** | Pas de tests d'intrusion, revue de code suffisante |
 
 ---
 
@@ -98,7 +98,7 @@ Nous priorisons les tests selon la **criticité métier** :
 | Environnement | Configuration |
 |---------------|---------------|
 | **Local (Dev)** | Windows 10+, npm test |
-| **CI/CD** | GitHub Actions / GitLab CI (à configurer) |
+| **CI/CD** | GitLab CI |
 | **Coverage** | Seuil minimum : 60% global, 80% critique |
 
 ### Commandes Disponibles
@@ -171,6 +171,7 @@ npm test -- TestName      # Lancer un test spécifique
 | **Base de données CRUD** | 6 tests (29-34) | Risque technique : corruption DB = perte données |
 | **Import/Export WebSocket** | 3 tests (20-21, 32-33) | Risque métier : échec sync = double saisie |
 | **Permissions et GPS** | 2 tests (01, 23) | Risque technique : GPS perdu = navigation impossible |
+| **Rendu Zones et Chemins** | 5 tests (56-60) | Risque métier : zones invisibles = danger terrain |
 
 **Justification** : Ces fonctionnalités sont au cœur du métier. Une défaillance entraîne une **perte de données** ou une **erreur opérationnelle** sur le terrain.
 
@@ -189,7 +190,7 @@ npm test -- TestName      # Lancer un test spécifique
 
 | Fonctionnalité | Tests | Raison |
 |----------------|-------|--------|
-| **Simulation itinéraire** | 1 test (22) | Fonctionnalité bonus, peu utilisée |
+| **Simulation itinéraire** | 1 test (22) | Fonctionnalité bonus, peu utilisée (car on bouton permet de renvoyer sur google map) |
 | **Dashboard événements** | 2 tests (08, 13) | Interface simple, peu de logique |
 
 ### Mesure de Couverture Actuelle
@@ -197,11 +198,13 @@ npm test -- TestName      # Lancer un test spécifique
 | Module | Coverage | Objectif | Gap | Actions |
 |--------|----------|----------|-----|---------|
 | `queries.tsx` | 100% | 100% | 0% | ✅ Objectif Atteint (100% Coverage) |
-| `exportEvent.tsx` | 23.38% | > 80% | 85.00% | ✅ |
-| `planningNavigation.tsx` | 38% | 65% | -27% | ⚠️ Tester GPS perdu + recalcul |
-| `importEvent.tsx` | 51.98% | > 80% | 88.00% | ✅ | ✅ OK |
+| `exportEvent.tsx` | 86.66% | > 80% | +6.66% | ✅ ✅ OK |
+| `planningNavigation.tsx` | **64%** | 65% | -1% | ✅ **Objectif Proche** (Tests 23-28, 73-80) |
+| `importEvent.tsx` | 83.33% | > 80% | +3.33% | ✅ OK |
 | `createPoint.tsx` | 71% | 70% | +1% | ✅ OK |
 | `map.tsx` | 86% | 70% | +16% | ✅ Excellent |
+| `RenderAreas.tsx` | **100%** | 100% | 0% | ✅ **Objectif Atteint** (Tests 56-58, 61, 63, 65) |
+| `RenderPaths.tsx` | **100%** | 100% | 0% | ✅ **Objectif Atteint** (Tests 59-60, 62, 64) |
 
 ---
 
@@ -392,7 +395,7 @@ npm test -- TestName      # Lancer un test spécifique
 
 # PARTIE 3 : FICHES DE TEST
 
-## Tableau Complet des Tests (37 tests)
+## Tableau Complet des Tests (77 tests actifs + 3 slots réservés)
 
 | # | Type de test | Titre du test | Scénario | Résultat attendu | Résultat observé | Résultat du test | Commentaire |
 |---|--------------|---------------|----------|------------------|------------------|------------------|-------------|
@@ -438,7 +441,7 @@ npm test -- TestName      # Lancer un test spécifique
 | **40** | WebSocket Robustesse | JSON malformé reçu par WebSocket | 1. Mock WebSocket<br>2. Scan QR + onopen<br>3. Envoyer "{invalid json<>"<br>4. Vérifier console.error | Erreur catchée sans crash | ✅ PASS | ✅ PASS | Test robustesse parsing JSON |
 | **41** | V2 GPS Edge Cases | Validation sans position GPS | 1. Mock tasks et team<br>2. Pas de userLocation<br>3. Rendre PlanningNav | Composant rendu (validation bloquée si GPS null) | ✅ PASS | ✅ PASS | Test critique : éviter validation incorrecte |
 | **42** | V2 GPS Edge Cases | OSRM échec réseau | 1. Mock fetch.reject<br>2. Rendre PlanningNav<br>3. Vérifier rendering | Composant rendu en mode dégradé | ✅ PASS | ✅ PASS | Test navigation sans réseau |
-| **43** | Database Errors | Rollback sur erreur batch | 1. Mock 3 insertions (3ème échoue)<br>2. Batch insert avec break sur erreur<br>3. Vérifier 3 appels DB | 2 success, 1 error, arrêt sur erreur | ⚠️ FAIL | ⏭️ SKIP | Test instable, désactivé temporairement |
+| **43** | Database Errors | Rollback sur erreur batch | 1. Mock 3 insertions (3ème échoue)<br>2. Batch insert avec break sur erreur<br>3. Vérifier 3 appels DB | 2 success, 1 error, arrêt sur erreur | ⏭️ SKIP | ⏭️ SKIP | Test instable, désactivé temporairement |
 | **44** | Mode Offline | Opérations en mode offline | 1. Simuler navigator.onLine=false<br>2. Créer point offline<br>3. Vérifier rendering | Composant se rend normalement | ✅ PASS | ✅ PASS | Test queue opérations pour sync ultérieure |
 | **45** | Database Utils | insertOrReplace génère le bon SQL | 1. Mock DB<br>2. Appeler insertOrReplace<br>3. Vérifier SQL | SQL = "INSERT OR REPLACE INTO..." | ✅ PASS | ✅ PASS | Nouveau test coverage |
 | **46** | Database Utils | deleteWhere gestion cas limites (Empty, Error) | 1. Appeler deleteWhere avec colonnes vides (retourne 0)<br>2. Appeler avec erreur DB (retourne 0) | Erreur gérée proprement | ✅ PASS | ✅ PASS | Nouveau test coverage (robustesse) |
@@ -450,7 +453,32 @@ npm test -- TestName      # Lancer un test spécifique
 | **52** | Points Custom | Suppression d'un point | 1. Rendre PointsScreen<br>2. Cliquer bouton Trash<br>3. Confirmer | deleteWhere appelé | ✅ PASS | ✅ PASS | Renuméroté |
 | **53** | Database Utils | deleteWhere gère réponse sans changes | 1. Mock DB renvoie {}<br>2. Appeler deleteWhere | Retourne 0 sans crash | ✅ PASS | ✅ PASS | Nouveau test coverage |
 | **54** | Database Utils | insertOrReplace gestion erreur | 1. Mock DB erreur constraint<br>2. Appeler insertOrReplace | Erreur logguée, pas de crash | ✅ PASS | ✅ PASS | Nouveau test coverage |
-| **55** | Database Utils | insert gestion erreur | 1. Mock DB erreur<br>2. Appeler insert | Erreur logguée, pas de crash | ✅ PASS | ✅ PASS | Nouveau test coverage (Fix Line 50) |
+| **56** | Unit Test Utils | RenderAreas: Conversion Hex vers RGBA | 1. Appeler hexToRgba avec '#FF0000'<br>2. Appeler avec '#0F0' (short)<br>3. Appeler avec 'invalid' | - Retourne rgba(255,0,0,0.4)<br>- Retourne rgba(0,255,0,0.4)<br>- Retourne fallback (bleu default) | ✅ PASS | ✅ PASS | Coverage 100% Lines |
+| **57** | Integration Utils | RenderAreas: Rendu des Polygones | 1. Mock Area avec GeoJson Polygon valide<br>2. Rendre RenderAreas<br>3. Vérifier props du Polygon | - Polygon rendu avec lat/lng inversés<br>- FillColor avec opacité | ✅ PASS | ✅ PASS | Coverage 100% Lines |
+| **58** | Integration Utils | RenderAreas: Gestion JSON Invalide | 1. Mock Area avec GeoJson corrompu<br>2. Rendre RenderAreas<br>3. Vérifier console.warn | - Pas de crash<br>- Warning loggué<br>- Retourne null pour cet item | ✅ PASS | ✅ PASS | Coverage lignes 38-39 |
+| **59** | Integration Utils | RenderPaths: Rendu des Polylines | 1. Mock Path avec GeoJson LineString valide<br>2. Rendre RenderPaths<br>3. Vérifier props Polyline | Polyline rendu avec bonnes coordonnées | ✅ PASS | ✅ PASS | Coverage 100% Lines |
+| **60** | Integration Utils | RenderPaths: Gestion Erreur JSON | 1. Mock Path avec GeoJson invalide<br>2. Rendre RenderPaths | - Pas de crash<br>- Warning loggué | ✅ PASS | ✅ PASS | Coverage lignes 16-17 |
+| **61** | Integration Utils | RenderAreas: Type Géométrie Incorrect | 1. Mock Area avec type "Point"<br>2. Rendre RenderAreas | - Pas de crash<br>- Aucun Polygon rendu | ✅ PASS | ✅ PASS | Coverage branche ligne 42 |
+| **62** | Integration Utils | RenderPaths: Type Géométrie Incorrect | 1. Mock Path avec type "Polygon"<br>2. Rendre RenderPaths | - Pas de crash<br>- Aucune Polyline rendue | ✅ PASS | ✅ PASS | Coverage branche ligne 20 |
+| **63** | Integration Utils | RenderAreas: Liste Vide/Null | 1. Rendre avec areas=[]<br>2. Rendre avec areas=null | - Retourne null dans les deux cas | ✅ PASS | ✅ PASS | Coverage branche ligne 28 |
+| **64** | Integration Utils | RenderPaths: Liste Vide/Null | 1. Rendre avec paths=[]<br>2. Rendre avec paths=null | - Retourne null dans les deux cas | ✅ PASS | ✅ PASS | Coverage branche ligne 6 |
+| **65** | Integration Utils | RenderAreas: ColorHex Undefined | 1. Mock Area sans ColorHex<br>2. Rendre RenderAreas | - Utilise couleur par défaut #3388ff | ✅ PASS | ✅ PASS | Coverage branche lignes 45-46 |
+| **66** | Export WebSocket | Export - Erreur Event Non Trouvé | 1. Mock getAllWhere retourne []<br>2. Scanner QR Code | - Message "Événement non trouvé" affiché | ✅ PASS | ✅ PASS | Test export sans données |
+| **67** | Export WebSocket | Export - Flux Complet Succès | 1. Mock Event + Points<br>2. Scanner QR + WebSocket open<br>3. Recevoir ACK | - Données envoyées<br>- flushDatabase appelé | ✅ PASS | ✅ PASS | Test export nominal |
+| **68** | Export WebSocket | Export - WebSocket Error Handling | 1. Scanner QR<br>2. Simuler erreur WS | - Message d'erreur affiché | ✅ PASS | ✅ PASS | Test gestion erreur réseau |
+| **69** | Import WebSocket | Import - Planning Data Flow | 1. Scanner QR<br>2. Recevoir planning_data | - insertOrReplace PlanningTeam appelé<br>- ACK envoyé | ✅ PASS | ✅ PASS | Test import planning |
+| **70** | Import WebSocket | Import - Malformed JSON Handling | 1. Scanner QR + WS open<br>2. Recevoir "This is not JSON" | - Pas d'insertion DB | ✅ PASS | ✅ PASS | Test robustesse parsing |
+| **71** | Import WebSocket | Import - WebSocket Timeout | 1. Scanner QR<br>2. Avancer 125000ms | - WS.close() appelé | ✅ PASS | ✅ PASS | Test timeout 120s |
+| **72** | Import WebSocket | Import - Full Event Data Flow | 1. Scanner QR<br>2. Recevoir event_data avec Areas/Paths | - insertOrReplace Area/Path appelés | ✅ PASS | ✅ PASS | Test import complet |
+| **73** | PlanningNav V2 | État vide - Aucune tâche disponible | 1. Mock équipe sans tâches<br>2. Rendre le composant | - Message "terminées" affiché | ✅ PASS | ✅ PASS | Coverage état vide |
+| **74** | PlanningNav V2 | Mode Dépose (removal) | 1. Mock tâche removal<br>2. Rendre le composant | - Texte "Dépose" affiché | ✅ PASS | ✅ PASS | Coverage mode dépose |
+| **75** | PlanningNav V2 | Mode Mixte avec plusieurs tâches | 1. Mock 2 tâches (install+removal)<br>2. Rendre le composant | - Texte "Pose" affiché | ✅ PASS | ✅ PASS | Coverage mode mixed |
+| **76** | PlanningNav V2 | Bouton Signaler Problème visible | 1. Mock tâche<br>2. Rendre le composant | - Boutons d'action présents | ✅ PASS | ✅ PASS | Coverage UI boutons |
+| **77** | PlanningNav V2 | Tâche sans équipe - Gestion erreur | 1. Mock sans équipe<br>2. Rendre le composant | - Pas de crash | ✅ PASS | ✅ PASS | Coverage robustesse |
+| **78** | PlanningNav V2 | GeoJSON Point invalide | 1. Mock tâche avec type "Point"<br>2. Rendre le composant | - Pas de crash | ✅ PASS | ✅ PASS | Coverage getTaskCenter null |
+| **79** | PlanningNav V2 | GPS Callback - Mise à jour position | 1. Mock watchPositionAsync callback<br>2. Simuler déplacement | - Position mise à jour | ✅ PASS | ✅ PASS | Coverage GPS + distance |
+| **80** | PlanningNav V2 | GPS Callback - Détection arrivée | 1. Mock position proche tâche<br>2. Simuler GPS | - Détection < 15m | ✅ PASS | ✅ PASS | Coverage geofencing |
+
 
 ---
 
@@ -460,11 +488,11 @@ npm test -- TestName      # Lancer un test spécifique
 
 | Métrique | Actuel | Objectif Phase 1 | Objectif Phase 2 |
 |----------|--------|------------------|------------------|
-| **Tests totaux** | 52 | 44 (+7) | 50 (+6) |
-| **Coverage globale** | ~55% | 60% | 70% |
-| **Coverage critique** | **100% (DB)** | 80% | 85% |
-| **Tests qui passent** | 96% (50/52) | 100% | 100% |
-| **Temps exécution** | 6.2s | < 12s | < 15s |
+| **Tests totaux** | **77** | 44 (+7) | 50 (+6) |
+| **Coverage globale** | ~64% | 60% | 70% |
+| **Coverage critique** | **100% (DB, RenderAreas, RenderPaths)** | 80% | 85% |
+| **Tests qui passent** | **97% (75/77)** | 100% | 100% |
+| **Temps exécution** | ~8s | < 12s | < 15s |
 
 ---
 
