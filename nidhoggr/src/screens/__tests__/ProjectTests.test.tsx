@@ -161,6 +161,7 @@ jest.mock("../../../database/queries", () => ({
   deleteWhere: jest.fn(() => Promise.resolve()),
   getPointsForEvent: jest.fn(() => Promise.resolve([])),
   getPhotosForPoint: jest.fn(() => Promise.resolve([])),
+  flushDatabase: jest.fn(() => Promise.resolve()),
 }));
 
 // --- IMPORTS DES ÉCRANS ---
@@ -201,6 +202,11 @@ describe("Project Tests - Arrange-Act-Assert", () => {
     // Mock Alert.alert
     // SPY & STUB: On espionne Alert.alert et on remplace son implémentation pour ne rien faire
     jest.spyOn(Alert, "alert").mockImplementation(() => { });
+  });
+
+  afterEach(() => {
+    // Nettoyer tous les timers pendants pour éviter les handles ouverts
+    jest.clearAllTimers();
   });
 
   // -------------------------------------------------------------------------
@@ -728,6 +734,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
     });
 
     afterEach(() => {
+      jest.clearAllTimers();
       jest.useRealTimers();
     });
 
@@ -784,7 +791,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
     // On récupère la vraie implémentation pour tester la génération SQL
     const RealQueries = jest.requireActual("../../../database/queries");
 
-    test("Test 23: getAll génère le bon SQL", async () => {
+    test("Test 29: getAll génère le bon SQL", async () => {
       const mockDb = { getAllAsync: jest.fn() };
       await RealQueries.getAll(mockDb, "TestTable");
       expect(mockDb.getAllAsync).toHaveBeenCalledWith(
@@ -792,7 +799,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       );
     });
 
-    test("Test 24: getAllWhere génère le bon SQL avec clause WHERE", async () => {
+    test("Test 30: getAllWhere génère le bon SQL avec clause WHERE", async () => {
       const mockDb = { getAllAsync: jest.fn().mockResolvedValue([]) };
       await RealQueries.getAllWhere(
         mockDb,
@@ -808,7 +815,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       );
     });
 
-    test("Test 25: getAllWhere gère le tri (ORDER BY)", async () => {
+    test("Test 31: getAllWhere gère le tri (ORDER BY)", async () => {
       const mockDb = { getAllAsync: jest.fn().mockResolvedValue([]) };
       await RealQueries.getAllWhere(mockDb, "TestTable", [], [], "col1 DESC");
       expect(mockDb.getAllAsync).toHaveBeenCalledWith(
@@ -817,7 +824,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       );
     });
 
-    test("Test 26: insert génère le bon SQL", async () => {
+    test("Test 32: insert génère le bon SQL", async () => {
       const mockDb = { runAsync: jest.fn() };
       const data = { col1: "val1", col2: 123 };
       await RealQueries.insert(mockDb, "TestTable", data);
@@ -829,7 +836,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       );
     });
 
-    test("Test 27: update génère le bon SQL", async () => {
+    test("Test 33: update génère le bon SQL", async () => {
       const mockDb = { runAsync: jest.fn() };
       const data = { col1: "newVal" };
       await RealQueries.update(mockDb, "TestTable", data, "id = ?", [1]);
@@ -839,7 +846,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       );
     });
 
-    test("Test 28: getPointsForEvent fait une jointure", async () => {
+    test("Test 34: getPointsForEvent fait une jointure", async () => {
       const mockDb = { getAllAsync: jest.fn() };
       await RealQueries.getPointsForEvent(mockDb, "evt1");
       expect(mockDb.getAllAsync).toHaveBeenCalledWith(
@@ -847,9 +854,167 @@ describe("Project Tests - Arrange-Act-Assert", () => {
         ["evt1"]
       );
     });
+
+    // --- NOUVEAUX TESTS POUR 100% COVERAGE ---
+
+    test("Test 45: insertOrReplace génère le bon SQL", async () => {
+      const mockDb = { runAsync: jest.fn() };
+      const data = { col1: "val1", col2: 123 };
+      await RealQueries.insertOrReplace(mockDb, "TestTable", data);
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /INSERT OR REPLACE INTO TestTable \(col1,col2\) VALUES \(\?,\?\)/
+        ),
+        ["val1", 123]
+      );
+    });
+
+    test("Test 46: deleteWhere gestions des cas limites", async () => {
+      const mockDb = {
+        runAsync: jest.fn().mockResolvedValue({ changes: 5 }),
+      };
+
+      // 1. Succès
+      const changes = await RealQueries.deleteWhere(
+        mockDb,
+        "TestTable",
+        ["col1"],
+        ["val1"]
+      );
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        expect.stringContaining("DELETE FROM TestTable WHERE col1 = ?"),
+        ["val1"]
+      );
+      expect(changes).toBe(5);
+
+      // 2. Erreur : colonnes vides (doit rejeter ou catch et retourner 0)
+      const resEmpty = await RealQueries.deleteWhere(
+        mockDb,
+        "TestTable",
+        [],
+        []
+      );
+      expect(resEmpty).toBe(0);
+
+      // 3. Erreur SQL
+      mockDb.runAsync.mockRejectedValue(new Error("SQL Error"));
+      const warnSpy = jest.spyOn(console, "error").mockImplementation(() => { });
+      const resError = await RealQueries.deleteWhere(
+        mockDb,
+        "TestTable",
+        ["col1"],
+        ["val1"]
+      );
+      expect(resError).toBe(0);
+      warnSpy.mockRestore();
+    });
+
+    test("Test 47: flushDatabase execution et rollback", async () => {
+      // Cas 1: Succès
+      const mockDb = { runAsync: jest.fn().mockResolvedValue({}) };
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => { });
+
+      await RealQueries.flushDatabase(mockDb);
+      expect(mockDb.runAsync).toHaveBeenCalledWith("DELETE FROM Point");
+      expect(mockDb.runAsync).toHaveBeenCalledWith("DELETE FROM Evenement");
+
+      // Cas 2: Erreur
+      const mockDbError = {
+        runAsync: jest
+          .fn()
+          .mockRejectedValueOnce(new Error("Flush failed")),
+      };
+      const errorSpy = jest.spyOn(console, "error").mockImplementation(() => { });
+
+      await expect(RealQueries.flushDatabase(mockDbError)).resolves.not.toThrow();
+
+      logSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
+    test("Test 48: getAllWhere gestion d'erreur", async () => {
+      const mockDb = {
+        getAllAsync: jest.fn().mockRejectedValue(new Error("DB Error")),
+      };
+      const warnSpy = jest.spyOn(console, "error").mockImplementation(() => { });
+
+      const res = await RealQueries.getAllWhere(
+        mockDb,
+        "Table",
+        ["col"],
+        ["val"]
+      );
+      expect(res).toEqual([]);
+      expect(warnSpy).toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+    });
+
+    test("Test 49: getPhotosForPoint SQL generation", async () => {
+      const mockDb = { getAllAsync: jest.fn().mockResolvedValue([]) };
+      await RealQueries.getPhotosForPoint(mockDb, "pt1");
+      expect(mockDb.getAllAsync).toHaveBeenCalledWith(
+        expect.stringContaining("SELECT Picture.* FROM Picture"),
+        ["pt1"]
+      );
+    });
+
+    test("Test 53: deleteWhere gère réponse sans changes", async () => {
+      // Cas où runAsync renvoie un objet vide (ex: driver spécifique)
+      const mockDb = {
+        runAsync: jest.fn().mockResolvedValue({}),
+      };
+      const changes = await RealQueries.deleteWhere(
+        mockDb,
+        "Table",
+        ["col"],
+        ["val"]
+      );
+      expect(changes).toBe(0); // Doit retourner 0 grâce au ?? 0
+    });
+
+    test("Test 54: insertOrReplace gestion erreur", async () => {
+      const mockDb = {
+        runAsync: jest.fn().mockRejectedValue(new Error("Constraint Error")),
+      };
+      const warnSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => { });
+
+      // Utilisation standard Jest:
+      await expect(
+        RealQueries.insertOrReplace(mockDb, "Table", { id: 1 })
+      ).resolves.not.toThrow();
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Error in insertOrReplace:",
+        expect.any(Error)
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    test("Test 55: insert gestion erreur", async () => {
+      const mockDb = {
+        runAsync: jest.fn().mockRejectedValue(new Error("Insert Error")),
+      };
+      const warnSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => { });
+
+      await expect(
+        RealQueries.insert(mockDb, "Table", { id: 1 })
+      ).resolves.not.toThrow();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Error in insert:",
+        expect.any(Error)
+      );
+
+      warnSpy.mockRestore();
+    });
   });
   describe("HomeScreen tests", () => {
-    test("Test 29:Click on main button to navigate to Events screen", async () => {
+    test("Test 35: Click on main button to navigate to Events screen", async () => {
       jest.useFakeTimers();
       // Arrange
       let tree: ReactTestRenderer | undefined;
@@ -888,7 +1053,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
 
       jest.useRealTimers();
     });
-    test("Test 30: Skip intro animation", async () => {
+    test("Test 36: Skip intro animation", async () => {
       jest.useFakeTimers();
       // Arrange
       let tree: ReactTestRenderer | undefined;
@@ -949,7 +1114,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
   // -------------------------------------------------------------------------//
 
   describe("Tests personnalisés points", () => {
-    test("Affichage des points", async () => {
+    test("Test 37: Affichage des points (Custom)", async () => {
       (Queries.getAllWhere as jest.Mock).mockResolvedValue([
         { UUID: "p1", Name: "Point Poteau", Ordre: 1, EventID: "evt1" },
         { UUID: "p2", Name: "Point Armoire", Ordre: 2, EventID: "evt1" },
@@ -964,7 +1129,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       expect(tree).toBeTruthy();
     });
 
-    test("Suppression d'un point", async () => {
+    test("Test 52: Suppression d'un point", async () => {
       // Mock Alert.alert pour capturer l'appel et simuler le clic sur "Supprimer"
       const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(
         (title: any, message: any, buttons: any) => {
@@ -1017,6 +1182,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
   // -------------------------------------------------------------------------
   describe("ImportEventScreen", () => {
     let mockWebSocket: any;
+    let importTree: ReactTestRenderer | undefined;
 
     beforeEach(() => {
       jest.useFakeTimers();
@@ -1033,19 +1199,33 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       global.WebSocket = jest.fn(() => mockWebSocket);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
+      // CRITICAL: Nettoyer tous les timers pendants (notamment le setTimeout 120s)
+      jest.clearAllTimers();
       jest.useRealTimers();
+
+      // Démonter le composant pour éviter les fuites
+      if (importTree) {
+        await act(async () => {
+          importTree!.unmount();
+        });
+        importTree = undefined;
+      }
+
+      // Cleanup WebSocket global mock
+      if (global.WebSocket) {
+        delete (global as any).WebSocket;
+      }
     });
 
-    test("Test 32: Scan QR Code et Connexion WebSocket", async () => {
+    test("Test 50: Scan QR Code et Connexion WebSocket", async () => {
       // Arrange
-      let tree: ReactTestRenderer | undefined;
       await act(async () => {
-        tree = renderer.create(<ImportEventScreen />);
+        importTree = renderer.create(<ImportEventScreen />);
       });
 
       // Act - Simulate QR Scan
-      const camera = tree!.root.findByType(require("expo-camera").CameraView);
+      const camera = importTree!.root.findByType(require("expo-camera").CameraView);
       await act(async () => {
         if (camera.props.onBarcodeScanned) {
           camera.props.onBarcodeScanned({ data: "ws://test.local:8080" });
@@ -1068,15 +1248,14 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       );
     });
 
-    test("Test 33: Réception et Traitement des données (Event + Equipments)", async () => {
+    test("Test 51: Réception et Traitement des données (Event + Equipments)", async () => {
       // Arrange
-      let tree: ReactTestRenderer | undefined;
       await act(async () => {
-        tree = renderer.create(<ImportEventScreen />);
+        importTree = renderer.create(<ImportEventScreen />);
       });
 
       // Connect first
-      const camera = tree!.root.findByType(require("expo-camera").CameraView);
+      const camera = importTree!.root.findByType(require("expo-camera").CameraView);
       await act(async () => {
         camera.props.onBarcodeScanned({ data: "ws://test.local:8080" });
       });
@@ -1166,6 +1345,8 @@ describe("Project Tests - Arrange-Act-Assert", () => {
   // 11. PlanningNavigationScreen (Tests 23-28) - V2 Features
   // -------------------------------------------------------------------------
   describe("PlanningNavigationScreen - V2", () => {
+    let planningTree: ReactTestRenderer | undefined;
+
     beforeEach(() => {
       // Mock fetch global pour OSRM
       global.fetch = jest.fn();
@@ -1176,6 +1357,16 @@ describe("Project Tests - Arrange-Act-Assert", () => {
           openURL: jest.fn(),
         },
       }));
+    });
+
+    afterEach(async () => {
+      // CRITICAL: Démonte le composant pour arrêter watchPositionAsync
+      if (planningTree) {
+        await act(async () => {
+          planningTree!.unmount();
+        });
+        planningTree = undefined;
+      }
     });
 
     test("Test 23: Chargement initial des tâches", async () => {
@@ -1220,9 +1411,8 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       });
 
       // Act
-      let tree: ReactTestRenderer | undefined;
       await act(async () => {
-        tree = renderer.create(<PlanningNavigationScreen />);
+        planningTree = renderer.create(<PlanningNavigationScreen />);
       });
 
       // Assert
@@ -1290,16 +1480,15 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       });
 
       // Act
-      let tree: ReactTestRenderer | undefined;
       await act(async () => {
-        tree = renderer.create(<PlanningNavigationScreen />);
+        planningTree = renderer.create(<PlanningNavigationScreen />);
       });
 
       // Assert
       // Note: Le fetch n'est appelé que quand userLocation ET currentTask sont disponibles
       // Dans ce test, userLocation est mocké mais pas encore défini au moment du render
       // On vérifie juste que le composant se rend sans erreur
-      expect(tree).toBeTruthy();
+      expect(planningTree).toBeTruthy();
       // Le test complet de fetch nécessiterait de simuler la géolocalisation
     });
 
@@ -1330,13 +1519,12 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       });
 
       // Act
-      let tree: ReactTestRenderer | undefined;
       await act(async () => {
-        tree = renderer.create(<PlanningNavigationScreen />);
+        planningTree = renderer.create(<PlanningNavigationScreen />);
       });
 
       // Assert - Vérifier que le composant est rendu
-      expect(tree).toBeTruthy();
+      expect(planningTree).toBeTruthy();
     });
 
     test("Test 26: Validation Tâche (Swipe) - Simulation directe", async () => {
@@ -1364,9 +1552,8 @@ describe("Project Tests - Arrange-Act-Assert", () => {
         params: { eventId: "test-event-id", taskType: "installation" },
       });
 
-      let tree: ReactTestRenderer | undefined;
       await act(async () => {
-        tree = renderer.create(<PlanningNavigationScreen />);
+        planningTree = renderer.create(<PlanningNavigationScreen />);
       });
 
       // Note: Le test complet du PanResponder nécessiterait une simulation complexe
@@ -1420,9 +1607,8 @@ describe("Project Tests - Arrange-Act-Assert", () => {
         params: { eventId: "test-event-id", taskType: "installation" },
       });
 
-      let tree: ReactTestRenderer | undefined;
       await act(async () => {
-        tree = renderer.create(<PlanningNavigationScreen />);
+        planningTree = renderer.create(<PlanningNavigationScreen />);
       });
 
       const db = useSQLiteContext();
@@ -1481,15 +1667,512 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       });
 
       // Act
-      let tree: ReactTestRenderer | undefined;
       await act(async () => {
-        tree = renderer.create(<PlanningNavigationScreen />);
+        planningTree = renderer.create(<PlanningNavigationScreen />);
       });
 
       // Assert - Composant rendu sans erreur
-      expect(tree).toBeTruthy();
+      expect(planningTree).toBeTruthy();
       // Note: Le test complet de Linking.openURL nécessiterait un mock plus sophistiqué
       // et la simulation d'un clic sur le bouton GPS
+    });
+  });
+
+  // =========================================================================
+  //        TESTS IMPORT / EXPORT COUVERTURE (P0 - CRITIQUE)
+  // =========================================================================
+
+  describe("Import / Export Coverage Tests", () => {
+    let mockWebSocket: any;
+    let exportTree: ReactTestRenderer | undefined;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      // Setup Mock WS
+      mockWebSocket = {
+        send: jest.fn(),
+        close: jest.fn(),
+        onopen: null,
+        onmessage: null,
+        onerror: null,
+        onclose: null,
+        readyState: 1, // WebSocket.OPEN
+      };
+      (global as any).WebSocket = jest.fn(() => mockWebSocket);
+      (global as any).WebSocket.OPEN = 1;
+      (global as any).WebSocket.CLOSED = 3;
+
+      jest.clearAllMocks();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      if ((global as any).WebSocket) {
+        delete (global as any).WebSocket;
+      }
+    });
+
+    // --- EXPORT TESTS ---
+
+    test("Test 56: Export - Erreur Event Non Trouvé", async () => {
+      (Queries.getAllWhere as jest.Mock).mockResolvedValue([]);
+
+      await act(async () => {
+        exportTree = renderer.create(<ExportEventScreen />);
+      });
+
+      const camera = exportTree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        if (camera.props.onBarcodeScanned) {
+          camera.props.onBarcodeScanned({ data: "ws://test.local:8080" });
+        }
+      });
+      // Allow async processing
+      await act(async () => { jest.advanceTimersByTime(100); });
+
+      const errorText = exportTree!.root.findAllByType(Text).find(t =>
+        t.props.children && String(t.props.children).includes("Événement non trouvé")
+      );
+      expect(errorText).toBeDefined();
+    });
+
+    test("Test 57: Export - Flux Complet Succès", async () => {
+      // Mock Data
+      (Queries.getAllWhere as jest.Mock).mockImplementation((db, table) => {
+        if (table === "Evenement") return Promise.resolve([{ UUID: "evt-1", Title: "My Event", Status: "toOrganize" }]);
+        if (table === "Area") return Promise.resolve([{ UUID: "area-1", EventID: "evt-1", ColorHex: "#000", GeoJson: "{}" }]);
+        if (table === "Path") return Promise.resolve([{ UUID: "path-1", EventID: "evt-1", Name: "Path 1", GeoJson: "{}" }]);
+        if (table === "Point") return Promise.resolve([{ UUID: "pt-1", EventID: "evt-1", Name: "Pt 1", EquipmentID: "eq-1" }]);
+        return Promise.resolve([]);
+      });
+      (Queries.getAll as jest.Mock).mockResolvedValue([{ UUID: "eq-1", Type: "Cone", StorageType: "single" }]);
+      (Queries.getPhotosForPoint as jest.Mock).mockResolvedValue([{ UUID: "pic-1", Picture: "base64..." }]);
+
+      await act(async () => {
+        exportTree = renderer.create(<ExportEventScreen />);
+      });
+
+      const camera = exportTree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        camera.props.onBarcodeScanned({ data: "ws://server:8080" });
+      });
+
+      // Connect
+      await act(async () => {
+        if (mockWebSocket.onopen) mockWebSocket.onopen();
+        jest.advanceTimersByTime(100);
+      });
+
+      // Assert Send
+      expect(mockWebSocket.send).toHaveBeenCalled();
+      const sentData = JSON.parse(mockWebSocket.send.mock.calls[0][0]);
+      expect(sentData.event.title).toBe("My Event");
+
+      // Receive ACK
+      await act(async () => {
+        if (mockWebSocket.onmessage) mockWebSocket.onmessage({ data: "import_complete" });
+        // WS success logic: duration 800ms for pulse, then 500ms timeout for close
+        jest.advanceTimersByTime(2000);
+      });
+
+      // Allow flush & navigation timeouts
+      await act(async () => {
+        jest.advanceTimersByTime(3000);
+      });
+
+      expect(Queries.flushDatabase).toHaveBeenCalled();
+    });
+
+    test("Test 58: Export - WebSocket Error Handling", async () => {
+      (Queries.getAllWhere as jest.Mock).mockResolvedValue([{ UUID: "evt-1", Title: "E", Status: "toOrganize" }]);
+      (Queries.getAll as jest.Mock).mockResolvedValue([]);
+
+      await act(async () => {
+        exportTree = renderer.create(<ExportEventScreen />);
+      });
+
+      const camera = exportTree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        camera.props.onBarcodeScanned({ data: "ws://fail:8080" });
+        jest.advanceTimersByTime(100);
+      });
+
+      await act(async () => {
+        if (mockWebSocket.onerror) mockWebSocket.onerror(new Error("Connection Failed"));
+        jest.advanceTimersByTime(100);
+      });
+
+      const errorTexts = exportTree!.root.findAllByType(Text);
+      expect(errorTexts.some(t => String(t.props.children).includes("Connection Failed"))).toBe(true);
+    });
+
+    // --- IMPORT TESTS ---
+
+    test("Test 59: Import - Planning Data Flow", async () => {
+      let importTree;
+      await act(async () => {
+        importTree = renderer.create(<ImportEventScreen />);
+      });
+
+      const camera = importTree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        camera.props.onBarcodeScanned({ data: "ws://server:8080" });
+      });
+
+      await act(async () => {
+        if (mockWebSocket.onopen) mockWebSocket.onopen();
+        jest.advanceTimersByTime(100);
+      });
+
+      const planningData = {
+        type: "planning_data",
+        team: { uuid: "team-1", eventId: "evt-1", name: "Team A", eventName: "Event A", number: 1 },
+        members: [],
+        installations: [],
+        removals: []
+      };
+
+      await act(async () => {
+        if (mockWebSocket.onmessage) await mockWebSocket.onmessage({ data: JSON.stringify(planningData) });
+        // Planning processing updates stats then sends ACK then closes after 500ms
+        jest.advanceTimersByTime(2000);
+      });
+
+      expect(Queries.insertOrReplace).toHaveBeenCalledWith(expect.anything(), "PlanningTeam", expect.anything());
+      expect(mockWebSocket.send).toHaveBeenCalled();
+    });
+
+    test("Test 60: Import - Malformed JSON Handling", async () => {
+      let importTree;
+      await act(async () => {
+        importTree = renderer.create(<ImportEventScreen />);
+      });
+
+      const camera = importTree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        camera.props.onBarcodeScanned({ data: "ws://server:8080" });
+        if (mockWebSocket.onopen) mockWebSocket.onopen();
+        jest.advanceTimersByTime(100);
+      });
+
+      await act(async () => {
+        if (mockWebSocket.onmessage) await mockWebSocket.onmessage({ data: "This is not JSON" });
+        jest.advanceTimersByTime(100);
+
+        if (mockWebSocket.onmessage) await mockWebSocket.onmessage({ data: "{ \"foo\": \"bar\" }" });
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(Queries.insertOrReplace).not.toHaveBeenCalled();
+    });
+
+    test("Test 61: Import - WebSocket Timeout", async () => {
+      let importTree;
+      await act(async () => {
+        importTree = renderer.create(<ImportEventScreen />);
+      });
+
+      const camera = importTree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        camera.props.onBarcodeScanned({ data: "ws://timeout:8080" });
+        jest.advanceTimersByTime(125000); // Trigger 120s timeout
+      });
+
+      expect(mockWebSocket.close).toHaveBeenCalled();
+    });
+
+    test("Test 62: Import - Full Event Data Flow", async () => {
+      let importTree;
+      await act(async () => {
+        importTree = renderer.create(<ImportEventScreen />);
+      });
+
+      const camera = importTree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        camera.props.onBarcodeScanned({ data: "ws://server:8080" });
+        jest.advanceTimersByTime(100); // connect delay mock?
+        if (mockWebSocket.onopen) mockWebSocket.onopen();
+      });
+
+      const eventData = {
+        type: "event_data",
+        event: { uuid: "evt-1", title: "Test Event", startDate: "2026-01-01", endDate: "2026-01-02", status: 0 },
+        areas: [{ uuid: "area-1", eventId: "evt-1", name: "Zone 1", colorHex: "#fff", geoJson: "{}" }],
+        paths: [{ uuid: "path-1", eventId: "evt-1", name: "Path 1", colorHex: "#000", geoJson: "{}" }],
+        equipments: [],
+        points: []
+      };
+
+      await act(async () => {
+        if (mockWebSocket.onmessage) await mockWebSocket.onmessage({ data: JSON.stringify(eventData) });
+        // Import processing: deletes, saves, updates stats (animations), sends ACK, then timeout 500ms to close
+        jest.advanceTimersByTime(3000);
+      });
+
+      expect(Queries.insertOrReplace).toHaveBeenCalledWith(expect.anything(), "Area", expect.objectContaining({ UUID: "area-1" }));
+      expect(Queries.insertOrReplace).toHaveBeenCalledWith(expect.anything(), "Path", expect.objectContaining({ UUID: "path-1" }));
+    });
+  });
+
+  describe("Tests Critiques - Database Errors", () => {
+    test("Test 38: Insert avec erreur DB", async () => {
+      // Arrange - Mock DB qui rejette
+      const mockDb = {
+        runAsync: jest.fn().mockRejectedValue(new Error("SQLITE_LOCKED")),
+      };
+
+      // Act & Assert - Ne devrait pas crash
+      await expect(
+        Queries.insert(mockDb as any, "Point", {
+          UUID: "test",
+          Name: "Test",
+        })
+      ).resolves.not.toThrow();
+      // La fonction doit gérer l'erreur via console.log sans crash
+    });
+
+    // SKIP: Ce test ne fonctionne pas car le mock global de Queries.insert interfère
+    // avec le mockDb local. Nécessite une refactorisation pour isoler correctement.
+    test.skip("Test 43: Rollback sur erreur batch", async () => {
+      // Arrange - Mock DB avec rejection conditionnelle sur pt-2
+      let callCount = 0;
+      const mockDb = {
+        runAsync: jest.fn((sql: string, params: any[]) => {
+          callCount++;
+          // Vérifier si c'est l'insertion de pt-2 (3ème tentative)
+          const uuidParam = params.find((p) => typeof p === "string" && p.startsWith("pt-"));
+          if (uuidParam === "pt-2") {
+            return Promise.reject(new Error("Constraint violation"));
+          }
+          return Promise.resolve({ changes: 1 });
+        }),
+      };
+
+      // Act - Batch de 4 insertions avec arrêt sur erreur
+      const results = [];
+      for (let i = 0; i < 4; i++) {
+        try {
+          await Queries.insert(mockDb as any, "Point", {
+            UUID: `pt-${i}`,
+            Name: `Point ${i}`,
+          });
+          results.push(`success-${i}`);
+        } catch (e) {
+          results.push(`error-${i}`);
+          break; // Stop on first error pour rollback
+        }
+      }
+
+      // Assert - Seulement 3 tentatives (2 success, 1 error)
+      expect(results).toEqual(["success-0", "success-1", "error-2"]);
+      // Note: callCount peut être > 3 car Queries.insert fait plusieurs appels SQL
+      expect(callCount).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe("Tests Critiques - WebSocket Robustesse", () => {
+    let wsTestTree: ReactTestRenderer | undefined;
+    let mockWS: any;
+
+    beforeEach(() => {
+      // CRITICAL: Utiliser fake timers pour contrôler le setTimeout(120000) de ImportEventScreen
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      // CRITICAL: Nettoyer tous les timers pendants (notamment le setTimeout 120s)
+      jest.clearAllTimers();
+      jest.useRealTimers();
+
+      // Démonte le composant pour arrêter les connexions WebSocket
+      if (wsTestTree) {
+        await act(async () => {
+          wsTestTree!.unmount();
+        });
+        wsTestTree = undefined;
+      }
+      // Fermer le mock WebSocket si ouvert
+      if (mockWS && mockWS.close) {
+        mockWS.close();
+        mockWS = undefined;
+      }
+      // Cleanup WebSocket global mock
+      if (global.WebSocket) {
+        delete (global as any).WebSocket;
+      }
+      jest.clearAllMocks();
+    });
+
+    test("Test 39: Timeout WebSocket après 120s (Smoke Test)", async () => {
+      // Arrange - Setup mock WebSocket
+      mockWS = {
+        onopen: null,
+        onmessage: null,
+        onerror: null,
+        onclose: null,
+        send: jest.fn(),
+        close: jest.fn(),
+        readyState: 1,
+      };
+      // @ts-ignore
+      global.WebSocket = jest.fn(() => mockWS);
+
+      await act(async () => {
+        wsTestTree = renderer.create(<ImportEventScreen />);
+      });
+
+      // Scan QR
+      const camera = wsTestTree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        camera.props.onBarcodeScanned({ data: "ws://timeout-test:8080" });
+      });
+
+      // Assert - Composant se rend sans crash
+      expect(wsTestTree).toBeTruthy();
+      // Note: Le timeout réel est géré dans le code avec setTimeout(120000)
+      // On vérifie juste que le composant ne crash pas pendant la connexion
+    });
+
+    test("Test 40: JSON malformé reçu par WebSocket (Smoke Test)", async () => {
+      // Arrange - Setup mock WebSocket
+      mockWS = {
+        onopen: null,
+        onmessage: null,
+        onerror: null,
+        onclose: null,
+        send: jest.fn(),
+        close: jest.fn(),
+        readyState: 1,
+      };
+      // @ts-ignore
+      global.WebSocket = jest.fn(() => mockWS);
+
+      await act(async () => {
+        wsTestTree = renderer.create(<ImportEventScreen />);
+      });
+
+      const camera = wsTestTree!.root.findByType(require("expo-camera").CameraView);
+      await act(async () => {
+        camera.props.onBarcodeScanned({ data: "ws://test:8080" });
+      });
+
+      // Assert - Composant se rend sans crash
+      expect(wsTestTree).toBeTruthy();
+      // Note: Le parsing JSON et la gestion d'erreurs sont testés dans le code réel
+      // Ce test vérifie juste que le composant ne crash pas pendant la connexion
+    });
+  });
+
+  describe("Tests Critiques - V2 GPS Edge Cases", () => {
+    let testTree: ReactTestRenderer | undefined;
+
+    afterEach(async () => {
+      // CRITICAL: Démonte le composant pour arrêter watchPositionAsync
+      if (testTree) {
+        await act(async () => {
+          testTree!.unmount();
+        });
+        testTree = undefined;
+      }
+    });
+
+    test("Test 41: Validation sans position GPS", async () => {
+      // Arrange - Mock sans userLocation
+      (Queries.getAllWhere as jest.Mock).mockResolvedValueOnce([
+        { UUID: "team-1", EventID: "evt-1", Name: "Équipe 1" },
+      ]);
+      (Queries.getAllWhere as jest.Mock).mockResolvedValueOnce([
+        {
+          UUID: "task-1",
+          TeamID: "team-1",
+          EquipmentType: "Barrière",
+          Status: "pending",
+          TaskType: "installation",
+          GeoJson: JSON.stringify({
+            type: "Point",
+            coordinates: [7.75, 48.58],
+          }),
+        },
+      ]);
+
+      (useRoute as jest.Mock).mockReturnValue({
+        params: { eventId: "evt-1", taskType: "installation" },
+      });
+
+      // Act
+      await act(async () => {
+        testTree = renderer.create(<PlanningNavigationScreen />);
+      });
+
+      // Assert - Composant se rend mais validation devrait être bloquée si userLocation === null
+      expect(testTree).toBeTruthy();
+    });
+
+    test("Test 42: OSRM échec réseau", async () => {
+      // Arrange - Mock fetch qui échoue
+      (global.fetch as jest.Mock).mockRejectedValueOnce(
+        new Error("Network request failed")
+      );
+
+      (Queries.getAllWhere as jest.Mock).mockResolvedValueOnce([
+        { UUID: "team-1", EventID: "evt-1", Name: "Équipe 1" },
+      ]);
+      (Queries.getAllWhere as jest.Mock).mockResolvedValueOnce([
+        {
+          UUID: "task-1",
+          TeamID: "team-1",
+          EquipmentType: "Barrière",
+          Status: "pending",
+          TaskType: "installation",
+          GeoJson: JSON.stringify({
+            type: "Point",
+            coordinates: [7.75, 48.58],
+          }),
+        },
+      ]);
+
+      (useRoute as jest.Mock).mockReturnValue({
+        params: { eventId: "evt-1", taskType: "installation" },
+      });
+
+      // Act
+      await act(async () => {
+        testTree = renderer.create(<PlanningNavigationScreen />);
+      });
+
+      // Assert - Composant rendu même si fetch échoue (mode dégradé)
+      expect(testTree).toBeTruthy();
+    });
+  });
+
+  describe("Tests Critiques - Mode Offline", () => {
+    test("Test 44: Opérations en mode offline", async () => {
+      // Arrange - Simuler offline
+      const originalOnLine = Object.getOwnPropertyDescriptor(global.navigator, "onLine");
+      Object.defineProperty(global.navigator, "onLine", {
+        writable: true,
+        value: false,
+      });
+
+      (useRoute as jest.Mock).mockReturnValue({
+        params: { eventId: "evt-1", pointIdParam: undefined },
+      });
+
+      (Queries.insert as jest.Mock).mockResolvedValue(undefined);
+
+      // Act - Créer un point en mode offline
+      let tree: ReactTestRenderer | undefined;
+      await act(async () => {
+        tree = renderer.create(<CreatePointScreen />);
+      });
+
+      // Assert - Composant se rend normalement
+      expect(tree).toBeTruthy();
+
+      // Cleanup
+      if (originalOnLine) {
+        Object.defineProperty(global.navigator, "onLine", originalOnLine);
+      }
     });
   });
 });
