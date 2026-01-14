@@ -628,7 +628,7 @@ export class MapService {
 
   toggleSecurityZoneVisibility(zoneId: string, visible: boolean): void {
     const currentVisible = this.visibleSecurityZoneIdsSubject.value;
-    let hidden = new Set(this.hiddenSecurityZoneIdsSubject.value);
+    const hidden = new Set(this.hiddenSecurityZoneIdsSubject.value);
     
     // Si on passe de null à un état avec masquage/affichage sélectif
     if (currentVisible === null && !visible) {
@@ -669,7 +669,7 @@ export class MapService {
   togglePointVisibility(pointId: string, visible: boolean): void {
     // Si on passe de null à un état avec masquage/affichage sélectif
     const currentVisible = this.visiblePointIdsSubject.value;
-    let hidden = new Set(this.hiddenPointIdsSubject.value);
+    const hidden = new Set(this.hiddenPointIdsSubject.value);
     
     // Si currentVisible est null (tous visibles), initialiser hidden avec un set vide
     // et tous les points à visible
@@ -722,7 +722,7 @@ export class MapService {
    */
   togglePointOfInterestVisibility(pointId: string, visible: boolean): void {
     const currentVisible = this.visiblePointOfInterestIdsSubject.value;
-    let hidden = new Set(this.hiddenPointOfInterestIdsSubject.value);
+    const hidden = new Set(this.hiddenPointOfInterestIdsSubject.value);
     
     // Si on passe de null à un état avec masquage/affichage sélectif
     if (currentVisible === null && !visible) {
@@ -775,7 +775,7 @@ export class MapService {
    */
   togglePathVisibility(pathId: string, visible: boolean): void {
     const currentVisible = this.visiblePathIdsSubject.value;
-    let hidden = new Set(this.hiddenPathIdsSubject.value);
+    const hidden = new Set(this.hiddenPathIdsSubject.value);
     
     // Si on passe de null à un état avec masquage/affichage sélectif
     if (currentVisible === null && !visible) {
@@ -827,7 +827,7 @@ export class MapService {
    */
   toggleEquipmentVisibility(equipmentId: string, visible: boolean): void {
     const currentVisible = this.visibleEquipmentIdsSubject.value;
-    let hidden = new Set(this.hiddenEquipmentIdsSubject.value);
+    const hidden = new Set(this.hiddenEquipmentIdsSubject.value);
     
     // Si on passe de null à un état avec masquage/affichage sélectif
     if (currentVisible === null && !visible) {
@@ -881,7 +881,7 @@ export class MapService {
    */
   toggleAreaVisibility(areaId: string, visible: boolean): void {
     const currentVisible = this.visibleAreaIdsSubject.value;
-    let hidden = new Set(this.hiddenAreaIdsSubject.value);
+    const hidden = new Set(this.hiddenAreaIdsSubject.value);
     
     // Si on passe de null à un état avec masquage/affichage sélectif
     if (currentVisible === null && !visible) {

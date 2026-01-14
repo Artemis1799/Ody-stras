@@ -2003,9 +2003,6 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   onEquipmentSelected(equipment: Equipment): void {
     if (!this.pendingMarkerLayer || !this.selectedEvent || typeof window === 'undefined') return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const L: any = (window as any).L;
-
     // Créer un point temporaire avec les coordonnées du marker
     const latlng = this.pendingMarkerLayer.getLatLng();
     const tempPoint: Point = {

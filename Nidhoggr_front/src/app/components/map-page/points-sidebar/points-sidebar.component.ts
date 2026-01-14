@@ -61,6 +61,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   private securityZonesSubscription?: Subscription;
   private selectedEventSubscription?: Subscription;
   private eventsSubscription?: Subscription;
+  private areasSubscription?: Subscription;
 
   // Onglet actif: 'points' ou 'zones' ou 'organized'
   activeTab: 'points' | 'zones' = 'points';
@@ -184,7 +185,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     });
 
     // S'abonner aux changements d'areas
-    const areasSubscription = this.mapService.areas$.subscribe((areas) => {
+    this.areasSubscription = this.mapService.areas$.subscribe((areas) => {
       this.allAreas = areas;
       this.cdr.markForCheck();
     });
@@ -278,6 +279,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.eventsSubscription?.unsubscribe();
     this.searchSubscription?.unsubscribe();
     this.pathsSubscription?.unsubscribe();
+    this.areasSubscription?.unsubscribe();
     this.visibleZoneIdsSubscription?.unsubscribe();
     this.visiblePointIdsSubscription?.unsubscribe();
     this.visiblePointOfInterestIdsSubscription?.unsubscribe();
@@ -960,7 +962,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   // ============= Organized List Methods =============
-  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onOrganizedItemClick(item: any): void {
     if (item.type === 'point') {
       const point = item.data as Point;
@@ -984,7 +986,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.focusOnPath(path);
     }
   }
-
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onItemVisibilityChange(event: {item: any, visible: boolean}): void {
     if (event.item.type === 'zone') {
       const zone = event.item.data as SecurityZone;
