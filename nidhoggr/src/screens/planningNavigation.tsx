@@ -56,6 +56,7 @@ export default function PlanningNavigationScreen() {
     const [isLoadingRoute, setIsLoadingRoute] = useState(true);
     const [tasksLoaded, setTasksLoaded] = useState(false);
     const [routeLoaded, setRouteLoaded] = useState(false);
+    const [isAutoCentering, setIsAutoCentering] = useState(true);
 
     const mapRef = useRef<MapView>(null);
     const locationSubscription = useRef<Location.LocationSubscription | null>(null);
@@ -143,6 +144,20 @@ export default function PlanningNavigationScreen() {
         }
     }, [tasksLoaded, routeLoaded]);
 
+    const toggleAutoCenter = () => {
+        const newState = !isAutoCentering;
+        setIsAutoCentering(newState);
+        if (newState && userLocation && mapRef.current) {
+            // Recentrer immédiatement si réactivé
+            mapRef.current.animateToRegion({
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+            });
+        }
+    };
+
     const loadTasks = async () => {
         try {
             const teams = await getAllWhere<PlanningTeam>(db, "PlanningTeam", ["EventID"], [eventId]);
@@ -199,6 +214,13 @@ export default function PlanningNavigationScreen() {
         }
     };
 
+    // Ref pour accéder à l'état à jour dans le callback de location
+    const isAutoCenteringRef = useRef(isAutoCentering);
+
+    useEffect(() => {
+        isAutoCenteringRef.current = isAutoCentering;
+    }, [isAutoCentering]);
+
     const startLocationTracking = async () => {
         console.log("🚀 Démarrage tracking GPS...");
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -222,6 +244,12 @@ export default function PlanningNavigationScreen() {
                     longitude: location.coords.longitude,
                 };
                 setUserLocation(newLocation);
+
+                // Si l'auto-centrage est activé, on force le suivi ici
+                if (isAutoCenteringRef.current && mapRef.current) {
+                    mapRef.current.animateCamera({ center: newLocation, heading: location.coords.heading || 0 });
+                }
+
                 console.log(`📡 Position: ${newLocation.latitude.toFixed(5)}, ${newLocation.longitude.toFixed(5)}`);
 
                 const task = currentTaskRef.current;
@@ -491,13 +519,17 @@ export default function PlanningNavigationScreen() {
                 ref={mapRef}
                 style={localStyles.map}
                 showsUserLocation={true}
-                showsMyLocationButton={true}
-                followsUserLocation={true}
+                showsMyLocationButton={false} // On utilise notre propre bouton
+                followsUserLocation={isAutoCentering}
                 initialRegion={{
                     latitude: userLocation?.latitude || 48.5839,
                     longitude: userLocation?.longitude || 7.7507,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
+                }}
+                onPanDrag={() => {
+                    // Désactiver l'auto-centrage si l'utilisateur bouge la carte
+                    if (isAutoCentering) setIsAutoCentering(false);
                 }}
             >
                 {/* Itinéraire routier (bleu) */}
@@ -530,9 +562,12 @@ export default function PlanningNavigationScreen() {
                         coordinate={getTaskCenter(currentTask)!}
                         anchor={{ x: 0.5, y: 0.5 }}
                     >
-                        <View style={localStyles.activeMarker}>
+                        <View style={[
+                            localStyles.activeMarker,
+                            { backgroundColor: currentTask.TaskType === "installation" ? "#43A047" : "#E53935" }
+                        ]}>
                             <Ionicons
-                                name={taskType === "installation" ? "construct" : "cube"}
+                                name={currentTask.TaskType === "installation" ? "construct" : "cube"}
                                 size={24}
                                 color="#fff"
                             />
@@ -543,6 +578,18 @@ export default function PlanningNavigationScreen() {
 
             {/* Boutons Actions (Côté Droit) */}
             <View style={localStyles.rightActionsContainer}>
+                {/* Bouton Recentrer / Suivi */}
+                <TouchableOpacity
+                    style={[localStyles.actionButtonBlue, { backgroundColor: isAutoCentering ? "#4285F4" : "#fff" }]}
+                    onPress={toggleAutoCenter}
+                >
+                    <Ionicons
+                        name={isAutoCentering ? "navigate" : "navigate-outline"}
+                        size={28}
+                        color={isAutoCentering ? "#fff" : "#4285F4"}
+                    />
+                </TouchableOpacity>
+
                 {/* Bouton GPS Externe */}
                 <TouchableOpacity
                     style={localStyles.actionButtonBlue}
