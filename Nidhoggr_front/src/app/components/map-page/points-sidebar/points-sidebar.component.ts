@@ -286,6 +286,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.visiblePathIdsSubscription?.unsubscribe();
     this.visibleEquipmentIdsSubscription?.unsubscribe();
     this.visibleAreaIdsSubscription?.unsubscribe();
+    this.areasSubscription?.unsubscribe();
   }
 
   loadEvents(): void {
@@ -962,8 +963,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   // ============= Organized List Methods =============
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onOrganizedItemClick(item: any): void {
+  
+  onOrganizedItemClick(item: {type: string; data: Point | SecurityZone | RoutePath | Area}): void {
     if (item.type === 'point') {
       const point = item.data as Point;
       this.onPointClick(point);
@@ -986,9 +987,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.focusOnPath(path);
     }
   }
-  
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onItemVisibilityChange(event: {item: any, visible: boolean}): void {
+
+  onItemVisibilityChange(event: {item: {type: string; data: Point | SecurityZone | RoutePath | Area}, visible: boolean}): void {
     if (event.item.type === 'zone') {
       const zone = event.item.data as SecurityZone;
       this.mapService.toggleSecurityZoneVisibility(zone.uuid, event.visible);

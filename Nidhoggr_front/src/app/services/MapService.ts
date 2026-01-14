@@ -57,6 +57,7 @@ export class MapService {
   private selectedSecurityZoneSubject = new BehaviorSubject<SecurityZone | null>(null);
   private focusPointSubject = new Subject<Point>(); // Pour le focus sur un point depuis la timeline
   private focusSecurityZoneSubject = new Subject<SecurityZone>(); // Pour le focus sur une security zone
+  private clearSecurityZoneGlowSubject = new Subject<void>(); // Pour retirer le glow d'une security zone
   private timelineVisibleSubject = new BehaviorSubject<boolean>(false); // Visibilité de la timeline
   private mapBoundsSubject = new BehaviorSubject<MapBounds | null>(null); // Bounds actuels de la carte
   private timelineFilterDateSubject = new BehaviorSubject<Date | null>(null); // Date du filtre timeline
@@ -110,6 +111,7 @@ export class MapService {
   selectedSecurityZone$: Observable<SecurityZone | null> = this.selectedSecurityZoneSubject.asObservable();
   focusPoint$: Observable<Point> = this.focusPointSubject.asObservable();
   focusSecurityZone$: Observable<SecurityZone> = this.focusSecurityZoneSubject.asObservable();
+  clearSecurityZoneGlow$: Observable<void> = this.clearSecurityZoneGlowSubject.asObservable();
   timelineVisible$: Observable<boolean> = this.timelineVisibleSubject.asObservable();
   mapBounds$: Observable<MapBounds | null> = this.mapBoundsSubject.asObservable();
   timelineFilterDate$: Observable<Date | null> = this.timelineFilterDateSubject.asObservable();
@@ -307,6 +309,10 @@ export class MapService {
 
   focusOnSecurityZone(zone: SecurityZone): void {
     this.focusSecurityZoneSubject.next(zone);
+  }
+
+  clearSecurityZoneGlow(): void {
+    this.clearSecurityZoneGlowSubject.next();
   }
 
   openTimeline(): void {

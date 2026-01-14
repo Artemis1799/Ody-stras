@@ -151,10 +151,12 @@
               <!-- Barre de période d'installation -->
               <div
                 class="item-bar"
+                [class.focused]="focusedZoneId === zone.id"
                 [style.left.%]="getDatePosition(zone.start)"
                 [style.width.%]="getDuration(zone.start, zone.end)"
                 (mouseenter)="onZoneHover(zone, $event)"
                 (mousemove)="onZoneMouseMove($event)"
+                (click)="onZoneClick(zone, $event)"
               ></div>
             </div>
           </div>

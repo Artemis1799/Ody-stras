@@ -36,6 +36,7 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
   
   // Sélection de zones
   selectedZoneIds: Set<string> = new Set();
+  focusedZoneId: string | null = null; // Zone actuellement focusée (avec glow)
   
   // Modale d'assignation d'équipe
   showTeamModal = false;
@@ -374,17 +375,29 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Hover sur une zone
+   * Click sur une zone pour la focus avec glow
+   */
+  onZoneClick(zone: TimelineZone, event: MouseEvent): void {
+    event.stopPropagation();
+    
+    // Si on clique sur la zone déjà focusée, la défocuser
+    if (this.focusedZoneId === zone.id) {
+      this.focusedZoneId = null;
+      this.mapService.clearSecurityZoneGlow();
+    } else {
+      // Sinon, focuser la nouvelle zone
+      this.focusedZoneId = zone.id;
+      this.mapService.focusOnSecurityZone(zone.zone);
+    }
+  }
+
+  /**
+   * Hover sur une zone pour afficher le tooltip
    */
   onZoneHover(zone: TimelineZone, event: MouseEvent): void {
     this.tooltipItem = zone;
     this.tooltipVisible = true;
     this.updateTooltipPosition(event);
-    
-    // Focus sur la zone dans la carte (désactivé si filtre géospatial actif pour éviter de modifier les bounds)
-    if (!this.geoFilterActive) {
-      this.mapService.focusOnSecurityZone(zone.zone);
-    }
   }
 
   onZoneMouseMove(event: MouseEvent): void {
@@ -402,11 +415,14 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
   onZoneHoverEnd(): void {
     this.tooltipVisible = false;
     this.tooltipItem = null;
+    // Ne pas retirer le glow au hover end si une zone est focusée
   }
 
   close(): void {
     // Nettoyer la surbrillance des zones
     this.mapService.clearHighlightedSecurityZones();
+    this.mapService.clearSecurityZoneGlow();
+    this.focusedZoneId = null;
     this.mapService.closeTimeline();
   }
 
