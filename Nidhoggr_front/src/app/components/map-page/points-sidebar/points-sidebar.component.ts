@@ -161,6 +161,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       if (event) {
         this.selectedEvent = event;
         this.selectedEventName = event.title;
+        this.loadPointsAndCenterMap(event.uuid);
       } else {
         this.selectedEvent = null;
         this.selectedEventName = '';
