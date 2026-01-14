@@ -31,6 +31,8 @@ interface PolylineStyle {
   weight: number;
   opacity: number;
 }
+import { EquipmentSelectPopupComponent } from '../../../shared/equipment-select-popup/equipment-select-popup.component';
+import { Equipment } from '../../../models/equipmentModel';
 
 @Component({
   selector: 'app-map-loader',
@@ -39,6 +41,7 @@ interface PolylineStyle {
     CommonModule,
     DeletePopupComponent,
     PointTypePopupComponent,
+    EquipmentSelectPopupComponent,
     EventCreationGuide,
     EventConfirmPopup,
     GeometryEditDrawerComponent,
@@ -103,6 +106,11 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   showPointTypePopup = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private pendingMarkerLayer: any = null;
+  
+  // Popup de sélection d'équipement
+  showEquipmentSelectPopup = false;
+  equipments: Equipment[] = [];
+  private selectedEquipmentService: EquipmentService | null = null;
 
   // Drawer d'édition de géométrie (Area/RoutePath)
   showGeometryEditDrawer = false;
@@ -2093,6 +2101,79 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Réinitialiser l'état de la popup
     this.showPointTypePopup = false;
+    this.pendingMarkerLayer = null;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Gère la demande de sélection d'équipement depuis la popup de type de point
+   */
+  onEquipmentRequired(): void {
+    console.log('[MapLoader] onEquipmentRequired called');
+    // Fermer la popup de type de point
+    this.showPointTypePopup = false;
+    
+    // Charger les équipements et ouvrir la popup de sélection
+    this.equipmentService.getAll().subscribe({
+      next: (equipments) => {
+        this.equipments = equipments;
+        this.showEquipmentSelectPopup = true;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des équipements:', error);
+        this.toastService.showError('Erreur', 'Impossible de charger les équipements');
+        // Annuler en cas d'erreur
+        this.onPointTypePopupCancelled();
+      }
+    });
+  }
+
+  /**
+   * Gère la sélection d'un équipement
+   */
+  onEquipmentSelected(equipment: Equipment): void {
+    if (!this.pendingMarkerLayer || !this.selectedEvent || typeof window === 'undefined') return;
+
+    // Créer un point temporaire avec les coordonnées du marker
+    const latlng = this.pendingMarkerLayer.getLatLng();
+    const tempPoint: Point = {
+      uuid: 'temp-' + Date.now(),
+      name: 'Point temporaire',
+      latitude: latlng.lat,
+      longitude: latlng.lng,
+      comment: '',
+      eventId: this.selectedEvent.uuid,
+      isPointOfInterest: false,
+      validated: false
+    };
+
+    // Fermer la popup
+    this.showEquipmentSelectPopup = false;
+    
+    // Supprimer le marker temporaire
+    if (this.map) {
+      this.map.removeLayer(this.pendingMarkerLayer);
+    }
+    this.pendingMarkerLayer = null;
+
+    // Activer le mode dessin avec le point et l'équipement
+    this.mapService.startDrawingMode(tempPoint, equipment);
+    
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Gère l'annulation de la sélection d'équipement
+   */
+  onEquipmentSelectCancelled(): void {
+    // Supprimer le marker temporaire
+    if (this.pendingMarkerLayer && this.map) {
+      this.map.removeLayer(this.pendingMarkerLayer);
+    }
+
+    // Réinitialiser l'état
+    this.showEquipmentSelectPopup = false;
     this.pendingMarkerLayer = null;
     this.cdr.detectChanges();
   }

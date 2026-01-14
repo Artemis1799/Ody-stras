@@ -11,8 +11,15 @@
 } @if (showPointTypePopup) {
 <app-point-type-popup
   (pointTypeSelected)="onPointTypeSelected($event)"
+  (equipmentRequired)="onEquipmentRequired()"
   (cancelled)="onPointTypePopupCancelled()"
 ></app-point-type-popup>
+} @if (showEquipmentSelectPopup) {
+<app-equipment-select-popup
+  [equipments]="equipments"
+  (equipmentSelected)="onEquipmentSelected($event)"
+  (cancelled)="onEquipmentSelectCancelled()"
+></app-equipment-select-popup>
 }
 
 <!-- Composants de création d'événement -->
