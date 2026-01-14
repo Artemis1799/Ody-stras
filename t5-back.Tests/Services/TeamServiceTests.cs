@@ -379,6 +379,63 @@ public class TeamServiceTests
         Assert.Null(updatedSecurityZone.InstallationTeamId);
     }
 
+    [Fact]
+    public async Task UpdateAsync_ChangingEvent_UpdatesRemovalTeamInSecurityZones()
+    {
+        // Arrange
+        using var context = TestDbContextFactory.CreateContext();
+        var event1 = await CreateTestEvent(context);
+        var event2 = new Event
+        {
+            UUID = Guid.NewGuid(),
+            Title = "Event 2",
+            StartDate = DateTime.Now,
+            EndDate = DateTime.Now.AddDays(3),
+            Status = EventStatus.InProgress,
+            MinDurationMinutes = 30,
+            MaxDurationMinutes = 60
+        };
+        context.Events.Add(event2);
+
+        var equipment = new Equipment { UUID = Guid.NewGuid(), Type = "Barrier" };
+        context.Equipments.Add(equipment);
+        await context.SaveChangesAsync();
+
+        var teamId = Guid.NewGuid();
+        var team = new Team { UUID = teamId, TeamName = "Team", EventId = event1.UUID };
+        context.Teams.Add(team);
+        await context.SaveChangesAsync();
+
+        var securityZone = new SecurityZone
+        {
+            UUID = Guid.NewGuid(),
+            EventId = event1.UUID,
+            EquipmentId = equipment.UUID,
+            Quantity = 10,
+            InstallationDate = DateTime.Now,
+            RemovalDate = DateTime.Now.AddDays(1),
+            GeoJson = "{}",
+            RemovalTeamId = teamId
+        };
+        context.SecurityZones.Add(securityZone);
+        await context.SaveChangesAsync();
+
+        var service = new TeamService(context);
+        var updatedTeam = new Team
+        {
+            TeamName = "Team",
+            EventId = event2.UUID
+        };
+
+        // Act
+        await service.UpdateAsync(teamId, updatedTeam);
+
+        // Assert
+        var updatedSecurityZone = await context.SecurityZones.FindAsync(securityZone.UUID);
+        Assert.NotNull(updatedSecurityZone);
+        Assert.Null(updatedSecurityZone.RemovalTeamId);
+    }
+
     #endregion
 
     #region DeleteAsync Tests

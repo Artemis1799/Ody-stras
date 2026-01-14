@@ -674,6 +674,20 @@ public class SecurityZoneServiceTests
     #region Both Teams Tests
 
     [Fact]
+    public async Task UnassignRemovalTeamAsync_NonExistingZone_ReturnsNull()
+    {
+        // Arrange
+        using var context = TestDbContextFactory.CreateContext();
+        var service = new SecurityZoneService(context);
+
+        // Act
+        var result = await service.UnassignRemovalTeamAsync(Guid.NewGuid());
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
     public async Task CanAssignBothTeams_DifferentTeams_Success()
     {
         // Arrange
