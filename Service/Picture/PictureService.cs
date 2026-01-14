@@ -99,8 +99,8 @@ public class PictureService : IPictureService
 
         foreach (var picture in pictures)
         {
+            picture.PointId = null;
             picture.SecurityZoneId = securityZoneId;
-            // Garder aussi le PointId pour l'éventuel historique
         }
 
         await _context.SaveChangesAsync();

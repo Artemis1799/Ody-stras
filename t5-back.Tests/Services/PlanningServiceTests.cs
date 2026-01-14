@@ -384,8 +384,8 @@ public class PlanningServiceTests
         Assert.Single(result);
         Assert.NotNull(result[0].SecurityZone);
         Assert.Equal(securityZone.UUID, result[0].SecurityZone!.UUID);
-        Assert.NotNull(result[0].SecurityZone.Equipment);
-        Assert.Equal("Barrier", result[0].SecurityZone.Equipment!.Type);
+        Assert.NotNull(result[0].SecurityZone!.Equipment);
+        Assert.Equal("Barrier", result[0].SecurityZone!.Equipment!.Type);
     }
 
     [Fact]
