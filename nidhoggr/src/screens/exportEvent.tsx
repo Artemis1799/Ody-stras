@@ -130,7 +130,7 @@ export default function ExportEventScreen() {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  console.log("Exporting event with UUID:", eventUUID);
+
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -179,7 +179,7 @@ export default function ExportEventScreen() {
   // ============= CONSTRUCTION DU JSON D'EXPORT =============
 
   const buildExportData = async (): Promise<EventExportMessage> => {
-    console.log("=== CONSTRUCTION DES DONNÉES D'EXPORT ===");
+
 
     // 1. Récupérer l'événement
     const events = await getAllWhere<Evenement>(db, "Evenement", ["UUID"], [eventUUID]);
@@ -187,7 +187,7 @@ export default function ExportEventScreen() {
       throw new Error("Événement non trouvé");
     }
     const event = events[0];
-    console.log("Événement:", event.Title);
+
 
     const exportedEvent: ExportedEvent = {
       uuid: event.UUID,
@@ -199,7 +199,7 @@ export default function ExportEventScreen() {
 
     // 2. Récupérer les zones (Area)
     const areas = await getAllWhere<Area>(db, "Area", ["EventID"], [eventUUID]);
-    console.log("Zones:", areas.length);
+
 
     const exportedAreas: ExportedArea[] = areas.map(area => ({
       uuid: area.UUID,
@@ -211,7 +211,7 @@ export default function ExportEventScreen() {
 
     // 3. Récupérer les tracés (Path)
     const paths = await getAllWhere<Path>(db, "Path", ["EventID"], [eventUUID]);
-    console.log("Tracés:", paths.length);
+
 
     const exportedPaths: ExportedPath[] = paths.map(path => ({
       uuid: path.UUID,
@@ -224,7 +224,7 @@ export default function ExportEventScreen() {
 
     // 4. Récupérer tous les équipements
     const equipments = await getAll<Equipment>(db, "Equipment");
-    console.log("Équipements:", equipments.length);
+
 
     const exportedEquipments: ExportedEquipment[] = equipments.map(eq => ({
       uuid: eq.UUID,
@@ -236,7 +236,7 @@ export default function ExportEventScreen() {
 
     // 5. Récupérer les points avec leurs photos
     const points = await getAllWhere<Point>(db, "Point", ["EventID"], [eventUUID]);
-    console.log("Points:", points.length);
+
 
     const exportedPoints: ExportedPoint[] = await Promise.all(
       points.map(async (point) => {
@@ -278,7 +278,7 @@ export default function ExportEventScreen() {
       },
     };
 
-    console.log("=== DONNÉES D'EXPORT PRÊTES ===");
+
     return exportMessage;
   };
 
@@ -309,7 +309,7 @@ export default function ExportEventScreen() {
 
       await new Promise<void>((resolve, reject) => {
         ws.onopen = async () => {
-          console.log("WebSocket connecté");
+
           setSendStatus("Envoi des données...");
 
           // Format attendu par le serveur pour handleBulkData:
@@ -343,8 +343,6 @@ export default function ExportEventScreen() {
           };
 
 
-          console.log("Envoi du JSON bulk avec", bulkData.points.length, "points");
-          console.log("PAYLOAD JSON COMPLETE:", JSON.stringify(bulkData, null, 2));
           ws.send(JSON.stringify(bulkData));
 
           // Mettre à jour les stats
@@ -362,11 +360,11 @@ export default function ExportEventScreen() {
             useNativeDriver: false,
           }).start();
 
-          console.log("JSON envoyé, en attente de confirmation...");
+
         };
 
         ws.onmessage = async (event) => {
-          console.log("Message reçu:", event.data);
+
 
           // Vérifier si c'est l'ACK final
           if (event.data.includes("complete") || event.data.includes("reçu") || event.data.includes("success")) {
@@ -397,7 +395,7 @@ export default function ExportEventScreen() {
         };
 
         ws.onclose = () => {
-          console.log("WebSocket fermé");
+
         };
 
         // Timeout après 60 secondes
