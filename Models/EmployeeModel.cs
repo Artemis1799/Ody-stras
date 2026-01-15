@@ -24,6 +24,9 @@ public class Employee
     [MaxLength(50)]
     public string? Phone { get; set; }
     
+    [Required]
+    public bool IsFavorite { get; set; }
+    
     [JsonIgnore]
     public ICollection<TeamEmployee>? TeamEmployees { get; set; }
 }

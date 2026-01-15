@@ -50,6 +50,7 @@ public class EmployeeService : IEmployeeService
         existing.FirstName = employee.FirstName;
         existing.Email = employee.Email;
         existing.Phone = employee.Phone;
+        existing.IsFavorite = employee.IsFavorite;
 
         await _context.SaveChangesAsync();
 
