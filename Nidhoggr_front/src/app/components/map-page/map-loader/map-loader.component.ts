@@ -398,11 +398,19 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
             iconAnchor: [20, 40],
             popupAnchor: [0, -40]
           });
+        } else if (point.validated) {
+          // Utiliser l'image pour les points validés
+          markerIcon = L.icon({
+            iconUrl: '/assets/icons/point-valider.png',
+            iconSize: [26, 42],
+            iconAnchor: [16, 48],
+            popupAnchor: [0, -48]
+          });
         } else {
           // Utiliser l'image pour les points normaux
           markerIcon = L.icon({
             iconUrl: '/assets/icons/point-classique.png',
-            iconSize: [40, 40],
+            iconSize: [48, 42],
             iconAnchor: [20, 40],
             popupAnchor: [0, -40]
           });

@@ -22,6 +22,14 @@
 
   <ng-container *ngIf="selectedPoint" class="drawer-content">
     <div class="unified-section">
+      <!-- Statut validé -->
+      <div class="form-row">
+        <label for="validated">Point validé</label>
+        <p-toggleSwitch 
+          inputId="validated" 
+          [(ngModel)]="isValidated"
+        />
+      </div>
 
       <!-- Commentaire -->
       <div class="form-row">
@@ -33,15 +41,6 @@
           [(ngModel)]="editedComment"
           placeholder="Ajouter un commentaire..."
           class="w-full"
-        />
-      </div>
-
-      <!-- Statut validé -->
-      <div class="form-row">
-        <label for="validated">Point validé</label>
-        <p-toggleSwitch 
-          inputId="validated" 
-          [(ngModel)]="isValidated"
         />
       </div>
 
@@ -90,8 +89,8 @@
         <button 
           type="button" 
           class="btn btn-primary"
-          [disabled]="!canProceedToDrawing() || isEventArchived"
-          (click)="proceedToDrawing()"
+          [disabled]="!hasChanges() || isEventArchived"
+          (click)="saveChanges()"
         >
           <span class="pi pi-save"></span>
           Enregistrer
