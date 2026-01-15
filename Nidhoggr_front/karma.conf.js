@@ -1,4 +1,4 @@
-// Karma configuration file for CI with JUnit reporter
+// Karma configuration file for testing
 module.exports = function (config) {
   config.set({
     basePath: '',
@@ -6,21 +6,23 @@ module.exports = function (config) {
     plugins: [
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
-      require('karma-junit-reporter'),
-      require('@angular/build/private')
+      require('@angular/build/private'),
+      require('karma-spec-reporter')
+    ],
+    files: [
+      { pattern: './node_modules/zone.js/dist/zone.js', watched: false },
+      { pattern: './node_modules/zone.js/dist/zone-testing.js', watched: false },
     ],
     client: {
       clearContext: false
     },
-    junitReporter: {
-      outputDir: 'reports',
-      outputFile: 'junit.xml',
-      useBrowserName: false
-    },
-    reporters: ['progress', 'junit'],
-    browsers: ['ChromeHeadless'],
-    singleRun: true,
-    autoWatch: false,
+    reporters: ['spec'],
+    port: 9876,
+    colors: true,
+    logLevel: config.LOG_INFO,
+    autoWatch: true,
+    singleRun: false,
+    restartOnFileChange: true,
     browserDisconnectTimeout: 10000,
     browserNoActivityTimeout: 60000,
     captureTimeout: 60000

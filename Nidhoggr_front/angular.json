@@ -18,6 +18,7 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
+            "polyfills": ["src/polyfills.ts"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -90,6 +91,7 @@
         "test": {
           "builder": "@angular/build:karma",
           "options": {
+            "polyfills": ["src/polyfills.ts"],
             "karmaConfig": "karma.conf.js",
             "tsConfig": "tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
