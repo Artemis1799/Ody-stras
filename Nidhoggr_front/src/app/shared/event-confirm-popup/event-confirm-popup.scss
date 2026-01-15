@@ -120,6 +120,16 @@
   &:hover {
     background: #f0f1f3;
   }
+
+  &.skipped {
+    opacity: 0.6;
+    background: #f5f5f5;
+
+    .item-icon.zone {
+      background: rgba(150, 150, 150, 0.1);
+      color: #999;
+    }
+  }
   
   .item-icon {
     flex-shrink: 0;
@@ -157,6 +167,11 @@
       font-size: 12px;
       color: #27ae60;
       font-weight: 500;
+
+      &.skipped {
+        color: #999;
+        font-style: italic;
+      }
     }
   }
   

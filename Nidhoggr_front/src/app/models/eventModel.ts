@@ -15,4 +15,5 @@ export interface Event {
   minDurationMinutes?: number;
   maxDurationMinutes?: number;
   isArchived?: boolean;
+  isFavorite?: boolean;
 }

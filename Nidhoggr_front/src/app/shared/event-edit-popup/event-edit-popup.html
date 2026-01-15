@@ -149,22 +149,34 @@
       </div>
       
       <div class="form-actions">
-        <button *ngIf="!isArchived" type="button" class="archive-btn" (click)="confirmArchive()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 8v13H3V8"></path>
-            <path d="M1 3h22v5H1z"></path>
-            <path d="M10 12h4"></path>
-          </svg>
-          Archiver
-        </button>
-         <button *ngIf="isArchived" type="button" class="archive-btn" (click)="confirmArchive()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 8v13H3V8"></path>
-            <path d="M1 3h22v5H1z"></path>
-            <path d="M10 12h4"></path>
-          </svg>
-          Désarchiver
-        </button>
+        <div class="left-actions">
+          <button 
+            type="button" 
+            class="favorite-btn" 
+            [class.active]="event.isFavorite"
+            (click)="toggleFavorite()"
+            [title]="event.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" [attr.fill]="event.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </button>
+          <button *ngIf="!isArchived" type="button" class="archive-btn" (click)="confirmArchive()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 8v13H3V8"></path>
+              <path d="M1 3h22v5H1z"></path>
+              <path d="M10 12h4"></path>
+            </svg>
+            Archiver
+          </button>
+          <button *ngIf="isArchived" type="button" class="archive-btn" (click)="confirmArchive()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 8v13H3V8"></path>
+              <path d="M1 3h22v5H1z"></path>
+              <path d="M10 12h4"></path>
+            </svg>
+            Désarchiver
+          </button>
+        </div>
         <div class="right-actions">
           <button type="button" class="cancel-btn" (click)="close.emit()">
             Annuler

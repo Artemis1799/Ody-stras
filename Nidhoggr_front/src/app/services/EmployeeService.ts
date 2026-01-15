@@ -23,6 +23,16 @@ export class EmployeeService {
   // Signal calculé pour le nombre d'employés
   readonly count = computed(() => this._employees().length);
 
+  // Signal pour les employés favoris en tête de liste
+  readonly sortedEmployees = computed(() => {
+    const employees = this._employees();
+    return [...employees].sort((a, b) => {
+      if (a.isFavorite && !b.isFavorite) return -1;
+      if (!a.isFavorite && b.isFavorite) return 1;
+      return 0;
+    });
+  });
+
   constructor(private http: HttpClient) {}
 
   /** Charge les employés depuis l'API */
@@ -133,5 +143,16 @@ export class EmployeeService {
         }
       })
     );
+  }
+
+  /** Toggle le statut favori d'un employé */
+  toggleFavorite(id: string): Observable<Employee> {
+    const employee = this._employees().find(e => e.uuid === id);
+    if (!employee) {
+      throw new Error('Employee not found');
+    }
+    
+    const updatedEmployee: Employee = { ...employee, isFavorite: !employee.isFavorite };
+    return this.update(id, updatedEmployee);
   }
 }

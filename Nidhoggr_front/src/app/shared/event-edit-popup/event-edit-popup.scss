@@ -260,22 +260,30 @@ form {
 
 .form-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 0.875rem;
+  gap: 0.75rem;
   margin-top: 1.75rem;
   padding-top: 1.5rem;
   border-top: 1px solid #21262d;
 
+  .left-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
   .right-actions {
     display: flex;
     gap: 0.75rem;
+    margin-left: auto;
   }
 
   button {
-    padding: 0.875rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-radius: 10px;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -291,6 +299,24 @@ form {
 
     svg {
       flex-shrink: 0;
+    }
+  }
+
+  .favorite-btn {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    color: #8b949e;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 193, 7, 0.2);
+      border-color: #ffc107;
+      color: #ffc107;
+    }
+
+    &.active {
+      background: rgba(255, 193, 7, 0.15);
+      border-color: #ffc107;
+      color: #ffc107;
     }
   }
 
@@ -405,11 +431,12 @@ form {
 
   .form-actions {
     flex-direction: column;
+    align-items: stretch;
     gap: 0.75rem;
 
-    .delete-btn {
-      order: 3;
+    .left-actions {
       width: 100%;
+      justify-content: center;
     }
 
     .right-actions {

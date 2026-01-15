@@ -166,10 +166,16 @@
                 <div 
                   class="member-item" 
                   [class.selected]="isEmployeeSelected(employee)"
+                  [class.favorite]="employee.isFavorite"
                   (click)="toggleEmployee(employee)"
                 >
                   <div class="member-avatar">{{ employee.firstName.charAt(0) }}{{ employee.lastName.charAt(0) }}</div>
-                  <span class="member-name">{{ employee.firstName }} {{ employee.lastName }}</span>
+                  <span class="member-name">
+                    {{ employee.firstName }} {{ employee.lastName }}
+                    @if (employee.isFavorite) {
+                      <span class="favorite-star">⭐</span>
+                    }
+                  </span>
                   <div class="member-check">
                     @if (isEmployeeSelected(employee)) {
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

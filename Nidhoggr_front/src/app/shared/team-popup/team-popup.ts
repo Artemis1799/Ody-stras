@@ -59,6 +59,10 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
   
   get sortedEmployees(): Employee[] {
     return [...this.allEmployees].sort((a, b) => {
+      // D'abord les favoris
+      if (a.isFavorite && !b.isFavorite) return -1;
+      if (!a.isFavorite && b.isFavorite) return 1;
+      // Ensuite tri alphabétique
       const firstNameCompare = a.firstName.localeCompare(b.firstName, 'fr');
       return firstNameCompare !== 0 ? firstNameCompare : a.lastName.localeCompare(b.lastName, 'fr');
     });
@@ -191,6 +195,33 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
     return isNaN(num) ? undefined : num;
   }
 
+  /**
+   * Normalise le texte pour le PDF en remplaçant les caractères accentués
+   * par leurs équivalents ASCII (nécessaire car la police helvetica de jsPDF
+   * ne supporte pas les caractères UTF-8)
+   */
+  private normalizePdfText(text: string): string {
+    if (!text) return '';
+    const charMap: { [key: string]: string } = {
+      'à': 'a', 'â': 'a', 'ä': 'a', 'á': 'a', 'ã': 'a',
+      'è': 'e', 'ê': 'e', 'ë': 'e', 'é': 'e',
+      'ì': 'i', 'î': 'i', 'ï': 'i', 'í': 'i',
+      'ò': 'o', 'ô': 'o', 'ö': 'o', 'ó': 'o', 'õ': 'o',
+      'ù': 'u', 'û': 'u', 'ü': 'u', 'ú': 'u',
+      'ç': 'c', 'ñ': 'n',
+      'À': 'A', 'Â': 'A', 'Ä': 'A', 'Á': 'A', 'Ã': 'A',
+      'È': 'E', 'Ê': 'E', 'Ë': 'E', 'É': 'E',
+      'Ì': 'I', 'Î': 'I', 'Ï': 'I', 'Í': 'I',
+      'Ò': 'O', 'Ô': 'O', 'Ö': 'O', 'Ó': 'O', 'Õ': 'O',
+      'Ù': 'U', 'Û': 'U', 'Ü': 'U', 'Ú': 'U',
+      'Ç': 'C', 'Ñ': 'N',
+      '\u00AB': '"', '\u00BB': '"', '\u2018': "'", '\u2019': "'", '\u201C': '"', '\u201D': '"',
+      '\u2013': '-', '\u2014': '-', '\u2026': '...',
+      'œ': 'oe', 'Œ': 'OE', 'æ': 'ae', 'Æ': 'AE'
+    };
+    return text.split('').map(char => charMap[char] || char).join('');
+  }
+
   generatePlanningPDF(): void {
     if (!this.team.uuid) return;
 
@@ -219,14 +250,14 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Planning - ${teamName}`, pageWidth / 2, 22, { align: 'center' });
+    doc.text(this.normalizePdfText(`Planning - ${teamName}`), pageWidth / 2, 22, { align: 'center' });
     
     // Sous-titre événement
     if (eventName) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(139, 148, 158);
-      doc.text(eventName, pageWidth / 2, 32, { align: 'center' });
+      doc.text(this.normalizePdfText(eventName), pageWidth / 2, 32, { align: 'center' });
     }
 
     yPosition = 62;
@@ -241,13 +272,13 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(23, 28, 34);
-      doc.text('Membre(s) de l\'équipe', margin + 12, yPosition);
+      doc.text(this.normalizePdfText('Membre(s) de l\'equipe'), margin + 12, yPosition);
       yPosition += 10;
       
       // Liste des membres dans un encadré
       doc.setFillColor(245, 247, 250);
-      const membersText = this.selectedEmployees.map(e => `${e.firstName} ${e.lastName}`).join('  •  ');
-      const memberLines = doc.splitTextToSize(membersText, pageWidth - 2 * margin - 10);
+      const membersText = this.selectedEmployees.map(e => `${e.firstName} ${e.lastName}`).join('  -  ');
+      const memberLines = doc.splitTextToSize(this.normalizePdfText(membersText), pageWidth - 2 * margin - 10);
       const boxHeight = memberLines.length * 6 + 8;
       doc.roundedRect(margin, yPosition - 4, pageWidth - 2 * margin, boxHeight, 3, 3, 'F');
       
@@ -270,7 +301,7 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
       doc.roundedRect(margin, yPosition, pageWidth - 2 * margin, 30, 3, 3, 'F');
       doc.setFontSize(11);
       doc.setTextColor(127, 140, 141);
-      doc.text('Aucun équipement assigné à cette équipe.', pageWidth / 2, yPosition + 18, { align: 'center' });
+      doc.text(this.normalizePdfText('Aucun equipement assigne a cette equipe.'), pageWidth / 2, yPosition + 18, { align: 'center' });
     }
 
     // Pied de page
@@ -281,11 +312,11 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
       doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
       doc.setFontSize(8);
       doc.setTextColor(127, 140, 141);
-      doc.text(`${teamName} - ${eventName}`, margin, pageHeight - 8);
+      doc.text(this.normalizePdfText(`${teamName} - ${eventName}`), margin, pageHeight - 8);
       doc.text(`Page ${i} / ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
     }
 
-    doc.save(`Planning_${teamName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+    doc.save(`Planning_${this.normalizePdfText(teamName).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
   }
 
   private renderSection(
@@ -324,7 +355,7 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(mainColor[0], mainColor[1], mainColor[2]);
-    doc.text(title, margin + 10, yPosition + 2);
+    doc.text(this.normalizePdfText(title), margin + 10, yPosition + 2);
     
     // Badge avec le nombre
     const badgeText = `${zones.length}`;
@@ -346,9 +377,9 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 110, 120);
-    doc.text('ÉQUIPEMENT', margin + 5, yPosition + 2);
+    doc.text('EQUIPEMENT', margin + 5, yPosition + 2);
     doc.text('DATE', dateColX, yPosition + 2);
-    doc.text('QTÉ', qtyColX, yPosition + 2);
+    doc.text('QTE', qtyColX, yPosition + 2);
     yPosition += 12;
 
     doc.setTextColor(0, 0, 0);
@@ -367,9 +398,9 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(100, 110, 120);
-        doc.text('ÉQUIPEMENT', margin + 5, yPosition + 2);
+        doc.text('EQUIPEMENT', margin + 5, yPosition + 2);
         doc.text('DATE', dateColX, yPosition + 2);
-        doc.text('QTÉ', qtyColX, yPosition + 2);
+        doc.text('QTE', qtyColX, yPosition + 2);
         yPosition += 12;
         doc.setTextColor(0, 0, 0);
       }
@@ -391,7 +422,7 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
       });
 
       // Données
-      const equipName = zone.equipment?.type || 'Équipement';
+      const equipName = this.normalizePdfText(zone.equipment?.type || 'Equipement');
       const dateColX = pageWidth - margin - 60;
       const qtyColX = pageWidth - margin - 25;
       
@@ -402,22 +433,30 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
       
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(80, 90, 100);
-      doc.text(dateStr, dateColX, yPosition + 3);
+      doc.text(this.normalizePdfText(dateStr), dateColX, yPosition + 3);
       doc.text(String(zone.quantity), qtyColX, yPosition + 3);
       
       yPosition += 12;
       
       // Commentaire sur une ligne séparée si présent
       if (zone.comment) {
-        if (yPosition > pageHeight - 20) {
+        doc.setFontSize(8);
+        doc.setTextColor(120, 130, 140);
+        
+        // Calculer la largeur disponible pour le commentaire
+        const commentMaxWidth = pageWidth - 2 * margin - 15;
+        const normalizedComment = this.normalizePdfText(zone.comment);
+        const commentLines = doc.splitTextToSize(`-> ${normalizedComment}`, commentMaxWidth);
+        const commentHeight = commentLines.length * 4 + 4;
+        
+        // Vérifier si on a besoin d'une nouvelle page en tenant compte de la hauteur du commentaire
+        if (yPosition + commentHeight > pageHeight - 20) {
           doc.addPage();
           yPosition = 25;
         }
-        doc.setFontSize(8);
-        doc.setTextColor(120, 130, 140);
-        const commentLines = doc.splitTextToSize(`→ ${zone.comment}`, pageWidth - 2 * margin - 10);
-        doc.text(commentLines, margin + 5, yPosition);
-        yPosition += commentLines.length * 4 + 4;
+        
+        doc.text(commentLines, margin + 8, yPosition);
+        yPosition += commentHeight;
       }
     });
 

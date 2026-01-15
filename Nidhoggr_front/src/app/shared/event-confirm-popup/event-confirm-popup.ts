@@ -56,6 +56,10 @@ export class EventConfirmPopup implements OnInit, OnDestroy {
     return this.mode?.event?.title ?? '';
   }
 
+  get hasZone(): boolean {
+    return !!this.mode?.zoneGeoJson;
+  }
+
   toggleMinimize(): void {
     this.isMinimized = !this.isMinimized;
   }
@@ -106,13 +110,56 @@ export class EventConfirmPopup implements OnInit, OnDestroy {
   }
 
   onConfirm(): void {
-    if (!this.mode?.event || !this.mode.zoneGeoJson || !this.mode.pathGeoJson) {
+    if (!this.mode?.event || !this.mode.pathGeoJson) {
       this.toastService.showError('Erreur', 'Données manquantes pour confirmer l\'événement');
       return;
     }
 
     this.isSaving = true;
     const event = this.mode.event;
+    const hasZone = !!this.mode.zoneGeoJson;
+
+    // Si pas de zone, seulement créer le path
+    if (!hasZone) {
+      const pathData = {
+        uuid: this.generateUuid(),
+        eventId: event.uuid,
+        name: `Tracé - ${event.title}`,
+        colorHex: '#a91a1a',
+        startDate: new Date(),
+        fastestEstimatedSpeed: 5,
+        slowestEstimatedSpeed: 3,
+        geoJson: this.mode.pathGeoJson
+      };
+
+      this.pathService.create(pathData).subscribe({
+        next: (path) => {
+          this.isSaving = false;
+          
+          // Ajouter le path au MapService
+          this.mapService.addPath(path);
+          
+          // Mettre la visibilité de l'area de l'événement à false (pas d'area créée)
+          this.mapService.setEventAreaVisible(false);
+          
+          // Sélectionner l'événement
+          this.mapService.setSelectedEvent(event);
+          
+          this.toastService.showSuccess(
+            'Événement créé',
+            `L'événement "${event.title}" a été créé avec son tracé`
+          );
+          this.mapService.completeEventCreation();
+          this.eventConfirmed.emit(event);
+        },
+        error: (error) => {
+          this.isSaving = false;
+          console.error('Erreur lors de la sauvegarde:', error);
+          this.toastService.showError('Erreur', 'Impossible de sauvegarder le tracé');
+        }
+      });
+      return;
+    }
 
     // Créer l'Area et le Path en parallèle
     const areaData = {
@@ -120,7 +167,7 @@ export class EventConfirmPopup implements OnInit, OnDestroy {
       eventId: event.uuid,
       name: `Zone - ${event.title}`,
       colorHex: '#3388ff',
-      geoJson: this.mode.zoneGeoJson
+      geoJson: this.mode.zoneGeoJson!
     };
 
     const pathData = {
@@ -131,7 +178,7 @@ export class EventConfirmPopup implements OnInit, OnDestroy {
       startDate: new Date(),
       fastestEstimatedSpeed: 5,
       slowestEstimatedSpeed: 3,
-      geoJson: this.mode.pathGeoJson
+      geoJson: this.mode.pathGeoJson!
     };
 
     forkJoin({
@@ -144,6 +191,9 @@ export class EventConfirmPopup implements OnInit, OnDestroy {
         // Ajouter les géométries créées au MapService pour qu'elles soient affichées
         this.mapService.addArea(area);
         this.mapService.addPath(path);
+        
+        // Mettre la visibilité de l'area de l'événement à true (area créée)
+        this.mapService.setEventAreaVisible(true);
         
         // Sélectionner l'événement pour que la carte charge ses géométries
         this.mapService.setSelectedEvent(event);

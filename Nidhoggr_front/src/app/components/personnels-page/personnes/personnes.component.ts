@@ -162,6 +162,18 @@ export class PersonnesComponent implements OnInit {
   getInitials(employee: Employee): string {
     return (employee.firstName.charAt(0) + employee.lastName.charAt(0)).toUpperCase();
   }
+
+  toggleFavorite(employee: Employee): void {
+    this.employeeService.toggleFavorite(employee.uuid).subscribe({
+      next: (updatedEmployee) => {
+        const action = updatedEmployee.isFavorite ? 'ajouté aux favoris' : 'retiré des favoris';
+        this.toastService.showSuccess('Favori', `${employee.firstName} ${employee.lastName} ${action}`);
+      },
+      error: () => {
+        this.toastService.showError('Erreur', 'Impossible de modifier le favori');
+      }
+    });
+  }
   
   onSearchChange(): void {
     // Réinitialiser à la première page lors d'une recherche

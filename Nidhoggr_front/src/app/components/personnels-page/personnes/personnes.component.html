@@ -132,7 +132,7 @@
     
     <div class="persons-grid">
       @for (employee of paginatedEmployees(); track employee.uuid) {
-        <div class="person-card">
+        <div class="person-card" [class.favorite]="employee.isFavorite">
           <div class="person-avatar">{{ getInitials(employee) }}</div>
           <div class="person-info">
             <div class="person-name">{{ employee.firstName }} {{ employee.lastName }}</div>
@@ -159,6 +159,15 @@
             }
           </div>
           <div class="person-actions">
+            <button 
+              class="btn-icon btn-favorite" 
+              [class.active]="employee.isFavorite"
+              (click)="toggleFavorite(employee)" 
+              [title]="employee.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" [attr.fill]="employee.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </button>
             <button class="btn-icon btn-edit" (click)="openEditDialog(employee)" title="Modifier">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>

@@ -479,6 +479,18 @@ form {
     flex: 1;
     font-size: 0.875rem;
     color: #c9d1d9;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .favorite-star {
+      font-size: 0.75rem;
+    }
+  }
+
+  &.favorite {
+    border-left: 3px solid #ffc107;
+    padding-left: calc(0.75rem - 3px);
   }
 
   .member-check {
