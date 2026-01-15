@@ -34,6 +34,7 @@ import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
 import RenderAreas from "../utils/RenderAreas";
 import RenderPaths from "../utils/RenderPaths";
+import { getEventStatusLabel } from "../utils/eventStatusUtils";
 
 export default function EventScreen() {
   const { theme } = useTheme();
@@ -301,7 +302,7 @@ export default function EventScreen() {
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{Strings.event.statusLabel}</Text>
-            <Text style={styles.detailValue}>{eventData.Status}</Text>
+            <Text style={styles.detailValue}>{getEventStatusLabel(eventData.Status)}</Text>
           </View>
         </View>
       </ScrollView>
