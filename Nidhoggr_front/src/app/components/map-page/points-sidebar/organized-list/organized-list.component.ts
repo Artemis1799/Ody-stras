@@ -134,16 +134,14 @@ export class OrganizedListComponent implements OnChanges {
       });
     }
 
-    // Section: Zones (Areas - géométries, exclure l'area de base de l'événement)
-    const areaItems = this.areas
-      .filter(area => !area.name || !area.name.startsWith('Zone '))
-      .map(area => ({
-        id: area.uuid,
-        name: area.name || `Zone sans nom`,
-        icon: '🗺️',
-        type: 'area' as const,
-        data: area
-      }));
+    // Section: Zones (Areas - géométries)
+    const areaItems = this.areas.map(area => ({
+      id: area.uuid,
+      name: area.name || `Zone sans nom`,
+      icon: '🗺️',
+      type: 'area' as const,
+      data: area
+    }));
 
     if (areaItems.length > 0) {
       const displayCount = 4;

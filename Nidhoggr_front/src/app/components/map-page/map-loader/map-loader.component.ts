@@ -61,9 +61,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private shapesSubscription?: Subscription;
   private focusPointSubscription?: Subscription;
   private focusSecurityZoneSubscription?: Subscription;
+  private focusSecurityZoneWithGlowSubscription?: Subscription;
   private clearSecurityZoneGlowSubscription?: Subscription;
   private drawingModeSubscription?: Subscription;
   private securityZonesSubscription?: Subscription;
+  private visibleSecurityZoneIdsSubscription?: Subscription;
+  private visiblePointIdsSubscription?: Subscription;
+  private visiblePointOfInterestIdsSubscription?: Subscription;
+  private visibleAreaIdsSubscription?: Subscription;
+  private visiblePathIdsSubscription?: Subscription;
+  private visibleEquipmentIdsSubscription?: Subscription;
+  private eventAreaVisibleSubscription?: Subscription;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private drawnItems: any = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,7 +277,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
       // S'abonner au focus sur une security zone (depuis la sidebar)
       this.focusSecurityZoneSubscription = this.mapService.focusSecurityZone$.subscribe((zone) => {
-        this.centerMapOnSecurityZone(zone);
+        this.centerMapOnSecurityZone(zone, false);
+      });
+
+      // S'abonner au focus sur une security zone avec glow (depuis la timeline)
+      this.focusSecurityZoneWithGlowSubscription = this.mapService.focusSecurityZoneWithGlow$.subscribe((zone) => {
+        this.centerMapOnSecurityZone(zone, true);
       });
 
       // S'abonner au signal pour retirer le glow
@@ -345,12 +358,33 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       });
 
       // S'abonner au filtre des zones visibles (filtre équipement de la sidebar)
-      this.mapService.visibleSecurityZoneIds$.subscribe((visibleIds) => {
+      this.visibleSecurityZoneIdsSubscription = this.mapService.visibleSecurityZoneIds$.subscribe((visibleIds) => {
         this.updateSecurityZonesVisibility(visibleIds);
       });
 
+      // S'abonner aux filtres de visibilité des points, areas, paths et équipements
+      this.visiblePointIdsSubscription = this.mapService.visiblePointIds$.subscribe((visibleIds) => {
+        this.updatePointsVisibility(visibleIds);
+      });
+
+      this.visiblePointOfInterestIdsSubscription = this.mapService.visiblePointOfInterestIds$.subscribe((visibleIds) => {
+        this.updatePointOfInterestVisibility(visibleIds);
+      });
+
+      this.visibleAreaIdsSubscription = this.mapService.visibleAreaIds$.subscribe((visibleIds) => {
+        this.updateAreasVisibility(visibleIds);
+      });
+
+      this.visiblePathIdsSubscription = this.mapService.visiblePathIds$.subscribe((visibleIds) => {
+        this.updatePathsVisibility(visibleIds);
+      });
+
+      this.visibleEquipmentIdsSubscription = this.mapService.visibleEquipmentIds$.subscribe((visibleIds) => {
+        this.updateEquipmentPathsVisibility(visibleIds);
+      });
+
       // S'abonner à la visibilité de l'area de l'événement
-      this.mapService.eventAreaVisible$.subscribe((visible) => {
+      this.eventAreaVisibleSubscription = this.mapService.eventAreaVisible$.subscribe((visible) => {
         this.updateEventAreaVisibility(visible);
       });
 
@@ -579,6 +613,136 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  /**
+   * Met à jour la visibilité des points normaux en fonction du filtre de la sidebar
+   * @param visibleIds - tableau d'IDs des points à afficher, ou null pour afficher tous les points
+   */
+  private updatePointsVisibility(visibleIds: string[] | null): void {
+    const points = this.mapService.getPoints();
+    
+    points.forEach((point) => {
+      if (point.isPointOfInterest) return; // Ne pas toucher aux points d'intérêt ici
+      
+      const marker = this.markers.get(point.uuid);
+      if (!marker) return;
+
+      const shouldBeVisible = visibleIds === null || visibleIds.includes(point.uuid);
+
+      if (shouldBeVisible) {
+        if (!this.map?.hasLayer(marker)) {
+          this.map?.addLayer(marker);
+        }
+      } else {
+        if (this.map?.hasLayer(marker)) {
+          this.map?.removeLayer(marker);
+        }
+      }
+    });
+  }
+
+  /**
+   * Met à jour la visibilité des points d'intérêt en fonction du filtre de la sidebar
+   * @param visibleIds - tableau d'IDs des points d'intérêt à afficher, ou null pour afficher tous
+   */
+  private updatePointOfInterestVisibility(visibleIds: string[] | null): void {
+    const points = this.mapService.getPoints();
+    
+    points.forEach((point) => {
+      if (!point.isPointOfInterest) return; // Ne toucher que les points d'intérêt
+      
+      const marker = this.markers.get(point.uuid);
+      if (!marker) return;
+
+      const shouldBeVisible = visibleIds === null || visibleIds.includes(point.uuid);
+
+      if (shouldBeVisible) {
+        if (!this.map?.hasLayer(marker)) {
+          this.map?.addLayer(marker);
+        }
+      } else {
+        if (this.map?.hasLayer(marker)) {
+          this.map?.removeLayer(marker);
+        }
+      }
+    });
+  }
+
+  /**
+   * Met à jour la visibilité des areas (géométries) en fonction du filtre de la sidebar
+   * @param visibleIds - tableau d'IDs des areas à afficher, ou null pour afficher toutes les areas
+   */
+  private updateAreasVisibility(visibleIds: string[] | null): void {
+    if (!this.drawnItems) return;
+
+    this.geometryLayers.forEach((layer, uuid) => {
+      if (layer.shapeType !== 'area') return;
+
+      const shouldBeVisible = visibleIds === null || visibleIds.includes(uuid);
+
+      if (shouldBeVisible) {
+        if (!this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.addLayer(layer);
+        }
+      } else {
+        if (this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.removeLayer(layer);
+        }
+      }
+    });
+  }
+
+  /**
+   * Met à jour la visibilité des parcours (paths) en fonction du filtre de la sidebar
+   * @param visibleIds - tableau d'IDs des paths à afficher, ou null pour afficher tous les paths
+   */
+  private updatePathsVisibility(visibleIds: string[] | null): void {
+    if (!this.drawnItems) return;
+
+    this.geometryLayers.forEach((layer, uuid) => {
+      if (layer.shapeType !== 'path') return;
+
+      const shouldBeVisible = visibleIds === null || visibleIds.includes(uuid);
+
+      if (shouldBeVisible) {
+        if (!this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.addLayer(layer);
+        }
+      } else {
+        if (this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.removeLayer(layer);
+        }
+      }
+    });
+  }
+
+  /**
+   * Met à jour la visibilité des tracés d'équipements en fonction du filtre de la sidebar
+   * @param visibleIds - tableau d'IDs des équipements à afficher, ou null pour afficher tous
+   */
+  private updateEquipmentPathsVisibility(visibleIds: string[] | null): void {
+    if (!this.drawnItems) return;
+
+    const paths = this.mapService.getPaths();
+
+    this.geometryLayers.forEach((layer, uuid) => {
+      // Identifier les équipements en regardant si le chemin correspondant commence par "Chemin "
+      const correspondingPath = paths.find(p => p.uuid === uuid);
+      if (!correspondingPath || !correspondingPath.name || !correspondingPath.name.startsWith('Chemin ')) return;
+
+      const shouldBeVisible = visibleIds === null || visibleIds.includes(uuid);
+
+      if (shouldBeVisible) {
+        if (!this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.addLayer(layer);
+        }
+      } else {
+        if (this.drawnItems.hasLayer(layer)) {
+          this.drawnItems.removeLayer(layer);
+        }
+      }
+    });
+  }
+
   private centerMapOnPoint(point: Point): void {
     if (!this.map || !point.latitude || !point.longitude) return;
 
@@ -598,11 +762,13 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  private centerMapOnSecurityZone(zone: SecurityZone): void {
+  private centerMapOnSecurityZone(zone: SecurityZone, applyGlow: boolean = false): void {
     if (!this.map || !zone.geoJson) return;
 
-    // Appliquer le glow au layer de la zone
-    this.applyGlowToSecurityZone(zone.uuid);
+    // Appliquer le glow seulement si c'est depuis la timeline
+    if (applyGlow) {
+      this.applyGlowToSecurityZone(zone.uuid);
+    }
 
     try {
       const geometry = JSON.parse(zone.geoJson);
@@ -2478,6 +2644,25 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
     // Arrêter le mode dessin si actif
     this.mapService.stopDrawingMode();
+
+    // Unsubscribe de tous les observables
+    this.pointsSubscription?.unsubscribe();
+    this.selectedEventSubscription?.unsubscribe();
+    this.shapesSubscription?.unsubscribe();
+    this.focusPointSubscription?.unsubscribe();
+    this.focusSecurityZoneSubscription?.unsubscribe();
+    this.focusSecurityZoneWithGlowSubscription?.unsubscribe();
+    this.clearSecurityZoneGlowSubscription?.unsubscribe();
+    this.drawingModeSubscription?.unsubscribe();
+    this.securityZonesSubscription?.unsubscribe();
+    this.eventCreationModeSubscription?.unsubscribe();
+    this.visibleSecurityZoneIdsSubscription?.unsubscribe();
+    this.visiblePointIdsSubscription?.unsubscribe();
+    this.visiblePointOfInterestIdsSubscription?.unsubscribe();
+    this.visibleAreaIdsSubscription?.unsubscribe();
+    this.visiblePathIdsSubscription?.unsubscribe();
+    this.visibleEquipmentIdsSubscription?.unsubscribe();
+    this.eventAreaVisibleSubscription?.unsubscribe();
 
     // Nettoyer les markers
     this.markers.forEach((marker) => {
