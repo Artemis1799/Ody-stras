@@ -407,7 +407,10 @@ export class ExportPopup implements OnInit, OnDestroy {
         statsData.push({ Catégorie: 'Équipe dépose', Statistique: '⚠️ Sans équipe assignée', Valeur: zonesWithoutRemovalTeam, Pourcentage: `${pct}%` });
       }
 
-      const wsStats = XLSX.utils.json_to_sheet(statsData);
+      // Créer la feuille avec un ordre de colonnes personnalisé
+      const wsStats = XLSX.utils.json_to_sheet(statsData, {
+        header: ['Catégorie', 'Statistique', 'Valeur', 'Pourcentage']
+      });
       
       // Ajuster la largeur des colonnes
       wsStats['!cols'] = [
@@ -416,6 +419,19 @@ export class ExportPopup implements OnInit, OnDestroy {
         { wch: 15 },  // Valeur
         { wch: 15 }   // Pourcentage
       ];
+
+      // Convertir les valeurs numériques en texte pour qu'elles soient alignées à gauche par défaut dans Excel
+      // et forcer l'alignement à gauche en préfixant avec un espace (technique Excel)
+      const range = XLSX.utils.decode_range(wsStats['!ref'] || 'A1');
+      for (let row = range.s.r + 1; row <= range.e.r; row++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: 2 }); // Colonne C (Valeur)
+        const cell = wsStats[cellAddress];
+        if (cell && cell.v !== undefined && cell.v !== '') {
+          // Convertir en string pour que Excel le traite comme texte (aligné à gauche)
+          cell.t = 's';
+          cell.v = String(cell.v);
+        }
+      }
       
       XLSX.utils.book_append_sheet(wb, wsStats, 'Statistiques');
 
