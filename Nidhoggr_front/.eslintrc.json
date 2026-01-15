@@ -1,6 +1,6 @@
 {
   "root": true,
-  "ignorePatterns": ["*.html"],
+  "ignorePatterns": ["*.html", "*.spec.ts"],
   "overrides": [
     {
       "files": ["*.ts"],

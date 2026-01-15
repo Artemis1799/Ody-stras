@@ -1,6 +1,102 @@
 # NidhoggrFront
 
+Event logistics management application - Angular 18 frontend for Eurométropole de Strasbourg.
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.9.
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── components/                          # Angular components organized by page/feature
+│   │   ├── accueil-page/                   # Application home page
+│   │   ├── equipement-page/                # Equipment management
+│   │   ├── historique-page/                # Event history view
+│   │   ├── login-page/                     # User authentication
+│   │   ├── map-page/                       # Main map (core feature)
+│   │   │   ├── layout/                     # Main map container
+│   │   │   ├── map-loader/                 # Map initialization & loading
+│   │   │   ├── point-drawer/               # GPS point drawing tool
+│   │   │   ├── points-sidebar/             # Points list sidebar
+│   │   │   └── equipment-manager/          # On-map equipment management
+│   │   └── personnels-page/                # Personnel/Employee management
+│   │
+│   ├── shared/                              # Reusable components (popups, drawers)
+│   │   ├── event-confirm-popup/            # Event confirmation popup
+│   │   ├── event-create-popup/             # New event creation popup
+│   │   ├── event-edit-popup/               # Event editing popup
+│   │   ├── export-popup/                   # Data export (JSON/PDF)
+│   │   ├── import-popup/                   # Data import
+│   │   ├── geometry-edit-drawer/           # GeoJSON geometry editor
+│   │   ├── timeline-drawer/                # Event timeline drawer
+│   │   ├── navbar/                         # Navigation bar
+│   │   └── ... (others)                    # Archive, Delete, Person, Team, Photo popups
+│   │
+│   ├── services/                            # Business logic services
+│   │   ├── ActionService.ts                # Actions/tasks management
+│   │   ├── AreaService.ts                  # Geographic areas management
+│   │   ├── AuthService.ts                  # Authentication & JWT
+│   │   ├── EmployeeService.ts              # Employee management
+│   │   ├── EquipmentService.ts             # Equipment management
+│   │   ├── EventService.ts                 # Events CRUD + state (signals)
+│   │   ├── MapService.ts                   # Map state & controls
+│   │   ├── PointService.ts                 # GPS points management
+│   │   ├── SecurityZoneService.ts          # Security zones with teams
+│   │   ├── TeamService.ts                  # Teams management
+│   │   ├── UserService.ts                  # Users management
+│   │   ├── ToastService.ts                 # Toast notifications
+│   │   ├── PictureService.ts               # Photo uploads/management
+│   │   ├── PathService.ts                  # Routes/paths management
+│   │   ├── PlanningService.ts              # Event planning
+│   │   ├── NominatimService.ts             # Geocoding (Nominatim API)
+│   │   ├── EventTeamService.ts             # Event-team associations
+│   │   ├── TeamEmployeeService.ts          # Team-employee associations
+│   │   ├── EventExportService.ts           # Event export (JSON)
+│   │   ├── WebSocketExportService.ts       # Real-time sync (WebSocket)
+│   │   ├── DatabaseService.ts              # Local database management
+│   │   └── __tests__/                      # Services unit tests
+│   │
+│   ├── models/                              # TypeScript models (interfaces/types)
+│   │   ├── actionModel.ts                  # Action type
+│   │   ├── areaModel.ts                    # Area type
+│   │   ├── eventModel.ts                   # Event type
+│   │   ├── pointModel.ts                   # GPS Point type
+│   │   ├── equipmentModel.ts               # Equipment type
+│   │   ├── employeeModel.ts                # Employee type
+│   │   ├── userModel.ts                    # User type
+│   │   ├── teamModel.ts                    # Team type
+│   │   ├── securityZoneModel.ts            # SecurityZone type
+│   │   ├── geometryEditModel.ts            # Geometry (GeoJSON) type
+│   │   ├── pictureModel.ts                 # Picture type
+│   │   ├── routePathModel.ts               # Path type
+│   │   └── ... (others)                    # Event, Planning, TeamEmployee types
+│   │
+│   ├── interceptors/                        # HTTP interceptors
+│   │   └── auth.interceptor.ts             # JWT injection, error handling
+│   │
+│   ├── router/                              # Navigation routes
+│   │   ├── app.routes.ts                   # Client-side routes
+│   │   └── app.routes.server.ts            # Server-side routes (SSR)
+│   │
+│   └── app.ts                               # Root application component
+│
+├── assets/                                  # Static resources
+│   ├── i18n/                               # Translation files (i18n)
+│   ├── icons/                              # SVG/PNG icons
+│   └── tiles/                              # Local MBTiles (offline mapping)
+│
+├── environments/                            # Environment-specific configuration
+│   ├── environment.ts                      # Development configuration
+│   └── environment.production.ts           # Production configuration
+│
+└── styles/
+    └── styles.scss                         # Global styles (SCSS)
+```
+
+---
 
 ## Development server
 
