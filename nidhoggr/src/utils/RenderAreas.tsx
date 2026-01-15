@@ -25,35 +25,57 @@ const hexToRgba = (hex: string, opacity: number = 0.4): string => {
 };
 
 export default function RenderAreas({ areas }: RenderAreasProps) {
-  if (!areas || areas.length === 0) return null;
+  console.log("=== RenderAreas appelé ===", areas?.length || 0, "areas");
+
+  if (!areas || areas.length === 0) {
+    console.log("RenderAreas: Pas d'areas à afficher");
+    return null;
+  }
 
   return (
     <>
       {areas.map((singleArea, i) => {
+        console.log(`RenderAreas [${i}]: UUID=${singleArea.UUID}, GeoJson présent=${!!singleArea.GeoJson}`);
+
         let geom: GeoJSON;
 
         try {
           geom = JSON.parse(singleArea.GeoJson);
-        } catch {
-          console.warn("JSON invalide:", singleArea.GeoJson);
+          console.log(`RenderAreas [${i}]: Type de géométrie = ${geom.type}`);
+        } catch (e) {
+          console.warn("RenderAreas: JSON invalide:", singleArea.GeoJson, e);
           return null;
         }
 
-        if (geom.type !== "Polygon") return null;
+        if (geom.type !== "Polygon") {
+          console.log(`RenderAreas [${i}]: Type ${geom.type} ignoré (attendu: Polygon)`);
+          return null;
+        }
+
+        // Vérifier que les coordonnées existent
+        const coords = geom.coordinates;
+        if (!coords || !Array.isArray(coords[0]) || (coords[0] as any[]).length === 0) {
+          console.warn(`RenderAreas [${i}]: Pas de coordonnées valides`);
+          return null;
+        }
 
         // Appliquer une opacité de 40% pour voir les rues à travers
         const fillColorWithOpacity = hexToRgba(singleArea.ColorHex || "#3388ff", 0.4);
         const strokeColor = singleArea.ColorHex || "#3388ff";
 
+        const coordinates = (geom.coordinates[0] as [number, number][]).map(
+          ([lng, lat]) => ({
+            latitude: lat,
+            longitude: lng,
+          })
+        );
+
+        console.log(`RenderAreas [${i}]: ${coordinates.length} points, couleur=${strokeColor}`);
+
         return (
           <Polygon
             key={`poly-${i}`}
-            coordinates={(geom.coordinates[0] as [number, number][]).map(
-              ([lng, lat]) => ({
-                latitude: lat,
-                longitude: lng,
-              })
-            )}
+            coordinates={coordinates}
             strokeWidth={2}
             strokeColor={strokeColor}
             fillColor={fillColorWithOpacity}
@@ -64,3 +86,4 @@ export default function RenderAreas({ areas }: RenderAreasProps) {
     </>
   );
 }
+

@@ -20,7 +20,7 @@ import {
   getAllWhere,
   getAll,
   getPhotosForPoint,
-  flushDatabase,
+  deleteEventAndRelatedData,
 } from "../../database/queries";
 import { useEffect, useState, useRef } from "react";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -377,8 +377,8 @@ export default function ExportEventScreen() {
               useNativeDriver: false,
             }).start();
 
-            // Flush database on success
-            await flushDatabase(db);
+            // Supprimer uniquement l'événement exporté (pas toute la DB)
+            await deleteEventAndRelatedData(db, eventUUID);
 
             setTimeout(() => {
               ws.close();
