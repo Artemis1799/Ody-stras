@@ -165,6 +165,7 @@ jest.mock("../../../database/queries", () => ({
   getPointsForEvent: jest.fn(() => Promise.resolve([])),
   getPhotosForPoint: jest.fn(() => Promise.resolve([])),
   flushDatabase: jest.fn(() => Promise.resolve()),
+  deleteEventAndRelatedData: jest.fn(() => Promise.resolve()),
 }));
 
 // --- IMPORTS DES ÉCRANS ---
@@ -2353,7 +2354,8 @@ describe("Project Tests - Arrange-Act-Assert", () => {
         jest.advanceTimersByTime(3000);
       });
 
-      expect(Queries.flushDatabase).toHaveBeenCalled();
+      // Vérifier que seul l'événement exporté est supprimé (pas toute la DB)
+      expect(Queries.deleteEventAndRelatedData).toHaveBeenCalled();
     });
 
     test("Test 68: Export - WebSocket Error Handling", async () => {
