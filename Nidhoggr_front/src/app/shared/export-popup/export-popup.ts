@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, Input, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, EventEmitter, Output, Input, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PointService } from '../../services/PointService';
 import { PictureService } from '../../services/PictureService';
@@ -17,9 +17,9 @@ import { SecurityZone } from '../../models/securityZoneModel';
 import { forkJoin, Subscription } from 'rxjs';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import QRCode from 'qrcode';
+import * as QRCodeLib from 'qrcode';
 import { ButtonModule } from 'primeng/button';
-import { WS_URL } from '../constants/wsUrl';
+import { getWebSocketUrl } from '../constants/wsUrl';
 
 @Component({
   selector: 'app-export-popup',
@@ -41,6 +41,7 @@ export class ExportPopup implements OnInit, OnDestroy {
   private teamService = inject(TeamService);
   private teamEmployeeService = inject(TeamEmployeeService);
   private employeeService = inject(EmployeeService);
+  private cdr = inject(ChangeDetectorRef);
 
   // WebSocket export properties
   showQRCode = false;
@@ -67,8 +68,12 @@ export class ExportPopup implements OnInit, OnDestroy {
     this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
 
     try {
+      // Récupérer l'URL WebSocket dynamiquement
+      const wsUrl = await getWebSocketUrl();
+      console.log('✅ WebSocket URL obtenue pour export:', wsUrl);
+      
       // Générer le QR code avec l'URL du serveur WebSocket
-      this.qrCodeDataURL = await QRCode.toDataURL(WS_URL, {
+      this.qrCodeDataURL = await QRCodeLib.toDataURL(wsUrl, {
         width: 300,
         margin: 2,
         color: {
@@ -77,8 +82,11 @@ export class ExportPopup implements OnInit, OnDestroy {
         }
       });
 
+      // Forcer la détection des changements pour afficher le QR code
+      this.cdr.detectChanges();
+
       // Connexion au WebSocket et attente du téléphone
-      this.connectAndWaitForPhone();
+      this.connectAndWaitForPhone(wsUrl);
 
     } catch (error) {
       console.error('❌ Erreur génération QR code:', error);
@@ -90,8 +98,8 @@ export class ExportPopup implements OnInit, OnDestroy {
   /**
    * Connecte au WebSocket et attend qu'un téléphone se connecte
    */
-  private connectAndWaitForPhone(): void {
-    this.ws = new WebSocket(WS_URL);
+  private connectAndWaitForPhone(wsUrl: string): void {
+    this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
       // S'enregistrer comme client web en attente

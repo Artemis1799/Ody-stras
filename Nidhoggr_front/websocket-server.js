@@ -1,8 +1,27 @@
 const WebSocket = require('ws');
 const http = require('http');
+const os = require('os');
 
+// Fonction pour obtenir l'IP locale
+function getLocalIp() {
+  const interfaces = os.networkInterfaces();
+
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      // Ignorer IPv6 et loopback
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+
+const WS_HOST = getLocalIp();
 const WS_PORT = 8765;
 const HTTP_PORT = 8766;
+
+console.log(`🚀 WebSocket server running on ws://${WS_HOST}:${WS_PORT}`);
 
 function safePreview(obj, max = 200) {
   let str;
@@ -29,6 +48,19 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
+  // Endpoint pour récupérer l'IP du serveur
+  if (req.url === '/config' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        wsHost: WS_HOST,
+        wsPort: WS_PORT,
+        wsUrl: `ws://${WS_HOST}:${WS_PORT}`,
+      })
+    );
+    return;
+  }
+
   if (req.url === '/status' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
@@ -44,7 +76,9 @@ const httpServer = http.createServer((req, res) => {
   }
 });
 
-httpServer.listen(HTTP_PORT);
+httpServer.listen(HTTP_PORT, '0.0.0.0', () => {
+  console.log(`📡 HTTP server running on http://0.0.0.0:${HTTP_PORT}`);
+});
 
 // Serveur WebSocket
 const wsServer = new WebSocket.Server({ port: WS_PORT });
@@ -265,7 +299,7 @@ function handleBulkData(data, ws) {
 
   // Traiter chaque point
   data.points.forEach((pointData, index) => {
-    const pointUuid = pointData.UUID;
+    const pointUuid = pointData.UUID || pointData.uuid;
     console.log(`📍 Point ${index + 1}/${data.points.length}, UUID: ${pointUuid}`);
 
     // Broadcaster le point
@@ -280,12 +314,13 @@ function handleBulkData(data, ws) {
       }
     });
 
-    // Traiter les photos du point
-    if (pointData.photos && Array.isArray(pointData.photos)) {
-      pointData.photos.forEach((photoData, photoIndex) => {
-        console.log(
-          `📸 Photo ${photoIndex + 1}/${pointData.photos.length} pour point ${pointUuid}`
-        );
+    // Traiter les photos du point (supporter PascalCase et camelCase)
+    const photos =
+      pointData.photos || pointData.Photos || pointData.pictures || pointData.Pictures || [];
+    if (Array.isArray(photos) && photos.length > 0) {
+      console.log(`📸 ${photos.length} photo(s) trouvée(s) pour point ${pointUuid}`);
+      photos.forEach((photoData, photoIndex) => {
+        console.log(`📸 Photo ${photoIndex + 1}/${photos.length} pour point ${pointUuid}`);
 
         const photoMessage = JSON.stringify({
           type: 'photo',
@@ -299,6 +334,8 @@ function handleBulkData(data, ws) {
           }
         });
       });
+    } else {
+      console.log(`ℹ️ Aucune photo pour point ${pointUuid}`);
     }
   });
 
