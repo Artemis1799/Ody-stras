@@ -371,7 +371,7 @@ npm test -- TestName      # Lancer un test spécifique
 
 # PARTIE 3 : FICHES DE TEST
 
-## Tableau Complet des Tests (77 tests actifs + 3 slots réservés)
+## Tableau Complet des Tests (80 tests actifs + 3 slots réservés)
 
 | # | Type de test | Titre du test | Scénario | Résultat attendu | Résultat observé | Résultat du test | Commentaire |
 |---|--------------|---------------|----------|------------------|------------------|------------------|-------------|
@@ -454,6 +454,9 @@ npm test -- TestName      # Lancer un test spécifique
 | **78** | PlanningNav V2 | GeoJSON Point invalide | 1. Mock tâche avec type "Point"<br>2. Rendre le composant | - Pas de crash | ✅ PASS | ✅ PASS | Coverage getTaskCenter null |
 | **79** | PlanningNav V2 | GPS Callback - Mise à jour position | 1. Mock watchPositionAsync callback<br>2. Simuler déplacement | - Position mise à jour | ✅ PASS | ✅ PASS | Coverage GPS + distance |
 | **80** | PlanningNav V2 | GPS Callback - Détection arrivée | 1. Mock position proche tâche<br>2. Simuler GPS | - Détection < 15m | ✅ PASS | ✅ PASS | Coverage geofencing |
+| **81** | Database Utils | deleteEventAndRelatedData - Suppression complète | 1. Mock DB avec points, photos, teams, tasks<br>2. Appeler deleteEventAndRelatedData<br>3. Vérifier tous les DELETE appelés | - Suppression en cascade de toutes les données liées (Photos, Points, Areas, Paths, PlanningTask, PlanningMember, PlanningTeam, TeamEmployees, Team, Evenement) | ✅ PASS | ✅ PASS | Coverage 100% queries.tsx - Export ne flush plus toute la DB |
+| **82** | Database Utils | deleteEventAndRelatedData - Événement sans données | 1. Mock DB vide (pas de points/teams)<br>2. Appeler deleteEventAndRelatedData | - Suppression de l'événement seul sans erreur | ✅ PASS | ✅ PASS | Coverage cas limite : événement orphelin |
+| **83** | Database Utils | deleteEventAndRelatedData - Gestion erreur DB | 1. Mock DB reject avec "DB Connection Lost"<br>2. Appeler deleteEventAndRelatedData | - Erreur logguée<br>- Erreur propagée (throw) | ✅ PASS | ✅ PASS | Coverage branche catch - robustesse |
 
 
 ---
@@ -464,13 +467,14 @@ npm test -- TestName      # Lancer un test spécifique
 
 | Métrique | Actuel | Objectif Phase 1 | Objectif Phase 2 |
 |----------|--------|------------------|------------------|
-| **Tests totaux** | **77** | 44 (+7) | 50 (+6) |
+| **Tests totaux** | **80** | 44 (+7) | 50 (+6) |
 | **Coverage globale** | ~64% | 60% | 70% |
-| **Coverage critique** | **100% (DB, RenderAreas, RenderPaths)** | 80% | 85% |
-| **Tests qui passent** | **97% (75/77)** | 100% | 100% |
+| **Coverage critique** | **100% (DB queries.tsx, RenderAreas, RenderPaths)** | 80% | 85% |
+| **Tests qui passent** | **97.5% (78/80)** | 100% | 100% |
 | **Temps exécution** | ~8s | < 12s | < 15s |
 
 ---
 
 **Document validé par** : Chef de tests mobile
 **Prochaine revue** : Fin Sprint Actuel
+

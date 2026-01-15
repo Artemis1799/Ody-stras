@@ -1016,6 +1016,125 @@ describe("Project Tests - Arrange-Act-Assert", () => {
 
       warnSpy.mockRestore();
     });
+
+    test("Test 81: deleteEventAndRelatedData - Suppression complète avec données", async () => {
+      // Arrange - Mock DB avec des données liées à l'événement
+      const mockDb = {
+        getAllAsync: jest.fn()
+          .mockResolvedValueOnce([{ UUID: "point-1" }, { UUID: "point-2" }]) // Points
+          .mockResolvedValueOnce([{ UUID: "team-planning-1" }]) // PlanningTeams
+          .mockResolvedValueOnce([{ UUID: "team-1" }]), // Teams
+        runAsync: jest.fn().mockResolvedValue({ changes: 1 }),
+      };
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => { });
+
+      // Act
+      await RealQueries.deleteEventAndRelatedData(mockDb, "evt-test-123");
+
+      // Assert - Vérifier que toutes les suppressions sont appelées
+      // Photos pour chaque point
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM Picture WHERE PointID = ?",
+        ["point-1"]
+      );
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM Picture WHERE PointID = ?",
+        ["point-2"]
+      );
+      // Points
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM Point WHERE EventID = ?",
+        ["evt-test-123"]
+      );
+      // Areas
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM Area WHERE EventID = ?",
+        ["evt-test-123"]
+      );
+      // Paths
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM Path WHERE EventID = ?",
+        ["evt-test-123"]
+      );
+      // PlanningTask & PlanningMember pour chaque équipe de planning
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM PlanningTask WHERE TeamID = ?",
+        ["team-planning-1"]
+      );
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM PlanningMember WHERE TeamID = ?",
+        ["team-planning-1"]
+      );
+      // PlanningTeam
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM PlanningTeam WHERE EventID = ?",
+        ["evt-test-123"]
+      );
+      // TeamEmployees pour chaque équipe
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM TeamEmployees WHERE TeamID = ?",
+        ["team-1"]
+      );
+      // Team
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM Team WHERE EventID = ?",
+        ["evt-test-123"]
+      );
+      // Evenement
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM Evenement WHERE UUID = ?",
+        ["evt-test-123"]
+      );
+
+      logSpy.mockRestore();
+    });
+
+    test("Test 82: deleteEventAndRelatedData - Événement sans données liées", async () => {
+      // Arrange - Mock DB sans données liées
+      const mockDb = {
+        getAllAsync: jest.fn().mockResolvedValue([]), // Pas de points, teams, etc.
+        runAsync: jest.fn().mockResolvedValue({ changes: 0 }),
+      };
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => { });
+
+      // Act
+      await RealQueries.deleteEventAndRelatedData(mockDb, "evt-empty");
+
+      // Assert - Les suppressions principales sont tout de même appelées
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM Point WHERE EventID = ?",
+        ["evt-empty"]
+      );
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM Evenement WHERE UUID = ?",
+        ["evt-empty"]
+      );
+
+      logSpy.mockRestore();
+    });
+
+    test("Test 83: deleteEventAndRelatedData - Gestion d'erreur", async () => {
+      // Arrange - Mock DB qui échoue
+      const mockDb = {
+        getAllAsync: jest.fn().mockRejectedValue(new Error("DB Connection Lost")),
+        runAsync: jest.fn(),
+      };
+      const errorSpy = jest.spyOn(console, "error").mockImplementation(() => { });
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => { });
+
+      // Act & Assert - Doit propager l'erreur
+      await expect(
+        RealQueries.deleteEventAndRelatedData(mockDb, "evt-error")
+      ).rejects.toThrow("DB Connection Lost");
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        "Erreur lors de la suppression de l'événement:",
+        expect.any(Error)
+      );
+
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    });
   });
   describe("HomeScreen tests", () => {
     test("Test 35: Click on main button to navigate to Events screen", async () => {
