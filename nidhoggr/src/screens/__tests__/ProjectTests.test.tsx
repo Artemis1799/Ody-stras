@@ -111,6 +111,7 @@ jest.mock("react-native-maps", () => {
   const MockMapView = React.forwardRef((props: any, ref: any) => {
     React.useImperativeHandle(ref, () => ({
       animateToRegion: jest.fn(),
+      animateCamera: jest.fn(),
     }));
     return <View {...props}>{props.children}</View>;
   });
@@ -240,7 +241,7 @@ describe("Project Tests - Arrange-Act-Assert", () => {
           Longitude: 2.3522,
         })
       );
-    });
+    }, 15000); // Timeout augmenté pour CI
 
     test("Test 2: Validation des champs obligatoires", async () => {
       // Arrange
@@ -2720,9 +2721,19 @@ describe("Project Tests - Arrange-Act-Assert", () => {
   describe("Tests Critiques - Mode Offline", () => {
     test("Test 44: Opérations en mode offline", async () => {
       // Arrange - Simuler offline
+      // Fix: Créer navigator si inexistant (différence entre local/CI)
+      const hadNavigator = "navigator" in global;
+      const originalNavigator = global.navigator;
+
+      if (!hadNavigator) {
+        // @ts-ignore - Création du navigator pour l'environnement CI
+        global.navigator = {};
+      }
+
       const originalOnLine = Object.getOwnPropertyDescriptor(global.navigator, "onLine");
       Object.defineProperty(global.navigator, "onLine", {
         writable: true,
+        configurable: true,
         value: false,
       });
 
@@ -2741,9 +2752,16 @@ describe("Project Tests - Arrange-Act-Assert", () => {
       // Assert - Composant se rend normalement
       expect(tree).toBeTruthy();
 
-      // Cleanup
+      // Cleanup - Restaurer l'état original
       if (originalOnLine) {
         Object.defineProperty(global.navigator, "onLine", originalOnLine);
+      } else {
+        delete (global.navigator as any).onLine;
+      }
+
+      if (!hadNavigator) {
+        // @ts-ignore - Supprimer le navigator si on l'a créé
+        delete global.navigator;
       }
     });
   });

@@ -23,13 +23,13 @@ lint_job:
   needs:
     - install_job
   script:
-    - npm run lint > gl-code-quality-report.json || true
+    - npm run lint > gl-code-quality-report.json
   artifacts:
     when: always
     reports:
       codequality: nidhoggr/gl-code-quality-report.json
     expire_in: 1 week
-  allow_failure: true
+  allow_failure: false
 
 test_job:
   stage: test
@@ -37,7 +37,7 @@ test_job:
     - install_job
   script:
     - npm install --no-save jest-junit
-    - npm test -- --ci --coverage --coverageReporters=cobertura --reporters=default --reporters=jest-junit || true
+    - npm test -- --ci --coverage --coverageReporters=cobertura --reporters=default --reporters=jest-junit
   artifacts:
     when: always
     reports:
@@ -48,7 +48,7 @@ test_job:
     paths:
       - nidhoggr/coverage/
     expire_in: 1 week
-  allow_failure: true
+  allow_failure: false
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
 
 build_job:
@@ -64,5 +64,4 @@ build_job:
       - dist/
     expire_in: 1 week
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" 
-
+    - if: $CI_COMMIT_BRANCH == "main"
