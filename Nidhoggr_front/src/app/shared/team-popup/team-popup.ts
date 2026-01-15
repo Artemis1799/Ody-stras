@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal, OnDestroy, OnChanges, SimpleChanges, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, OnDestroy, OnChanges, SimpleChanges, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Team } from '../../models/teamModel';
@@ -7,9 +7,9 @@ import { Event } from '../../models/eventModel';
 import { SecurityZone } from '../../models/securityZoneModel';
 import { Planning } from '../../models/planningModel';
 import { MapService } from '../../services/MapService';
-import { WS_URL } from '../constants/wsUrl';
+import { getWebSocketUrl } from '../constants/wsUrl';
 import jsPDF from 'jspdf';
-import QRCode from 'qrcode';
+import * as QRCodeLib from 'qrcode';
 
 export interface TeamFormData {
   team: Partial<Team>;
@@ -32,7 +32,7 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
   @Input() securityZones: SecurityZone[] = [];
   @Input() plannings: Planning[] = [];
   
-  constructor(private mapService: MapService) {}
+  constructor(private mapService: MapService, private cdr: ChangeDetectorRef) {}
 
   get isEventArchived(): boolean {
     return this.mapService.isSelectedEventArchived();
@@ -482,8 +482,12 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
     this.showQRCodePopup = true;
 
     try {
+      // Récupérer l'URL WebSocket dynamiquement
+      const wsUrl = await getWebSocketUrl();
+      console.log('✅ WebSocket URL obtenue pour team export:', wsUrl);
+      
       // Générer le QR code avec l'URL du serveur WebSocket
-      this.qrCodeDataURL = await QRCode.toDataURL(WS_URL, {
+      this.qrCodeDataURL = await QRCodeLib.toDataURL(wsUrl, {
         width: 300,
         margin: 2,
         color: {
@@ -492,8 +496,11 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
         }
       });
 
+      // Forcer la détection des changements pour afficher le QR code
+      this.cdr.detectChanges();
+
       // Connexion au WebSocket et attente du téléphone
-      this.connectAndWaitForPhone();
+      this.connectAndWaitForPhone(wsUrl);
     } catch (error) {
       console.error('❌ Erreur génération QR code:', error);
       this.exportStatus = '❌ Erreur lors de la génération du QR code';
@@ -511,8 +518,12 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
     this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
 
     try {
+      // Récupérer l'URL WebSocket dynamiquement
+      const wsUrl = await getWebSocketUrl();
+      console.log('✅ WebSocket URL obtenue pour team export:', wsUrl);
+      
       // Générer le QR code avec l'URL du serveur WebSocket
-      this.qrCodeDataURL = await QRCode.toDataURL(WS_URL, {
+      this.qrCodeDataURL = await QRCodeLib.toDataURL(wsUrl, {
         width: 300,
         margin: 2,
         color: {
@@ -521,8 +532,11 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
         }
       });
 
+      // Forcer la détection des changements pour afficher le QR code
+      this.cdr.detectChanges();
+
       // Connexion au WebSocket et attente du téléphone
-      this.connectAndWaitForPhone();
+      this.connectAndWaitForPhone(wsUrl);
     } catch (error) {
       console.error('❌ Erreur génération QR code:', error);
       this.exportStatus = '❌ Erreur lors de la génération du QR code';
@@ -533,8 +547,8 @@ export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
   /**
    * Connecte au WebSocket et attend qu'un téléphone se connecte
    */
-  private connectAndWaitForPhone(): void {
-    this.ws = new WebSocket(WS_URL);
+  private connectAndWaitForPhone(wsUrl: string): void {
+    this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
       this.ws?.send(JSON.stringify({ type: 'web_waiting_planning', teamUuid: this.team.uuid }));

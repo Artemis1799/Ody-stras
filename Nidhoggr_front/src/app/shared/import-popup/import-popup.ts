@@ -2,7 +2,7 @@ import { Component, EventEmitter, Output, OnInit, inject, ChangeDetectorRef } fr
 import { CommonModule } from '@angular/common';
 import * as QRCode from 'qrcode';
 import { WebSocketExportService } from '../../services/WebSocketExportService';
-import { WS_URL } from '../constants/wsUrl';
+import { getWebSocketUrl } from '../constants/wsUrl';
 
 @Component({
   selector: 'app-import-popup',
@@ -15,13 +15,17 @@ export class ImportPopup implements OnInit {
   @Output() close = new EventEmitter<void>();
   
   qrCodeDataUrl = '';
-  public WS_URL = WS_URL;
+  public WS_URL = '';
   isReady = false;
   
   private wsExportService = inject(WebSocketExportService);
   private cdr = inject(ChangeDetectorRef);
 
   async ngOnInit(): Promise<void> {
+    // Récupérer l'URL WebSocket dynamiquement
+    this.WS_URL = await getWebSocketUrl();
+    console.log('✅ WebSocket URL obtenue:', this.WS_URL);
+    
     // Démarrer le serveur et se connecter
     await this.wsExportService.startServerAndConnect();
     
