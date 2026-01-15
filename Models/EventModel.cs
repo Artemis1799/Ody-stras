@@ -29,6 +29,9 @@ public class Event
     [Required]
     public bool IsArchived { get; set; }
 
+    [Required]
+    public bool IsFavorite { get; set; }
+
     [JsonIgnore]
     public ICollection<Team>? Teams { get; set; }
     
