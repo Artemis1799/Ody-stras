@@ -2,7 +2,6 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { EventService } from '../../../services/EventService';
-import { Event } from '../../../models/eventModel';
 
 @Component({
   selector: 'app-accueil-page',

@@ -229,7 +229,7 @@ export class ExportPopup implements OnInit, OnDestroy {
       areas: this.areaService.getByEventId(this.event.uuid),
       securityZones: this.securityZoneService.getByEventId(this.event.uuid),
       teams: this.teamService.getByEventId(this.event.uuid)
-    }).subscribe(({ points, equipments, paths, areas, securityZones, teams }) => {
+    }).subscribe(({ points, areas, securityZones, teams }) => {
       const wb = XLSX.utils.book_new();
 
       // Créer une map pour accéder rapidement aux équipes par ID
@@ -356,13 +356,11 @@ export class ExportPopup implements OnInit, OnDestroy {
 
       // --- 5. Nombre de zones par équipe de pose ---
       const installTeamStats = new Map<string, number>();
-      let zonesWithInstallTeam = 0;
       let zonesWithoutInstallTeam = 0;
       securityZones.forEach(zone => {
         if (zone.installationTeamId) {
           const teamName = teamsMap.get(zone.installationTeamId) || zone.installationTeam?.teamName || 'Équipe inconnue';
           installTeamStats.set(teamName, (installTeamStats.get(teamName) || 0) + 1);
-          zonesWithInstallTeam++;
         } else {
           zonesWithoutInstallTeam++;
         }
@@ -383,13 +381,11 @@ export class ExportPopup implements OnInit, OnDestroy {
 
       // --- 6. Nombre de zones par équipe de dépose ---
       const removalTeamStats = new Map<string, number>();
-      let zonesWithRemovalTeam = 0;
       let zonesWithoutRemovalTeam = 0;
       securityZones.forEach(zone => {
         if (zone.removalTeamId) {
           const teamName = teamsMap.get(zone.removalTeamId) || zone.removalTeam?.teamName || 'Équipe inconnue';
           removalTeamStats.set(teamName, (removalTeamStats.get(teamName) || 0) + 1);
-          zonesWithRemovalTeam++;
         } else {
           zonesWithoutRemovalTeam++;
         }
@@ -922,7 +918,7 @@ export class ExportPopup implements OnInit, OnDestroy {
       const allTeams = teams.filter(t => t.eventId === this.event.uuid);
       if (allTeams.length > 0) {
         addSectionTitle(`Équipe(s) présente(s) (${allTeams.length})`);
-        allTeams.forEach((team, index) => {
+        allTeams.forEach((team) => {
           // Calculer la hauteur nécessaire pour cette équipe
           const teamMemberIds = teamEmployees.filter(te => te.teamId === team.uuid).map(te => te.employeeId);
           const teamMembers = employees.filter(emp => teamMemberIds.includes(emp.uuid));
@@ -955,7 +951,7 @@ export class ExportPopup implements OnInit, OnDestroy {
           
           if (teamMembers.length > 0) {
             let memberY = yPosition + 20;
-            teamMembers.forEach((member, mIndex) => {
+            teamMembers.forEach((member) => {
               doc.setFillColor(230, 230, 230);
               doc.circle(margin + 12, memberY, 2, 'F');
               doc.text(`${member.firstName} ${member.lastName}`, margin + 18, memberY + 1);
