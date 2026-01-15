@@ -24,6 +24,8 @@ import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import { useSQLiteContext } from "expo-sqlite";
 import DropDownPicker from "react-native-dropdown-picker";
 import {
+  Area,
+  Path,
   Equipment,
   EquipmentListItem,
   EventScreenNavigationProp,
@@ -43,6 +45,8 @@ import { Header } from "../components/header";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
 import { NO_EQUIPMENT_ID } from "../constants/constants";
+import RenderAreas from "../utils/RenderAreas";
+import RenderPaths from "../utils/RenderPaths";
 
 export function CreatePointScreen() {
   const db = useSQLiteContext();
@@ -63,6 +67,8 @@ export function CreatePointScreen() {
   );
   const route = useRoute();
   const { eventId, pointIdParam } = route.params as createPointParams;
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [paths, setPaths] = useState<Path[]>([]);
 
   const handleGoBack = async () => {
     if (!pointIdParam) {
@@ -221,6 +227,14 @@ export function CreatePointScreen() {
             value: e.UUID,
           })),
         ]);
+
+        // Charger les zones et tracés de l'événement
+        const areasDB = await getAllWhere<Area>(db, "Area", ["EventID"], [eventId]);
+        const pathsDB = await getAllWhere<Path>(db, "Path", ["EventID"], [eventId]);
+        console.log("=== CreatePoint: Areas chargées ===", areasDB.length, areasDB);
+        console.log("=== CreatePoint: Paths chargés ===", pathsDB.length, pathsDB);
+        setAreas(areasDB);
+        setPaths(pathsDB);
       } catch (e) {
         console.log(e);
       }
@@ -243,6 +257,7 @@ export function CreatePointScreen() {
             <View>
               <View style={styles.mapContainer}>
                 <MapView
+                  key={`map-${areas.length}-${paths.length}`}
                   ref={mapRef}
                   style={styles.map}
                   initialRegion={{
@@ -261,6 +276,8 @@ export function CreatePointScreen() {
                   zoomEnabled={isEditingLocation}
                   onRegionChangeComplete={handleRegionChange}
                 >
+                  <RenderAreas areas={areas} />
+                  <RenderPaths paths={paths} />
                   {!isEditingLocation && markerPosition && (
                     <Marker
                       coordinate={{
