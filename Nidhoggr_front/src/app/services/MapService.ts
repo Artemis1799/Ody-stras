@@ -950,10 +950,10 @@ export class MapService {
    */
   private loadEventAreaVisibility(): boolean {
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-      return true;
+      return false;
     }
     const saved = localStorage.getItem('eventAreaVisible');
-    return saved !== 'false'; // Par défaut visible (true)
+    return saved === 'true'; // Par défaut masquée (false)
   }
 
   /**

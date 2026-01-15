@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MapService, MapBounds } from '../../services/MapService';
+import { DrawerService } from '../../services/DrawerService';
 import { SecurityZone } from '../../models/securityZoneModel';
 import { SecurityZoneService } from '../../services/SecurityZoneService';
 import { TeamService } from '../../services/TeamService';
@@ -78,6 +79,7 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
 
   constructor(
     private mapService: MapService,
+    private drawerService: DrawerService,
     private cdr: ChangeDetectorRef,
     private securityZoneService: SecurityZoneService,
     private teamService: TeamService,
@@ -103,6 +105,11 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
         this.isVisible = visible;
         this.currentBounds = bounds;
         
+        // Notifier le DrawerService quand la timeline s'ouvre
+        if (visible && !wasVisible) {
+          this.drawerService.openDrawer('timeline');
+        }
+        
         if (visible && zones.length > 0) {
           // Toujours reprocesser les zones pour être à jour
           this.processSecurityZones(zones);
@@ -114,6 +121,15 @@ export class TimelineDrawerComponent implements OnInit, OnDestroy {
           
           // Toujours appliquer les filtres (y compris quand les bounds changent)
           this.applyFilters();
+        }
+      })
+    );
+
+    // S'abonner aux changements de drawer actif pour fermer ce drawer si un autre s'ouvre
+    this.subscriptions.push(
+      this.drawerService.activeDrawer$.subscribe(activeDrawer => {
+        if (activeDrawer !== 'timeline' && this.isVisible) {
+          this.mapService.closeTimeline();
         }
       })
     );

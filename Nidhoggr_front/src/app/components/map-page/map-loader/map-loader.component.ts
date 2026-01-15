@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MapService, DrawingMode, EventCreationMode } from '../../../services/MapService';
+import { DrawerService } from '../../../services/DrawerService';
 import { AreaService } from '../../../services/AreaService';
 import { PathService } from '../../../services/PathService';
 import { PointService } from '../../../services/PointService';
@@ -72,6 +73,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private visiblePathIdsSubscription?: Subscription;
   private visibleEquipmentIdsSubscription?: Subscription;
   private eventAreaVisibleSubscription?: Subscription;
+  private drawerServiceSubscription?: Subscription;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private drawnItems: any = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,6 +128,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
 
   constructor(
     private mapService: MapService,
+    private drawerService: DrawerService,
     private areaService: AreaService,
     private pathService: PathService,
     private pointService: PointService,
@@ -333,6 +336,46 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
           }
         });
         
+        // Créer un Set des GeoJson des security zones pour identifier les paths à supprimer
+        const securityZoneGeoJsons = new Set(
+          zones.map(z => {
+            const geoJson = typeof z.geoJson === 'string' ? z.geoJson : JSON.stringify(z.geoJson);
+            return geoJson;
+          })
+        );
+
+        // Supprimer les paths qui correspondent à une security zone
+        const pathsToDelete: string[] = [];
+        this.geometryLayers.forEach((layer, uuid) => {
+          if (layer.shapeType === 'path') {
+            const paths = this.mapService.getPaths();
+            const path = paths.find(p => p.uuid === uuid);
+            if (path) {
+              const pathGeoJson = typeof path.geoJson === 'string' ? path.geoJson : JSON.stringify(path.geoJson);
+              if (securityZoneGeoJsons.has(pathGeoJson)) {
+                pathsToDelete.push(uuid);
+              }
+            }
+          }
+        });
+
+        // Supprimer les paths identifiés
+        pathsToDelete.forEach(uuid => {
+          const layer = this.geometryLayers.get(uuid);
+          if (layer) {
+            if (this.drawnItems && this.drawnItems.hasLayer(layer)) {
+              this.drawnItems.removeLayer(layer);
+            }
+            if (this.map && this.map.hasLayer(layer)) {
+              this.map.removeLayer(layer);
+            }
+            if (layer.closePopup) {
+              layer.closePopup();
+            }
+            this.geometryLayers.delete(uuid);
+          }
+        });
+        
         // Ajouter les nouvelles zones
         zones.forEach((zone) => {
           this.addSecurityZoneToMap(zone);
@@ -386,6 +429,15 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       // S'abonner à la visibilité de l'area de l'événement
       this.eventAreaVisibleSubscription = this.mapService.eventAreaVisible$.subscribe((visible) => {
         this.updateEventAreaVisibility(visible);
+      });
+
+      // S'abonner aux changements de drawer actif pour fermer le geometry-edit-drawer si un autre s'ouvre
+      this.drawerServiceSubscription = this.drawerService.activeDrawer$.subscribe((activeDrawer) => {
+        if (activeDrawer !== 'geometry-edit' && this.showGeometryEditDrawer) {
+          this.showGeometryEditDrawer = false;
+          this.geometryEditData = null;
+          this.cdr.detectChanges();
+        }
       });
 
       // Forcer Leaflet à recalculer la taille
@@ -674,8 +726,17 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
   private updateAreasVisibility(visibleIds: string[] | null): void {
     if (!this.drawnItems) return;
 
+    // Récupérer le nom de la zone de l'événement pour l'exclure (gérée par eventAreaVisible)
+    const selectedEvent = this.selectedEvent;
+    const eventAreaName = selectedEvent ? `Zone - ${selectedEvent.title}` : null;
+    const areas = this.mapService.getAreas();
+
     this.geometryLayers.forEach((layer, uuid) => {
       if (layer.shapeType !== 'area') return;
+
+      // Exclure la zone de l'événement (gérée par eventAreaVisible)
+      const area = areas.find(a => a.uuid === uuid);
+      if (area && eventAreaName && area.name === eventAreaName) return;
 
       const shouldBeVisible = visibleIds === null || visibleIds.includes(uuid);
 
@@ -1211,17 +1272,32 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       paths: this.pathService.getByEventId(event.uuid),
     }).subscribe({
       next: ({ areas, paths }) => {
+        // Récupérer les GeoJson des security zones pour filtrer les paths qui correspondent
+        const securityZones = this.mapService.getSecurityZones();
+        const securityZoneGeoJsons = new Set(
+          securityZones.map(z => {
+            const geoJson = typeof z.geoJson === 'string' ? z.geoJson : JSON.stringify(z.geoJson);
+            return geoJson;
+          })
+        );
+
+        // Filtrer les paths pour exclure ceux qui correspondent à une security zone
+        const filteredPaths = paths.filter(path => {
+          const pathGeoJson = typeof path.geoJson === 'string' ? path.geoJson : JSON.stringify(path.geoJson);
+          return !securityZoneGeoJsons.has(pathGeoJson);
+        });
+
         // Mettre à jour le MapService
         this.mapService.setAreas(areas);
-        this.mapService.setPaths(paths);
+        this.mapService.setPaths(filteredPaths);
 
         // Afficher les areas sur la carte
         areas.forEach((area) => {
           this.addAreaToMap(area);
         });
 
-        // Afficher les paths sur la carte
-        paths.forEach((path) => {
+        // Afficher les paths filtrés sur la carte
+        filteredPaths.forEach((path) => {
           this.addPathToMap(path);
         });
       },
@@ -1753,6 +1829,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       const area = this.mapService.getAreas().find((a) => a.uuid === layer.areaUuid);
       if (area) {
         this.geometryEditData = { type: 'area', data: area };
+        this.drawerService.openDrawer('geometry-edit');
         this.showGeometryEditDrawer = true;
         this.cdr.detectChanges();
       }
@@ -1760,6 +1837,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
       const path = this.mapService.getPaths().find((p) => p.uuid === layer.pathUuid);
       if (path) {
         this.geometryEditData = { type: 'path', data: path };
+        this.drawerService.openDrawer('geometry-edit');
         this.showGeometryEditDrawer = true;
         this.cdr.detectChanges();
       }
@@ -2149,6 +2227,12 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
         // Associer l'UUID et le type au layer
         layer.securityZoneUuid = createdZone.uuid;
         layer.shapeType = 'securityZone';
+        
+        // Appliquer le style des security zones (rouge)
+        layer.setStyle({
+          color: '#ff6b6b',
+          weight: 4,
+        });
         
         // Toujours ajouter la zone nouvellement créée (ignorer le filtre pour les nouvelles zones)
         this.drawnItems.addLayer(layer);
@@ -2663,6 +2747,7 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     this.visiblePathIdsSubscription?.unsubscribe();
     this.visibleEquipmentIdsSubscription?.unsubscribe();
     this.eventAreaVisibleSubscription?.unsubscribe();
+    this.drawerServiceSubscription?.unsubscribe();
 
     // Nettoyer les markers
     this.markers.forEach((marker) => {

@@ -228,38 +228,74 @@
   </svg>
 </button>
 
-@if (showRightDrawer) {
-  <div class="right-drawer-overlay" (click)="toggleRightDrawer()"></div>
-  <div class="right-drawer" (click)="$event.stopPropagation()">
-    <div class="right-drawer-header">
-      <button class="close-btn" (click)="toggleRightDrawer()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
+<p-drawer 
+  [(visible)]="showRightDrawer"
+  position="right" 
+  [modal]="false" 
+  [closeOnEscape]="true" 
+  [dismissible]="true"
+  [closable]="false"
+  styleClass="filter-drawer"
+  [style]="{ width: '230px' }"
+>
+  <ng-template #header>
+    <div class="filter-drawer-header">
+      <div class="header-content">
+        <h3>Filtres</h3>
+      </div>
+      <button 
+        type="button" 
+        class="close-button"
+        (click)="toggleRightDrawer()"
+        title="Fermer"
+      >✕</button>
     </div>
-    <div class="right-drawer-content">
-      <!-- Organized List in Right Drawer -->
-      @if (selectedEvent) {
-        <app-organized-list
-          [points]="allPoints"
-          [paths]="allPaths"
-          [securityZones]="allSecurityZones"
-          [areas]="allAreas"
-          [visibleZoneIds]="visibleZoneIds"
-          [visiblePointIds]="visiblePointIds"
-          [visiblePointOfInterestIds]="visiblePointOfInterestIds"
-          [visiblePathIds]="visiblePathIds"
-          [visibleEquipmentIds]="visibleEquipmentIds"
-          [visibleAreaIds]="visibleAreaIds"
-          (itemClick)="onOrganizedItemClick($event)"
-          (itemVisibilityChange)="onItemVisibilityChange($event)"
-        />
-      }
-    </div>
+  </ng-template>
+
+  <div class="filter-drawer-content">
+    @if (selectedEvent) {
+      <!-- Toggle pour la zone de l'événement -->
+      <div class="event-area-toggle">
+        <div class="toggle-info">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+            <line x1="8" y1="2" x2="8" y2="18"></line>
+            <line x1="16" y1="6" x2="16" y2="22"></line>
+          </svg>
+          <span>Zone de l'événement</span>
+        </div>
+        <button 
+          type="button" 
+          class="toggle-btn" 
+          [class.active]="eventAreaVisible"
+          (click)="toggleEventAreaVisibility()"
+          [title]="eventAreaVisible ? 'Masquer la zone' : 'Afficher la zone'"
+        >
+          <span class="toggle-slider"></span>
+        </button>
+      </div>
+
+      <app-organized-list
+        [points]="allPoints"
+        [paths]="allPaths"
+        [securityZones]="allSecurityZones"
+        [areas]="filteredAreas"
+        [visibleZoneIds]="visibleZoneIds"
+        [visiblePointIds]="visiblePointIds"
+        [visiblePointOfInterestIds]="visiblePointOfInterestIds"
+        [visiblePathIds]="visiblePathIds"
+        [visibleEquipmentIds]="visibleEquipmentIds"
+        [visibleAreaIds]="visibleAreaIds"
+        (itemClick)="onOrganizedItemClick($event)"
+        (itemVisibilityChange)="onItemVisibilityChange($event)"
+      />
+    } @else {
+      <div class="empty-filter-state">
+        <p>Sélectionnez un événement pour voir les filtres</p>
+      </div>
+    }
   </div>
-}
+</p-drawer>
 
 @if (showImportPopup) {
 <app-import-popup (close)="closeImport()"></app-import-popup>

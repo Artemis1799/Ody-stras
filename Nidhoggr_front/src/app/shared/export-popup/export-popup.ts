@@ -227,9 +227,16 @@ export class ExportPopup implements OnInit, OnDestroy {
       equipments: this.equipmentService.getAll(),
       paths: this.pathService.getByEventId(this.event.uuid),
       areas: this.areaService.getByEventId(this.event.uuid),
-      securityZones: this.securityZoneService.getByEventId(this.event.uuid)
-    }).subscribe(({ points, equipments, paths, areas, securityZones }) => {
+      securityZones: this.securityZoneService.getByEventId(this.event.uuid),
+      teams: this.teamService.getByEventId(this.event.uuid)
+    }).subscribe(({ points, equipments, paths, areas, securityZones, teams }) => {
       const wb = XLSX.utils.book_new();
+
+      // Créer une map pour accéder rapidement aux équipes par ID
+      const teamsMap = new Map<string, string>();
+      teams.forEach(team => {
+        teamsMap.set(team.uuid, team.teamName);
+      });
 
       // Calculer la quantité totale de chaque équipement depuis les zones de sécurité
       const equipmentQuantities = new Map<string, number>();
@@ -241,49 +248,244 @@ export class ExportPopup implements OnInit, OnDestroy {
         }
       });
 
-      // Feuille 1: Équipements
-      const equipmentsData = equipments.map(equip => ({
-        'Type': equip.type ?? '',
-        'Description': equip.description ?? '',
-        'Quantité': equipmentQuantities.get(equip.uuid) || 0
-      }));
-      const wsEquipments = XLSX.utils.json_to_sheet(equipmentsData);
-      XLSX.utils.book_append_sheet(wb, wsEquipments, 'Équipements');
+      // Feuille 2: Zones de Sécurité (avec équipes, dates/heures et coordonnées)
+      const securityZonesData = securityZones.map(zone => {
+        // Extraire les coordonnées GPS (centre de la zone)
+        const coords = this.getZoneCenterCoordinates(zone.geoJson);
+        
+        return {
+          'Équipement': zone.equipment?.type ?? '',
+          'Quantité': zone.quantity ?? 1,
+          'Équipe de pose': zone.installationTeamId ? (teamsMap.get(zone.installationTeamId) || zone.installationTeam?.teamName || '') : '',
+          'Équipe de dépose': zone.removalTeamId ? (teamsMap.get(zone.removalTeamId) || zone.removalTeam?.teamName || '') : '',
+          'Date de pose': zone.installationDate ? this.formatDate(zone.installationDate) : '',
+          'Heure de pose': zone.installationDate ? this.formatTime(zone.installationDate) : '',
+          'Date de dépose': zone.removalDate ? this.formatDate(zone.removalDate) : '',
+          'Heure de dépose': zone.removalDate ? this.formatTime(zone.removalDate) : '',
+          'Latitude': coords.lat ?? '',
+          'Longitude': coords.lng ?? '',
+          'Commentaire': zone.comment ?? ''
+        };
+      });
+      const wsSecurityZones = XLSX.utils.json_to_sheet(securityZonesData);
+      XLSX.utils.book_append_sheet(wb, wsSecurityZones, 'Équipements');
 
-      // Feuille 2: Points
+      // Feuille 3: Points
       const pointsData = points.map(point => ({
         'Nom': point.name ?? '',
         'Latitude': point.latitude ?? '',
         'Longitude': point.longitude ?? '',
         'Commentaire': point.comment ?? '',
-        'Ordre': point.order ?? 0,
         'Validé': point.validated ? 'Oui' : 'Non',
         'Point d\'intérêt': point.isPointOfInterest ? 'Oui' : 'Non'
       }));
       const wsPoints = XLSX.utils.json_to_sheet(pointsData);
       XLSX.utils.book_append_sheet(wb, wsPoints, 'Points');
 
-      // Feuille 3: Chemins (Paths)
-      const pathsData = paths.map(path => ({
-        'Nom': path.name ?? '',
-        'Description': path.description ?? '',
-        'Couleur': path.colorHex ?? ''
-      }));
-      const wsPaths = XLSX.utils.json_to_sheet(pathsData);
-      XLSX.utils.book_append_sheet(wb, wsPaths, 'Chemins');
-
-      // Feuille 4: Zones (Areas)
+      // Feuille 5: Zones (Areas)
       const areasData = areas.map(area => ({
         'Nom': area.name ?? '',
         'Description': area.description ?? '',
-        'Couleur': area.colorHex ?? ''
       }));
       const wsAreas = XLSX.utils.json_to_sheet(areasData);
       XLSX.utils.book_append_sheet(wb, wsAreas, 'Zones');
 
+      // ========== FEUILLE STATISTIQUES ==========
+      const statsData: { Catégorie: string; Statistique: string; Valeur: string | number; Pourcentage?: string }[] = [];
+
+      // --- 1. Tableau récapitulatif ---
+      statsData.push({ Catégorie: 'RÉCAPITULATIF GÉNÉRAL', Statistique: '', Valeur: '', Pourcentage: '' });
+      statsData.push({ Catégorie: 'Récapitulatif', Statistique: 'Nombre total de points', Valeur: points.length, Pourcentage: '' });
+      statsData.push({ Catégorie: 'Récapitulatif', Statistique: 'Nombre de zones de sécurité', Valeur: securityZones.length, Pourcentage: '' });
+      statsData.push({ Catégorie: 'Récapitulatif', Statistique: 'Nombre de zones (areas)', Valeur: areas.length, Pourcentage: '' });
+      statsData.push({ Catégorie: 'Récapitulatif', Statistique: 'Nombre d\'équipes', Valeur: teams.length, Pourcentage: '' });
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 2. Points validés vs non validés ---
+      const validatedPoints = points.filter(p => p.validated).length;
+      const nonValidatedPoints = points.filter(p => !p.validated).length;
+      const totalPoints = points.length;
+      const validatedPercent = totalPoints > 0 ? ((validatedPoints / totalPoints) * 100).toFixed(1) : '0';
+      const nonValidatedPercent = totalPoints > 0 ? ((nonValidatedPoints / totalPoints) * 100).toFixed(1) : '0';
+
+      statsData.push({ Catégorie: 'POINTS VALIDÉS VS NON VALIDÉS', Statistique: '', Valeur: '', Pourcentage: '' });
+      statsData.push({ Catégorie: 'Validation', Statistique: 'Points validés', Valeur: validatedPoints, Pourcentage: `${validatedPercent}%` });
+      statsData.push({ Catégorie: 'Validation', Statistique: 'Points non validés', Valeur: nonValidatedPoints, Pourcentage: `${nonValidatedPercent}%` });
+      statsData.push({ Catégorie: 'Validation', Statistique: 'Total', Valeur: totalPoints, Pourcentage: '100%' });
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 3. Matrice de statut des points (4 catégories) ---
+      const regularPoints = points.filter(p => !p.isPointOfInterest);
+      const interestPoints = points.filter(p => p.isPointOfInterest);
+      
+      const regularValidated = regularPoints.filter(p => p.validated).length;
+      const regularNonValidated = regularPoints.filter(p => !p.validated).length;
+      const interestValidated = interestPoints.filter(p => p.validated).length;
+      const interestNonValidated = interestPoints.filter(p => !p.validated).length;
+
+      const calcPercent = (val: number) => totalPoints > 0 ? ((val / totalPoints) * 100).toFixed(1) : '0';
+
+      statsData.push({ Catégorie: 'MATRICE STATUT DES POINTS', Statistique: '', Valeur: '', Pourcentage: '' });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Points classiques validés', Valeur: regularValidated, Pourcentage: `${calcPercent(regularValidated)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Points classiques non validés', Valeur: regularNonValidated, Pourcentage: `${calcPercent(regularNonValidated)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Points d\'intérêt validés', Valeur: interestValidated, Pourcentage: `${calcPercent(interestValidated)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Points d\'intérêt non validés', Valeur: interestNonValidated, Pourcentage: `${calcPercent(interestNonValidated)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Total points classiques', Valeur: regularPoints.length, Pourcentage: `${calcPercent(regularPoints.length)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Total points d\'intérêt', Valeur: interestPoints.length, Pourcentage: `${calcPercent(interestPoints.length)}%` });
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 4. Répartition des quantités par type d'équipement ---
+      const equipmentStats = new Map<string, number>();
+      let totalEquipmentQty = 0;
+      securityZones.forEach(zone => {
+        const equipType = zone.equipment?.type || 'Non défini';
+        const qty = zone.quantity || 1;
+        equipmentStats.set(equipType, (equipmentStats.get(equipType) || 0) + qty);
+        totalEquipmentQty += qty;
+      });
+
+      statsData.push({ Catégorie: 'RÉPARTITION PAR TYPE D\'ÉQUIPEMENT', Statistique: '', Valeur: '', Pourcentage: '' });
+      Array.from(equipmentStats.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([type, qty]) => {
+          const pct = totalEquipmentQty > 0 ? ((qty / totalEquipmentQty) * 100).toFixed(1) : '0';
+          statsData.push({ Catégorie: 'Équipement', Statistique: type, Valeur: qty, Pourcentage: `${pct}%` });
+        });
+      statsData.push({ Catégorie: 'Équipement', Statistique: 'Total quantité', Valeur: totalEquipmentQty, Pourcentage: '100%' });
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 5. Nombre de zones par équipe de pose ---
+      const installTeamStats = new Map<string, number>();
+      let zonesWithInstallTeam = 0;
+      let zonesWithoutInstallTeam = 0;
+      securityZones.forEach(zone => {
+        if (zone.installationTeamId) {
+          const teamName = teamsMap.get(zone.installationTeamId) || zone.installationTeam?.teamName || 'Équipe inconnue';
+          installTeamStats.set(teamName, (installTeamStats.get(teamName) || 0) + 1);
+          zonesWithInstallTeam++;
+        } else {
+          zonesWithoutInstallTeam++;
+        }
+      });
+
+      statsData.push({ Catégorie: 'ZONES PAR ÉQUIPE DE POSE', Statistique: '', Valeur: '', Pourcentage: '' });
+      Array.from(installTeamStats.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([team, count]) => {
+          const pct = securityZones.length > 0 ? ((count / securityZones.length) * 100).toFixed(1) : '0';
+          statsData.push({ Catégorie: 'Équipe pose', Statistique: team, Valeur: count, Pourcentage: `${pct}%` });
+        });
+      if (zonesWithoutInstallTeam > 0) {
+        const pct = securityZones.length > 0 ? ((zonesWithoutInstallTeam / securityZones.length) * 100).toFixed(1) : '0';
+        statsData.push({ Catégorie: 'Équipe pose', Statistique: '⚠️ Sans équipe assignée', Valeur: zonesWithoutInstallTeam, Pourcentage: `${pct}%` });
+      }
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 6. Nombre de zones par équipe de dépose ---
+      const removalTeamStats = new Map<string, number>();
+      let zonesWithRemovalTeam = 0;
+      let zonesWithoutRemovalTeam = 0;
+      securityZones.forEach(zone => {
+        if (zone.removalTeamId) {
+          const teamName = teamsMap.get(zone.removalTeamId) || zone.removalTeam?.teamName || 'Équipe inconnue';
+          removalTeamStats.set(teamName, (removalTeamStats.get(teamName) || 0) + 1);
+          zonesWithRemovalTeam++;
+        } else {
+          zonesWithoutRemovalTeam++;
+        }
+      });
+
+      statsData.push({ Catégorie: 'ZONES PAR ÉQUIPE DE DÉPOSE', Statistique: '', Valeur: '', Pourcentage: '' });
+      Array.from(removalTeamStats.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([team, count]) => {
+          const pct = securityZones.length > 0 ? ((count / securityZones.length) * 100).toFixed(1) : '0';
+          statsData.push({ Catégorie: 'Équipe dépose', Statistique: team, Valeur: count, Pourcentage: `${pct}%` });
+        });
+      if (zonesWithoutRemovalTeam > 0) {
+        const pct = securityZones.length > 0 ? ((zonesWithoutRemovalTeam / securityZones.length) * 100).toFixed(1) : '0';
+        statsData.push({ Catégorie: 'Équipe dépose', Statistique: '⚠️ Sans équipe assignée', Valeur: zonesWithoutRemovalTeam, Pourcentage: `${pct}%` });
+      }
+
+      const wsStats = XLSX.utils.json_to_sheet(statsData);
+      
+      // Ajuster la largeur des colonnes
+      wsStats['!cols'] = [
+        { wch: 35 },  // Catégorie
+        { wch: 35 },  // Statistique
+        { wch: 15 },  // Valeur
+        { wch: 15 }   // Pourcentage
+      ];
+      
+      XLSX.utils.book_append_sheet(wb, wsStats, 'Statistiques');
+
       // Télécharger
       XLSX.writeFile(wb, `${this.event.title || 'Export'}.xlsx`);
     });
+  }
+
+  /**
+   * Formate une date en format JJ/MM/AAAA
+   */
+  private formatDate(date: Date | string): string {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  /**
+   * Formate une date en format HH:MM
+   */
+  private formatTime(date: Date | string): string {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  /**
+   * Extrait les coordonnées du centre d'une zone à partir du GeoJSON
+   */
+  private getZoneCenterCoordinates(geoJson: string): { lat: number | null; lng: number | null } {
+    try {
+      if (!geoJson) return { lat: null, lng: null };
+      
+      const geometry = JSON.parse(geoJson);
+      let coordinates: number[][] = [];
+      
+      if (geometry.type === 'LineString') {
+        coordinates = geometry.coordinates;
+      } else if (geometry.type === 'MultiLineString') {
+        coordinates = geometry.coordinates.flat();
+      } else if (geometry.type === 'Feature' && geometry.geometry) {
+        if (geometry.geometry.type === 'LineString') {
+          coordinates = geometry.geometry.coordinates;
+        } else if (geometry.geometry.type === 'MultiLineString') {
+          coordinates = geometry.geometry.coordinates.flat();
+        }
+      }
+      
+      if (coordinates.length === 0) return { lat: null, lng: null };
+      
+      // Calculer le centre (moyenne des coordonnées)
+      let sumLat = 0;
+      let sumLng = 0;
+      coordinates.forEach(coord => {
+        sumLng += coord[0];
+        sumLat += coord[1];
+      });
+      
+      return {
+        lat: Math.round((sumLat / coordinates.length) * 1000000) / 1000000,
+        lng: Math.round((sumLng / coordinates.length) * 1000000) / 1000000
+      };
+    } catch {
+      return { lat: null, lng: null };
+    }
   }
 
   /**

@@ -5,6 +5,7 @@ import { Drawer } from 'primeng/drawer';
 import { InputText } from 'primeng/inputtext';
 import { MapService } from '../../../services/MapService';
 import { PointService } from '../../../services/PointService';
+import { DrawerService } from '../../../services/DrawerService';
 import { Point } from '../../../models/pointModel';
 import { Subscription } from 'rxjs';
 import { ToastService } from '../../../services/ToastService';
@@ -35,10 +36,12 @@ export class PointOfInterestDrawerComponent implements OnInit, OnDestroy {
   showDeleteConfirm = false;
 
   private selectedPointOfInterestSubscription?: Subscription;
+  private drawerSubscription?: Subscription;
 
   constructor(
     private mapService: MapService,
     private pointService: PointService,
+    private drawerService: DrawerService,
     private cdr: ChangeDetectorRef,
     private toastService: ToastService
   ) {}
@@ -53,13 +56,26 @@ export class PointOfInterestDrawerComponent implements OnInit, OnDestroy {
         this.selectedPoint = null;
       }
     });
+
+    // S'abonner aux changements de drawer actif pour fermer ce drawer si un autre s'ouvre
+    this.drawerSubscription = this.drawerService.activeDrawer$.subscribe(activeDrawer => {
+      if (activeDrawer !== 'point-of-interest' && this.visible) {
+        this.visible = false;
+        this.selectedPoint = null;
+        this.mapService.selectPointOfInterest(null);
+      }
+    });
   }
 
   ngOnDestroy(): void {
     this.selectedPointOfInterestSubscription?.unsubscribe();
+    this.drawerSubscription?.unsubscribe();
   }
 
   openDrawer(point: Point): void {
+    // Notifier le DrawerService qu'on ouvre ce drawer (ferme les autres automatiquement)
+    this.drawerService.openDrawer('point-of-interest');
+    
     this.selectedPoint = point;
     this.editedComment = point.comment || '';
     this.initialComment = point.comment || '';

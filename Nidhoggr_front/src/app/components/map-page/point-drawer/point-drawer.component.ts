@@ -8,6 +8,7 @@ import { AutoComplete, AutoCompleteCompleteEvent, AutoCompleteSelectEvent } from
 import { MapService } from '../../../services/MapService';
 import { PointService } from '../../../services/PointService';
 import { EquipmentService } from '../../../services/EquipmentService';
+import { DrawerService } from '../../../services/DrawerService';
 import { Point } from '../../../models/pointModel';
 import { Subscription } from 'rxjs';
 import { Equipment } from '../../../models/equipmentModel';
@@ -63,6 +64,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   private selectedPointSubscription?: Subscription;
   private selectedPointIndexSubscription?: Subscription;
   private equipmentsSubscription?: Subscription;
+  private drawerSubscription?: Subscription;
 
   get isEventArchived(): boolean {
     return this.mapService.isSelectedEventArchived();
@@ -72,6 +74,7 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     private mapService: MapService,
     private pointService: PointService,
     private equipmentService: EquipmentService,
+    private drawerService: DrawerService,
     private cdr: ChangeDetectorRef,
     private toastService: ToastService
   ) {}
@@ -113,6 +116,18 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
         this.showPhotoViewer = false;
       }
     });
+
+    // S'abonner aux changements de drawer actif pour fermer ce drawer si un autre s'ouvre
+    this.drawerSubscription = this.drawerService.activeDrawer$.subscribe(activeDrawer => {
+      if (activeDrawer !== 'point' && this.visible) {
+        this.visible = false;
+        this.selectedPoint = null;
+        this.selectedPointIndex = null;
+        this.selectedEquipment = null;
+        this.showPhotoViewer = false;
+        this.mapService.selectPoint(null);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -124,6 +139,9 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
     }
     if (this.equipmentsSubscription) {
       this.equipmentsSubscription.unsubscribe();
+    }
+    if (this.drawerSubscription) {
+      this.drawerSubscription.unsubscribe();
     }
   }
 
@@ -146,8 +164,8 @@ export class PointDrawerComponent implements OnInit, OnDestroy {
   }
 
   openDrawer(point: Point): void {
-    // Fermer le drawer des security zones s'il est ouvert
-    this.mapService.selectSecurityZone(null);
+    // Notifier le DrawerService qu'on ouvre ce drawer (ferme les autres automatiquement)
+    this.drawerService.openDrawer('point');
     
     this.selectedPoint = point;
     this.editedComment = point.comment || '';

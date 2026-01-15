@@ -9,6 +9,7 @@ import { MapService } from '../../../services/MapService';
 import { SecurityZoneService } from '../../../services/SecurityZoneService';
 import { EquipmentService } from '../../../services/EquipmentService';
 import { TeamService } from '../../../services/TeamService';
+import { DrawerService } from '../../../services/DrawerService';
 import { SecurityZone } from '../../../models/securityZoneModel';
 import { Equipment } from '../../../models/equipmentModel';
 import { Subscription } from 'rxjs';
@@ -70,12 +71,14 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
   selectedRemovalTeamId: string | null = null;
 
   private selectedZoneSubscription?: Subscription;
+  private drawerSubscription?: Subscription;
 
   constructor(
     private mapService: MapService,
     private securityZoneService: SecurityZoneService,
     private equipmentService: EquipmentService,
     private teamService: TeamService,
+    private drawerService: DrawerService,
     private cdr: ChangeDetectorRef,
     private toastService: ToastService
   ) {}
@@ -101,10 +104,21 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
         this.equipment = null;
       }
     });
+
+    // S'abonner aux changements de drawer actif pour fermer ce drawer si un autre s'ouvre
+    this.drawerSubscription = this.drawerService.activeDrawer$.subscribe(activeDrawer => {
+      if (activeDrawer !== 'security-zone' && this.visible) {
+        this.visible = false;
+        this.selectedZone = null;
+        this.equipment = null;
+        this.mapService.selectSecurityZone(null);
+      }
+    });
   }
 
   ngOnDestroy(): void {
     this.selectedZoneSubscription?.unsubscribe();
+    this.drawerSubscription?.unsubscribe();
   }
 
   loadTeams(): void {
@@ -113,8 +127,8 @@ export class SecurityZoneDrawerComponent implements OnInit, OnDestroy {
 
   // eslint-disable-next-line complexity
   openDrawer(zone: SecurityZone): void {
-    // Fermer le drawer des points s'il est ouvert
-    this.mapService.selectPoint(null);
+    // Notifier le DrawerService qu'on ouvre ce drawer (ferme les autres automatiquement)
+    this.drawerService.openDrawer('security-zone');
     
     this.selectedZone = zone;
     
