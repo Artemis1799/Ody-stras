@@ -57,14 +57,26 @@ export class EventEditPopup implements OnInit {
       
       if (this.event.startDate) {
         const date = new Date(this.event.startDate);
-        this.formData.startDate = date.toISOString().slice(0, 16);
+        this.formData.startDate = this.formatDateTimeLocal(date);
       }
       if (this.event.endDate) {
         const date = new Date(this.event.endDate);
-        this.formData.endDate = date.toISOString().slice(0, 16);
+        this.formData.endDate = this.formatDateTimeLocal(date);
       }
     }
     this.isArchived = this.event.isArchived;
+  }
+
+  /**
+   * Formate une date en format datetime-local (YYYY-MM-DDTHH:mm) en gardant l'heure locale
+   */
+  private formatDateTimeLocal(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
   // eslint-disable-next-line complexity

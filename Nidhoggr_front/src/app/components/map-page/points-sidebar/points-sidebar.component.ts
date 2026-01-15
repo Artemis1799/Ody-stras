@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AutoComplete } from 'primeng/autocomplete';
+import { Drawer } from 'primeng/drawer';
 import { EventStoreService } from '../../../store-services/EventStore-Service';
 import { PointService } from '../../../services/PointService';
 import { EventService } from '../../../services/EventService';
@@ -10,6 +11,7 @@ import { AreaService } from '../../../services/AreaService';
 import { PathService } from '../../../services/PathService';
 import { SecurityZoneService } from '../../../services/SecurityZoneService';
 import { MapService } from '../../../services/MapService';
+import { DrawerService } from '../../../services/DrawerService';
 import { NominatimService, NominatimResult } from '../../../services/NominatimService';
 import { Point } from '../../../models/pointModel';
 import { SecurityZone } from '../../../models/securityZoneModel';
@@ -33,6 +35,7 @@ import { OrganizedListComponent } from './organized-list/organized-list.componen
     CommonModule,
     FormsModule,
     AutoComplete,
+    Drawer,
     ExportPopup,
     ImportPopup,
     EventCreatePopup,
@@ -120,7 +123,18 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   // Areas
   allAreas: Area[] = [];
   visibleAreaIds: string[] | null = null;
+  eventAreaVisible = false;
+  private eventAreaVisibleSubscription?: Subscription;
+
+  // Getter pour filtrer les areas et exclure la zone générale de l'événement
+  // On identifie la zone de l'événement comme étant la première area créée (celle avec le plus ancien uuid ou sans description)
+  get filteredAreas(): Area[] {
+    if (!this.selectedEvent) return this.allAreas;
+    const eventZoneName = `Zone - ${this.selectedEvent.title}`;
+    return this.allAreas.filter(area => area.name !== eventZoneName);
+  }
   private visibleAreaIdsSubscription?: Subscription;
+  private drawerSubscription?: Subscription;
 
   constructor(
     private pointService: PointService,
@@ -129,6 +143,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     private pathService: PathService,
     private securityZoneService: SecurityZoneService,
     private mapService: MapService,
+    private drawerService: DrawerService,
     private router: Router,
     private cdr: ChangeDetectorRef,
     private nominatimService: NominatimService,
@@ -226,6 +241,12 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     });
 
+    // S'abonner aux changements de visibilité de la zone de l'événement
+    this.eventAreaVisibleSubscription = this.mapService.eventAreaVisible$.subscribe((visible) => {
+      this.eventAreaVisible = visible;
+      this.cdr.markForCheck();
+    });
+
     // Initialiser les points à vide APRÈS la subscription (aucun événement sélectionné)
     this.mapService.setPoints([]);
     this.mapService.setSecurityZones([]);
@@ -270,6 +291,14 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
           this.searchResults = [];
         },
       });
+
+    // S'abonner aux changements de drawer actif pour fermer le filter drawer si un autre s'ouvre
+    this.drawerSubscription = this.drawerService.activeDrawer$.subscribe((activeDrawer) => {
+      if (activeDrawer !== 'filter' && this.showRightDrawer) {
+        this.showRightDrawer = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -286,7 +315,17 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.visiblePathIdsSubscription?.unsubscribe();
     this.visibleEquipmentIdsSubscription?.unsubscribe();
     this.visibleAreaIdsSubscription?.unsubscribe();
+    this.eventAreaVisibleSubscription?.unsubscribe();
     this.areasSubscription?.unsubscribe();
+    this.drawerSubscription?.unsubscribe();
+  }
+
+  /**
+   * Bascule la visibilité de la zone de l'événement
+   */
+  toggleEventAreaVisibility(): void {
+    this.eventAreaVisible = !this.eventAreaVisible;
+    this.mapService.setEventAreaVisible(this.eventAreaVisible);
   }
 
   loadEvents(): void {
@@ -823,6 +862,9 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
 
   toggleRightDrawer(): void {
     this.showRightDrawer = !this.showRightDrawer;
+    if (this.showRightDrawer) {
+      this.drawerService.openDrawer('filter');
+    }
     this.cdr.markForCheck();
   }
 
