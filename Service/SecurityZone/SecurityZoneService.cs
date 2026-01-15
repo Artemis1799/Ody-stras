@@ -91,6 +91,21 @@ public class SecurityZoneService : ISecurityZoneService
             return false;
         }
 
+
+        // 2. Supprimer tous les paths qui ont les mêmes coordonnées GeoJson
+        if (!string.IsNullOrEmpty(existing.GeoJson))
+        {
+            var pathsToDelete = await _context.Paths
+                .Where(p => p.EventId == existing.EventId && p.GeoJson == existing.GeoJson)
+                .ToListAsync();
+            
+            if (pathsToDelete.Any())
+            {
+                _context.Paths.RemoveRange(pathsToDelete);
+            }
+        }
+
+        // 3. Supprimer la security zone elle-même
         _context.SecurityZones.Remove(existing);
         await _context.SaveChangesAsync();
 
