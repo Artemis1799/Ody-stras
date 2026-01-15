@@ -595,7 +595,6 @@ export default function ImportEventScreen() {
         }, 120000);
       });
     } catch (error) {
-      console.error("Erreur:", error);
       setReceiveStatus("Échec de l'import");
     } finally {
       setIsReceiving(false);
