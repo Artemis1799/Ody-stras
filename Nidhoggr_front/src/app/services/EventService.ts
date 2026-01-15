@@ -28,6 +28,9 @@ export class EventService {
   // Signal pour les événements archivés
   readonly archivedEvents = computed(() => this._events().filter(e => e.isArchived));
 
+  // Signal pour les événements favoris
+  readonly favoriteEvents = computed(() => this._events().filter(e => e.isFavorite && !e.isArchived));
+
   constructor(private http: HttpClient) {}
 
   /** Charge les événements depuis l'API */
@@ -147,5 +150,16 @@ export class EventService {
     
     const archivedEvent: Event = { ...event, isArchived: false };
     return this.update(id, archivedEvent);
+  }
+
+  /** Toggle le statut favori d'un événement */
+  toggleFavorite(id: string): Observable<Event> {
+    const event = this._events().find(e => e.uuid === id);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+    
+    const updatedEvent: Event = { ...event, isFavorite: !event.isFavorite };
+    return this.update(id, updatedEvent);
   }
 }

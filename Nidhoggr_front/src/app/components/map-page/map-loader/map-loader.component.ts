@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { MapService, DrawingMode, EventCreationMode } from '../../../services/MapService';
 import { DrawerService } from '../../../services/DrawerService';
 import { AreaService } from '../../../services/AreaService';
@@ -8,12 +9,13 @@ import { PointService } from '../../../services/PointService';
 import { SecurityZoneService } from '../../../services/SecurityZoneService';
 import { EquipmentService } from '../../../services/EquipmentService';
 import { PictureService } from '../../../services/PictureService';
+import { EventService } from '../../../services/EventService';
 import { Point } from '../../../models/pointModel';
 import { Event } from '../../../models/eventModel';
 import { Area } from '../../../models/areaModel';
 import { RoutePath } from '../../../models/routePathModel';
 import { SecurityZone } from '../../../models/securityZoneModel';
-import { Subscription, forkJoin } from 'rxjs';
+import { Subscription, forkJoin, take } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID, inject } from '@angular/core';
 import { DeletePopupComponent } from '../../../shared/delete-popup/delete-popup';
@@ -135,10 +137,32 @@ export class MapLoaderComponent implements AfterViewInit, OnDestroy {
     private securityZoneService: SecurityZoneService,
     private equipmentService: EquipmentService,
     private pictureService: PictureService,
+    private eventService: EventService,
     private toastService: ToastService,
+    private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
-  ) {}
+  ) {
+    // Lire le query param "event" pour charger un événement spécifique
+    this.route.queryParams.pipe(take(1)).subscribe(params => {
+      const eventId = params['event'];
+      if (eventId) {
+        this.loadEventFromQueryParam(eventId);
+      }
+    });
+  }
+
+  private loadEventFromQueryParam(eventId: string): void {
+    this.eventService.getById(eventId).subscribe({
+      next: (event) => {
+        this.mapService.setSelectedEvent(event);
+      },
+      error: (err) => {
+        console.error('Erreur lors du chargement de l\'événement:', err);
+        this.toastService.showError('Erreur', 'Impossible de charger l\'événement');
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
     try {

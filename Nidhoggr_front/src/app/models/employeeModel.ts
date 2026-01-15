@@ -4,4 +4,5 @@ export interface Employee {
   firstName: string;
   email?: string;
   phone?: string;
+  isFavorite?: boolean;
 }

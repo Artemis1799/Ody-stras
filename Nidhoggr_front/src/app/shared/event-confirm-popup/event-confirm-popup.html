@@ -23,7 +23,7 @@
         
         <div class="popup-body">
           <div class="summary-section">
-            <div class="summary-item">
+            <div class="summary-item" [class.skipped]="!hasZone">
               <div class="item-icon zone">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
@@ -33,9 +33,15 @@
               </div>
               <div class="item-content">
                 <span class="item-label">Zone de l'événement</span>
-                <span class="item-status">✓ Définie</span>
+                @if (hasZone) {
+                  <span class="item-status">✓ Définie</span>
+                } @else {
+                  <span class="item-status skipped">— Non définie</span>
+                }
               </div>
-              <button class="modify-btn" (click)="onModifyZone()">Modifier</button>
+              @if (hasZone) {
+                <button class="modify-btn" (click)="onModifyZone()">Modifier</button>
+              }
             </div>
             
             <div class="summary-item">

@@ -152,6 +152,20 @@
     color: #e6edf3;
   }
 
+  &.toggle-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    
+    label {
+      margin: 0;
+    }
+  }
+
   .help-text {
     display: flex;
     align-items: center;
@@ -849,6 +863,57 @@
     
     &:not(.p-disabled):has(.p-checkbox-box:hover) .p-checkbox-box {
       border-color: #484f58 !important;
+    }
+  }
+}
+
+// Toggle Switch personnalisé
+:host ::ng-deep {
+  p-toggleswitch {
+    .p-toggleswitch {
+      width: 3rem;
+      height: 1.75rem;
+      
+      .p-toggleswitch-slider {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 1rem;
+        transition: all 0.3s ease;
+        
+        &::before {
+          width: 1.25rem;
+          height: 1.25rem;
+          background: #8b949e;
+          border-radius: 50%;
+          left: 0.25rem;
+          margin-top: -0.625rem;
+          transition: all 0.3s ease;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+      }
+      
+      &.p-toggleswitch-checked {
+        .p-toggleswitch-slider {
+          background: linear-gradient(135deg, #2ad783 0%, #22c55e 100%);
+          border-color: #2ad783;
+          
+          &::before {
+            background: #ffffff;
+            transform: translateX(1.25rem);
+          }
+        }
+      }
+      
+      &:not(.p-disabled):hover {
+        .p-toggleswitch-slider {
+          background: rgba(255, 255, 255, 0.15);
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        &.p-toggleswitch-checked .p-toggleswitch-slider {
+          background: linear-gradient(135deg, #34e88f 0%, #28d969 100%);
+        }
+      }
     }
   }
 }

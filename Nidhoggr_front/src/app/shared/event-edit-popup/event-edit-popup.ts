@@ -183,4 +183,17 @@ export class EventEditPopup implements OnInit {
     this.eventAreaVisible = !this.eventAreaVisible;
     this.mapService.setEventAreaVisible(this.eventAreaVisible);
   }
+
+  toggleFavorite(): void {
+    this.eventService.toggleFavorite(this.event.uuid).subscribe({
+      next: (updatedEvent) => {
+        this.event.isFavorite = updatedEvent.isFavorite;
+        const action = updatedEvent.isFavorite ? 'ajouté aux favoris' : 'retiré des favoris';
+        this.toastService.showSuccess('Favori', `L'événement "${this.event.title}" ${action}`);
+      },
+      error: () => {
+        this.toastService.showError('Erreur', 'Impossible de modifier le favori');
+      }
+    });
+  }
 }
