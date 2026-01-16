@@ -1,0 +1,97 @@
+@if (isVisible) {
+  @if (!isMinimized) {
+    <!-- Mode maximisé - Popup complète -->
+    <div class="confirm-overlay">
+      <div class="confirm-popup">
+        <div class="popup-header">
+          <div class="header-icon success">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div class="header-text">
+            <h3>Confirmer la création</h3>
+            <p>Vérifiez les éléments de l'événement « {{ eventTitle }} »</p>
+          </div>
+          <button class="minimize-btn" (click)="toggleMinimize()" title="Minimiser">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="popup-body">
+          <div class="summary-section">
+            <div class="summary-item" [class.skipped]="!hasZone">
+              <div class="item-icon zone">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+              </div>
+              <div class="item-content">
+                <span class="item-label">Zone de l'événement</span>
+                @if (hasZone) {
+                  <span class="item-status">✓ Définie</span>
+                } @else {
+                  <span class="item-status skipped">— Non définie</span>
+                }
+              </div>
+              @if (hasZone) {
+                <button class="modify-btn" (click)="onModifyZone()">Modifier</button>
+              }
+            </div>
+            
+            <div class="summary-item">
+              <div class="item-icon path">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+              </div>
+              <div class="item-content">
+                <span class="item-label">Tracé de l'événement</span>
+                <span class="item-status">✓ Défini</span>
+              </div>
+              <button class="modify-btn" (click)="onModifyPath()">Modifier</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="popup-footer">
+          <button class="btn-cancel" (click)="onCancel()" [disabled]="isSaving">
+            Annuler
+          </button>
+          <button class="btn-confirm" (click)="onConfirm()" [disabled]="isSaving">
+            @if (isSaving) {
+              <span class="spinner"></span>
+              Enregistrement...
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Confirmer la création
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <!-- Mode minimisé - Bouton flottant -->
+    <button class="minimized-button" (click)="toggleMinimize()">
+      <div class="minimized-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <span class="minimized-text">Confirmation en attente - {{ eventTitle }}</span>
+      <div class="expand-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </div>
+    </button>
+  }
+}

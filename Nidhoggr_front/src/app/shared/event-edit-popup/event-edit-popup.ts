@@ -3,13 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Event, EventStatus } from '../../models/eventModel';
 import { EventService } from '../../services/EventService';
-import { DeletePopupComponent } from '../delete-popup/delete-popup';
+import { MapService } from '../../services/MapService';
+import { ArchivePopupComponent } from '../archive-popup/archive-popup';
 import { ToastService } from '../../services/ToastService';
 
 @Component({
   selector: 'app-event-edit-popup',
   standalone: true,
-  imports: [CommonModule, FormsModule, DeletePopupComponent],
+  imports: [CommonModule, FormsModule, ArchivePopupComponent],
   templateUrl: './event-edit-popup.html',
   styleUrls: ['./event-edit-popup.scss']
 })
@@ -20,38 +21,98 @@ export class EventEditPopup implements OnInit {
   @Output() eventDeleted = new EventEmitter<string>();
 
   formData = {
-    name: '',
-    description: '',
+    title: '',
     startDate: '',
-    status: EventStatus.ToOrganize
+    endDate: '',
+    status: EventStatus.ToOrganize,
+    minDurationMinutes: null as number | null,
+    maxDurationMinutes: null as number | null
   };
 
   isSubmitting = false;
   errorMessage = '';
   showDeleteConfirm = false;
+  eventAreaVisible = true;
+  isArchived: boolean | undefined = false;
 
   constructor(
     private eventService: EventService,
+    private mapService: MapService,
     private toastService: ToastService
   ) {}
 
+  get isEventArchived(): boolean {
+    return this.event?.isArchived === true;
+  }
+
   ngOnInit(): void {
+    // Récupérer l'état actuel de la visibilité de l'area
+    this.eventAreaVisible = this.mapService.getEventAreaVisible();
+    
     if (this.event) {
-      this.formData.name = this.event.name || '';
-      this.formData.description = this.event.description || '';
+      this.formData.title = this.event.title || '';
       this.formData.status = this.event.status;
+      this.formData.minDurationMinutes = this.event.minDurationMinutes ?? null;
+      this.formData.maxDurationMinutes = this.event.maxDurationMinutes ?? null;
       
       if (this.event.startDate) {
         const date = new Date(this.event.startDate);
-        this.formData.startDate = date.toISOString().slice(0, 16);
+        this.formData.startDate = this.formatDateTimeLocal(date);
+      }
+      if (this.event.endDate) {
+        const date = new Date(this.event.endDate);
+        this.formData.endDate = this.formatDateTimeLocal(date);
       }
     }
+    this.isArchived = this.event.isArchived;
   }
 
+  /**
+   * Formate une date en format datetime-local (YYYY-MM-DDTHH:mm) en gardant l'heure locale
+   */
+  private formatDateTimeLocal(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  // eslint-disable-next-line complexity
   onSubmit(): void {
-    if (!this.formData.name?.trim()) {
-      this.errorMessage = 'Le nom de l\'événement est requis';
+    if (!this.formData.title?.trim()) {
+      this.errorMessage = 'Le titre de l\'événement est requis';
       return;
+    }
+
+    // Vérifier que la date de fin n'est pas inférieure à la date de début
+    if (this.formData.startDate && this.formData.endDate) {
+      const startDate = new Date(this.formData.startDate);
+      const endDate = new Date(this.formData.endDate);
+      if (endDate < startDate) {
+        this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
+        return;
+      }
+    }
+
+    // Vérifier que les durées sont positives
+    if (this.formData.minDurationMinutes !== null && this.formData.minDurationMinutes < 0) {
+      this.errorMessage = 'La durée minimale doit être supérieure ou égale à 0.';
+      return;
+    }
+    
+    if (this.formData.maxDurationMinutes !== null && this.formData.maxDurationMinutes < 0) {
+      this.errorMessage = 'La durée maximale doit être supérieure ou égale à 0.';
+      return;
+    }
+    
+    // Vérifier que la durée max est supérieure à la durée min
+    if (this.formData.minDurationMinutes !== null && this.formData.maxDurationMinutes !== null) {
+      if (this.formData.maxDurationMinutes < this.formData.minDurationMinutes) {
+        this.errorMessage = 'La durée maximale ne peut pas être inférieure à la durée minimale.';
+        return;
+      }
     }
 
     this.isSubmitting = true;
@@ -59,16 +120,18 @@ export class EventEditPopup implements OnInit {
 
     const updatedEvent: Event = {
       ...this.event,
-      name: this.formData.name.trim(),
-      description: this.formData.description?.trim() || '',
+      title: this.formData.title.trim(),
       status: this.formData.status,
-      startDate: this.formData.startDate ? new Date(this.formData.startDate) : undefined
+      startDate: this.formData.startDate ? new Date(this.formData.startDate) : new Date(),
+      endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date(),
+      minDurationMinutes: this.formData.minDurationMinutes ?? undefined,
+      maxDurationMinutes: this.formData.maxDurationMinutes ?? undefined
     };
 
     this.eventService.update(this.event.uuid, updatedEvent).subscribe({
       next: (result) => {
         this.isSubmitting = false;
-        this.toastService.showSuccess('Événement modifié', `L'événement "${updatedEvent.name}" a été modifié avec succès`);
+        this.toastService.showSuccess('Événement modifié', `L'événement "${updatedEvent.title}" a été modifié avec succès`);
         this.eventUpdated.emit(result);
         this.close.emit();
       },
@@ -78,24 +141,58 @@ export class EventEditPopup implements OnInit {
     });
   }
 
-  confirmDelete(): void {
+  confirmArchive(): void {
     this.showDeleteConfirm = true;
   }
 
-  cancelDelete(): void {
+  cancelArchive(): void {
     this.showDeleteConfirm = false;
   }
 
-  deleteEvent(): void {
-    this.eventService.delete(this.event.uuid).subscribe({
-      next: () => {
-        this.showDeleteConfirm = false;
-        this.toastService.showSuccess('Événement supprimé', `L'événement "${this.event.name}" a été supprimé`);
-        this.eventDeleted.emit(this.event.uuid);
-        this.close.emit();
+  archiveEvent(): void {
+    if (this.isArchived) {
+      // L'event est archivé, on le désarchive
+      this.eventService.unarchive(this.event.uuid).subscribe({
+        next: () => {
+          this.showDeleteConfirm = false;
+          this.toastService.showSuccess('Événement désarchivé', `L'événement "${this.event.title}" a été désarchivé`);
+          this.eventDeleted.emit(this.event.uuid);
+          this.close.emit();
+        },
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible de désarchiver l\'événement');
+        }
+      });
+    } else {
+      // L'event n'est pas archivé, on l'archive
+      this.eventService.archive(this.event.uuid).subscribe({
+        next: () => {
+          this.showDeleteConfirm = false;
+          this.toastService.showSuccess('Événement archivé', `L'événement "${this.event.title}" a été archivé`);
+          this.eventDeleted.emit(this.event.uuid);
+          this.close.emit();
+        },
+        error: () => {
+          this.toastService.showError('Erreur', 'Impossible d\'archiver l\'événement');
+        }
+      });
+    }
+  }
+
+  toggleEventAreaVisibility(): void {
+    this.eventAreaVisible = !this.eventAreaVisible;
+    this.mapService.setEventAreaVisible(this.eventAreaVisible);
+  }
+
+  toggleFavorite(): void {
+    this.eventService.toggleFavorite(this.event.uuid).subscribe({
+      next: (updatedEvent) => {
+        this.event.isFavorite = updatedEvent.isFavorite;
+        const action = updatedEvent.isFavorite ? 'ajouté aux favoris' : 'retiré des favoris';
+        this.toastService.showSuccess('Favori', `L'événement "${this.event.title}" ${action}`);
       },
       error: () => {
-        this.toastService.showError('Erreur', 'Impossible de supprimer l\'événement');
+        this.toastService.showError('Erreur', 'Impossible de modifier le favori');
       }
     });
   }

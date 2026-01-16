@@ -6,7 +6,7 @@ import time
 import requests
 
 # --- CONFIG ---
-ZOOM = 17
+ZOOM = 18
 OUT_DIR = "tiles"
 # Alternative tile servers (choisissez-en UN)
 # Option 1: Tile servers alternatifs OSM (rotation a/b/c)
@@ -14,12 +14,18 @@ BASE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 # Option 2: Serveurs tiers gratuits (à utiliser avec modération)
 # BASE_URL = "https://tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png"  # OSM France
 # BASE_URL = "https://tiles.wmflabs.org/osm/{z}/{x}/{y}.png"  # Wikimedia
-SLEEP = 2.0  # Augmenté à 2 secondes pour être plus prudent
+SLEEP = 0.8  # Augmenté à 2 secondes pour être plus prudent
 # BBOX Strasbourg + Illkirch
-MINLAT = 48.5130
-MINLON = 7.6350
+
+MINLAT = 48.4850
+MINLON = 7.5720
 MAXLAT = 48.6500
-MAXLON = 7.8760
+MAXLON = 7.6412
+
+# MINLAT = 48.5130
+# MINLON = 7.6350
+# MAXLAT = 48.6500
+# MAXLON = 7.8760
 
 # MINLON = 7.6800 before
 # MINLON = 7.6350 reel

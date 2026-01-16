@@ -1,129 +1,203 @@
-<aside class="sidebar">
-  <!--
-  <div class="search-box">
-    <input
-      type="text"
-      placeholder="Rechercher un lieu..."
-      [(ngModel)]="searchQuery"
-      (ngModelChange)="onSearch()"
-      (keyup.enter)="searchResults.length > 0 && goToLocation(searchResults[0])"
-    />
-  </div>
-  -->
-
-  <!-- Search results autocomplete -->
-  <div class="search-results" *ngIf="searchResults.length > 0">
-    <div *ngFor="let result of searchResults" class="result-item" (click)="goToLocation(result)">
-      {{ result.display_name }}
-    </div>
-  </div>
-
-  <!-- Event selector autocomplete -->
-  <div class="event-selector">
-    <p-autoComplete
-      [(ngModel)]="selectedEventName"
-      [suggestions]="filteredEvents"
-      (completeMethod)="filterEvents($event)"
-      (onSelect)="onEventSelect($event)"
-      placeholder="Sélectionner un événement..."
-      [dropdown]="true"
-      [forceSelection]="true"
-      [showEmptyMessage]="true"
-      emptyMessage="Aucun événement trouvé"
-    />
-  </div>
-
-  <!-- Points search -->
-  @if (allPoints.length > 0) {
-    <div class="points-search-container">
-      <input
-        type="text"
-        class="points-search-input"
-        placeholder="Rechercher un point..."
-        [(ngModel)]="pointsSearchQuery"
-        (ngModelChange)="onPointsSearchChange()"
+<div class="sidebar-wrapper" [class.collapsed]="isCollapsed">
+  <aside class="sidebar" [class.collapsed]="isCollapsed">
+    <!-- Sidebar content (hidden when collapsed) -->
+    <div class="sidebar-content" *ngIf="!isCollapsed">
+    <!-- Event selector autocomplete -->
+    <div class="event-selector">
+      <p-autoComplete
+        [(ngModel)]="selectedEventName"
+        [suggestions]="filteredEvents"
+        (completeMethod)="filterEvents($event)"
+        (onSelect)="onEventSelect($event)"
+        placeholder="Sélectionner un événement..."
+        [dropdown]="true"
+        [forceSelection]="true"
+        [showEmptyMessage]="true"
+        emptyMessage="Aucun événement trouvé"
       />
-      @if (pointsSearchQuery) {
-        <button class="clear-points-search" (click)="pointsSearchQuery = ''; onPointsSearchChange()">✕</button>
-      }
     </div>
 
-  }
+    <!-- Search results autocomplete -->
+    <div class="search-results" *ngIf="searchResults.length > 0">
+      <div *ngFor="let result of searchResults" class="result-item" (click)="goToLocation(result)">
+        {{ result.display_name }}
+      </div>
+    </div>
 
-  <!-- Points list component -->
-  <div class="points-list-wrapper">
-    <app-points-list
-      [points]="paginatedPoints"
-      [startIndex]="(currentPage - 1) * itemsPerPage"
-      [selectedPointUuid]="selectedPointUuid"
-      [isLoading]="isLoading"
-      [errorMessage]="errorMessage"
-      [emptyMessage]="emptyMessage"
-      (pointClick)="onPointClick($event)"
-    />
-  </div>
+    <!-- Tabs: Points / Zones -->
+    @if (selectedEvent) {
+      <div class="sidebar-tabs">
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'points'"
+          (click)="switchTab('points')"
+        >
+          <span class="tab-icon">📍</span>
+          Points
+          <span class="tab-count">{{ getRegularPointsCount() }}</span>
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'zones'"
+          (click)="switchTab('zones')"
+        >
+          <span class="tab-icon">🛡️</span>
+          Equipements
+          <span class="tab-count">{{ filteredSecurityZones.length }}</span>
+        </button>
+      </div>
+    }
 
-  <div class="bottom-buttons">
+    <!-- Points Tab Content -->
+    @if (activeTab === 'points') {
+      <!-- Points search -->
+      @if (getRegularPointsCount() > 0) {
+        <div class="points-search-container">
+          <input
+            type="text"
+            class="points-search-input"
+            placeholder="Rechercher un point..."
+            [(ngModel)]="pointsSearchQuery"
+            (ngModelChange)="onPointsSearchChange()"
+          />
+          @if (pointsSearchQuery) {
+          <button class="clear-points-search" (click)="pointsSearchQuery = ''; onPointsSearchChange()">✕</button>
+        }
+      </div>
+    }
+
+    <!-- Points list component -->
+    <div class="points-list-wrapper">
+      <app-points-list
+        [points]="paginatedPoints"
+        [startIndex]="(currentPage - 1) * itemsPerPage"
+        [selectedPointUuid]="selectedPointUuid"
+        [isLoading]="isLoading"
+        [errorMessage]="errorMessage"
+        [emptyMessage]="emptyMessage"
+        (pointClick)="onPointClick($event)"
+      />
+    </div>
+
+    <!-- Points pagination -->
     @if (totalPages > 1) {
-      <div class="points-pagination">
+      <div class="list-pagination">
         <div class="pagination-buttons">
           <button 
             class="pagination-btn" 
             [disabled]="currentPage === 1"
             (click)="previousPointsPage()"
-          >
-            ◀
-          </button>
-          
+          >◀</button>
           @for (page of getPointsPageNumbers(); track page) {
             <button 
               class="pagination-btn page-number"
               [class.active]="page === currentPage"
               (click)="goToPointsPage(page)"
-            >
-              {{ page }}
-            </button>
+            >{{ page }}</button>
           }
-          
           <button 
             class="pagination-btn" 
             [disabled]="currentPage === totalPages"
             (click)="nextPointsPage()"
-          >
-            ▶
-          </button>
+          >▶</button>
         </div>
-        
-        <div class="pagination-info">
-          Page {{ currentPage }} / {{ totalPages }}
-        </div>
+        <div class="pagination-info">Page {{ currentPage }} / {{ totalPages }}</div>
       </div>
     }
-    
-    @if (selectedEvent) {
-    <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent || allPoints.length === 0">
-      📊 Planning d'installation
-    </button>
-    <button class="edit-event-btn" (click)="openEventEdit()">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-      </svg>
-      Modifier l'événement
-    </button>
+  }
+
+  <!-- Zones Tab Content -->
+  @if (activeTab === 'zones') {
+    <!-- Zones type filter -->
+    @if (allSecurityZones.length > 0) {
+      <div class="zone-type-filter">
+        <label class="filter-label">Filtrer par type</label>
+        <select 
+          class="type-filter-select"
+          [(ngModel)]="selectedZoneType"
+          (ngModelChange)="onZoneTypeChange($event)"
+        >
+          <option value="all">Tous les types</option>
+          @for (type of availableZoneTypes; track type) {
+            <option [value]="type">{{ type }}</option>
+          }
+        </select>
+      </div>
     }
 
-    <button class="equipment-btn" (click)="openEventCreate()">Créer un évènement</button>
+    <!-- Security Zones list -->
+    <div class="zones-list-wrapper">
+      @if (isLoading) {
+        <div class="loading-state">Chargement...</div>
+      } @else if (paginatedSecurityZones.length === 0) {
+        <div class="empty-state">{{ allSecurityZones.length === 0 ? 'Aucun équipements' : 'Aucun résultat' }}</div>
+      } @else {
+        <ul class="zones-list">
+          @for (zone of paginatedSecurityZones; track zone.uuid; let i = $index) {
+            <li class="zone-item" (click)="onZoneClick(zone)">
+              <div class="zone-info">
+                <span class="zone-equipment">{{ getZoneEquipmentName(zone) }}</span>
+                <span class="zone-quantity">x{{ zone.quantity }}</span>
+              </div>
+              <div class="zone-dates">{{ getZoneDateRange(zone) }}</div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <!-- Zones pagination -->
+    @if (zonesTotalPages > 1) {
+      <div class="list-pagination">
+        <div class="pagination-buttons">
+          <button 
+            class="pagination-btn" 
+            [disabled]="zonesCurrentPage === 1"
+            (click)="previousZonesPage()"
+          >◀</button>
+          @for (page of getZonesPageNumbers(); track page) {
+            <button 
+              class="pagination-btn page-number"
+              [class.active]="page === zonesCurrentPage"
+              (click)="goToZonesPage(page)"
+            >{{ page }}</button>
+          }
+          <button 
+            class="pagination-btn" 
+            [disabled]="zonesCurrentPage === zonesTotalPages"
+            (click)="nextZonesPage()"
+          >▶</button>
+        </div>
+        <div class="pagination-info">Page {{ zonesCurrentPage }} / {{ zonesTotalPages }}</div>
+      </div>
+    }
+  }
+
+  <div class="bottom-buttons">
+    @if (selectedEvent) {
+      <button class="gantt-btn" (click)="openGantt()" [disabled]="!selectedEvent || allSecurityZones.length === 0">
+        📊 Planning d'installation
+      </button>
+      <button class="edit-event-btn" (click)="openEventEdit()">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        Modifier l'événement
+      </button>
+    }
+
+    <button class="equipment-btn" (click)="openEventCreate()">Créer un événement</button>
     <button
       class="export-btn"
       [class.disabled]="!selectedEvent"
@@ -134,7 +208,94 @@
     </button>
     <button class="import-btn" (click)="openImport()">Importer</button>
   </div>
-</aside>
+    </div>
+  </aside>
+
+  <!-- Toggle button (outside sidebar) -->
+  <button class="toggle-btn" (click)="toggleSidebar()" [attr.aria-label]="isCollapsed ? 'Ouvrir le menu' : 'Fermer le menu'">
+    <span class="toggle-icon" [class.open]="!isCollapsed">
+      <span></span>
+      <span></span>
+      <span></span>
+    </span>
+  </button>
+</div>
+
+<!-- Right drawer button (on map) -->
+<button type="button" class="drawer-right-btn" [class.collapsed]="isCollapsed" (click)="toggleRightDrawer(); $event.preventDefault(); $event.stopPropagation()" [attr.aria-label]="'Ouvrir le filtre'" title="Afficher le filtre">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+  </svg>
+</button>
+
+<p-drawer 
+  [(visible)]="showRightDrawer"
+  position="right" 
+  [modal]="false" 
+  [closeOnEscape]="true" 
+  [dismissible]="true"
+  [closable]="false"
+  styleClass="filter-drawer"
+  [style]="{ width: '230px' }"
+>
+  <ng-template #header>
+    <div class="filter-drawer-header">
+      <div class="header-content">
+        <h3>Filtres</h3>
+      </div>
+      <button 
+        type="button" 
+        class="close-button"
+        (click)="toggleRightDrawer()"
+        title="Fermer"
+      >✕</button>
+    </div>
+  </ng-template>
+
+  <div class="filter-drawer-content">
+    @if (selectedEvent) {
+      <!-- Toggle pour la zone de l'événement -->
+      <div class="event-area-toggle">
+        <div class="toggle-info">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+            <line x1="8" y1="2" x2="8" y2="18"></line>
+            <line x1="16" y1="6" x2="16" y2="22"></line>
+          </svg>
+          <span>Zone de l'événement</span>
+        </div>
+        <button 
+          type="button" 
+          class="toggle-btn" 
+          [class.active]="eventAreaVisible"
+          (click)="toggleEventAreaVisibility()"
+          [title]="eventAreaVisible ? 'Masquer la zone' : 'Afficher la zone'"
+        >
+          <span class="toggle-slider"></span>
+        </button>
+      </div>
+
+      <app-organized-list
+        [points]="allPoints"
+        [paths]="allPaths"
+        [securityZones]="allSecurityZones"
+        [areas]="filteredAreas"
+        [visibleZoneIds]="visibleZoneIds"
+        [visiblePointIds]="visiblePointIds"
+        [visiblePointOfInterestIds]="visiblePointOfInterestIds"
+        [visiblePathIds]="visiblePathIds"
+        [visibleEquipmentIds]="visibleEquipmentIds"
+        [visibleAreaIds]="visibleAreaIds"
+        (itemClick)="onOrganizedItemClick($event)"
+        (itemVisibilityChange)="onItemVisibilityChange($event)"
+      />
+    } @else {
+      <div class="empty-filter-state">
+        <p>Sélectionnez un événement pour voir les filtres</p>
+      </div>
+    }
+  </div>
+</p-drawer>
 
 @if (showImportPopup) {
 <app-import-popup (close)="closeImport()"></app-import-popup>
@@ -153,3 +314,5 @@
   (eventDeleted)="onEventDeleted($event)"
 ></app-event-edit-popup>
 }
+
+<app-timeline-drawer></app-timeline-drawer>

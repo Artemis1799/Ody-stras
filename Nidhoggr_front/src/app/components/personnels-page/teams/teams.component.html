@@ -64,7 +64,10 @@
             <div class="team-number">{{ team.teamNumber || '#' }}</div>
             <div class="team-info">
               <div class="team-name">{{ team.teamName }}</div>
-              <div class="team-members-count">{{ team.members.length }} membre(s)</div>
+              @if (team.eventName) {
+                <div class="team-event">{{ team.eventName }}</div>
+              }
+              <div class="team-members-count">{{ team.employees.length }} membre(s)</div>
             </div>
             <div class="team-actions">
               <button class="btn-icon btn-edit" (click)="openEditDialog(team)" title="Modifier">
@@ -84,12 +87,12 @@
             </div>
           </div>
           
-          @if (team.members.length > 0) {
+          @if (team.employees.length > 0) {
             <div class="team-members-list">
-              @for (member of team.members; track member.uuid) {
+              @for (employee of team.employees; track employee.uuid) {
                 <div class="member-chip">
-                  <span class="member-avatar">{{ member.firstName.charAt(0) }}{{ member.name.charAt(0) }}</span>
-                  <span class="member-name">{{ member.firstName }} {{ member.name }}</span>
+                  <span class="member-avatar">{{ employee.firstName.charAt(0) }}{{ employee.lastName.charAt(0) }}</span>
+                  <span class="member-name">{{ employee.firstName }} {{ employee.lastName }}</span>
                 </div>
               }
             </div>
@@ -110,10 +113,14 @@
   <app-team-popup
     [isEditing]="isEditing()"
     [team]="currentTeam()"
-    [allMembers]="allMembers()"
-    [(selectedMembers)]="selectedMembers"
+    [allEmployees]="allEmployees()"
+    [events]="events()"
+    [securityZones]="securityZones()"
+    [plannings]="plannings()"
+    [(selectedEmployees)]="selectedEmployees"
     (save)="onTeamSave($event)"
     (close)="closeDialog()"
+    (eventChangeRequested)="onEventChangeRequested($event)"
   ></app-team-popup>
 }
 

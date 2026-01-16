@@ -10,6 +10,11 @@
     "build": "npm run lint && ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:once": "ng test --watch=false --browsers=ChromeHeadless",
+    "test:coverage": "ng test --watch=false --browsers=ChromeHeadless --code-coverage",
+    "test:coverage:open": "ng test --watch=false --code-coverage && open coverage/index.html",
+    "test:watch": "ng test --watch=true",
+    "test:debug": "ng test --browsers=Chrome --watch=true --source-map",
     "lint": "ng lint --max-warnings=10",
     "lint:fix": "ng lint --fix",
     "serve:ssr:Nidhoggr_front": "node dist/Nidhoggr_front/server/server.mjs"
@@ -54,7 +59,8 @@
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "ws": "^8.18.3",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zone.js": "^0.15.1"
   },
   "devDependencies": {
     "@angular-eslint/builder": "^21.0.1",
@@ -85,6 +91,7 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "karma-junit-reporter": "~2.0.1",
+    "karma-spec-reporter": "^0.0.36",
     "typescript": "~5.9.2"
   }
 }

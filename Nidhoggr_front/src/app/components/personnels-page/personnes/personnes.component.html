@@ -9,7 +9,7 @@
           </svg>
         </div>
         <div class="title-text">
-          <h2>Personnes</h2>
+          <h2>Employés</h2>
         </div>
       </div>
     </div>
@@ -23,7 +23,7 @@
   </div>
 
   <!-- Search filters -->
-  @if (!isLoading() && members().length > 0) {
+  @if (!isLoading() && employees().length > 0) {
     <div class="search-filters">
       <div class="search-field">
         <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -34,11 +34,11 @@
           type="text" 
           class="search-input" 
           placeholder="Rechercher par nom..."
-          [value]="searchName()"
-          (input)="searchName.set($event.target.value); onSearchChange()"
+          [value]="searchLastName()"
+          (input)="searchLastName.set($event.target.value); onSearchChange()"
         />
-        @if (searchName()) {
-          <button class="clear-btn" (click)="clearSearch('name')" type="button">
+        @if (searchLastName()) {
+          <button class="clear-btn" (click)="clearSearch('lastName')" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -100,7 +100,7 @@
   }
 
   <!-- Empty state -->
-  @if (!isLoading() && members().length === 0) {
+  @if (!isLoading() && employees().length === 0) {
     <div class="empty-state">
       <div class="empty-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -108,64 +108,73 @@
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
       </div>
-      <h3>Aucune personne</h3>
-      <p>Commencez par ajouter une personne à votre organisation</p>
+      <h3>Aucun employé</h3>
+      <p>Commencez par ajouter un employé à votre organisation</p>
       <button class="btn-create" (click)="openCreateDialog()">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        Ajouter une personne
+        Ajouter un employé
       </button>
     </div>
   }
 
   <!-- Members grid -->
-  @if (!isLoading() && members().length > 0) {
+  @if (!isLoading() && employees().length > 0) {
     <!-- Info pagination -->
     <div class="pagination-info">
-      <span>{{ filteredMembers().length }} personne(s) trouvée(s)</span>
+      <span>{{ filteredEmployees().length }} employé(s) trouvé(s)</span>
       @if (totalPages() > 1) {
         <span>- Page {{ currentPage() }} sur {{ totalPages() }}</span>
       }
     </div>
     
     <div class="persons-grid">
-      @for (member of paginatedMembers(); track member.uuid) {
-        <div class="person-card">
-          <div class="person-avatar">{{ getInitials(member) }}</div>
+      @for (employee of paginatedEmployees(); track employee.uuid) {
+        <div class="person-card" [class.favorite]="employee.isFavorite">
+          <div class="person-avatar">{{ getInitials(employee) }}</div>
           <div class="person-info">
-            <div class="person-name">{{ member.firstName }} {{ member.name }}</div>
-            @if (member.email || member.phoneNumber) {
+            <div class="person-name">{{ employee.firstName }} {{ employee.lastName }}</div>
+            @if (employee.email || employee.phone) {
               <div class="person-contact">
-                @if (member.email) {
+                @if (employee.email) {
                   <span class="contact-item">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                       <polyline points="22,6 12,13 2,6"></polyline>
                     </svg>
-                    <span>{{ member.email }}</span>
+                    <span>{{ employee.email }}</span>
                   </span>
                 }
-                @if (member.phoneNumber) {
+                @if (employee.phone) {
                   <span class="contact-item">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                     </svg>
-                    <span>{{ member.phoneNumber }}</span>
+                    <span>{{ employee.phone }}</span>
                   </span>
                 }
               </div>
             }
           </div>
           <div class="person-actions">
-            <button class="btn-icon btn-edit" (click)="openEditDialog(member)" title="Modifier">
+            <button 
+              class="btn-icon btn-favorite" 
+              [class.active]="employee.isFavorite"
+              (click)="toggleFavorite(employee)" 
+              [title]="employee.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" [attr.fill]="employee.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </button>
+            <button class="btn-icon btn-edit" (click)="openEditDialog(employee)" title="Modifier">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </button>
-            <button class="btn-icon btn-delete" (click)="confirmDelete(member)" title="Supprimer">
+            <button class="btn-icon btn-delete" (click)="confirmDelete(employee)" title="Supprimer">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -222,19 +231,19 @@
 @if (showDialog()) {
   <app-person-popup
     [isEditing]="isEditing()"
-    [person]="currentMember()"
+    [person]="currentEmployee()"
     (save)="onPersonSave($event)"
     (close)="closeDialog()"
   ></app-person-popup>
 }
 
 <!-- Delete Confirmation Dialog -->
-@if (showDeleteConfirm() && memberToDelete()) {
+@if (showDeleteConfirm() && employeeToDelete()) {
   <app-delete-popup
-    title="Supprimer cette personne"
-    [itemName]="memberToDelete()!.firstName + ' ' + memberToDelete()!.name"
+    title="Supprimer cet employé"
+    [itemName]="employeeToDelete()!.firstName + ' ' + employeeToDelete()!.lastName"
     warningMessage="Cette action est irréversible."
-    (confirm)="deleteMember()"
+    (confirm)="deleteEmployee()"
     (close)="cancelDelete()"
   ></app-delete-popup>
 }

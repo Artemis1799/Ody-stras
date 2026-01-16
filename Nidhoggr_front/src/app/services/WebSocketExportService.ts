@@ -1,15 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { PointService } from './PointService';
-import { PhotoService } from './PhotoService';
+import { PictureService } from './PictureService';
 import { EquipmentService } from './EquipmentService';
 import { EventService } from './EventService';
-import { ImagePointService } from './ImagePointsService';
 import { Point } from '../models/pointModel';
-import { Photo } from '../models/photoModel';
+import { Picture } from '../models/pictureModel';
 import { Equipment } from '../models/equipmentModel';
 import { EventStatus } from '../models/eventModel';
-import { ImagePoint } from '../models/imagePointsModel';
 import { DEFAULT_EVENT_UUID } from '../shared/constants/default_id';
 import { WS_URL } from '../shared/constants/wsUrl';
 
@@ -20,25 +18,30 @@ export interface WebSocketMessage {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class WebSocketExportService {
   private ws: WebSocket | null = null;
   private progressSubject = new Subject<WebSocketMessage>();
   public progress$ = this.progressSubject.asObservable();
   private existingPoints: Map<string, Point> = new Map();
-  private existingPhotos: Map<string, Photo> = new Map();
+  private existingPictures: Map<string, Picture> = new Map();
   private existingEquipments: Map<string, Equipment> = new Map();
-  
+
   // UUID de l'événement en cours d'import (reçu du mobile via metadata)
   private currentEventUuid: string | null = null;
 
+  // File d'attente pour les photos dont le point n'est pas encore créé
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private pendingPictures: Map<string, any[]> = new Map();
+  // Points en cours de création (pour éviter les doublons)
+  private pointsBeingCreated: Set<string> = new Set();
+
   constructor(
     private pointService: PointService,
-    private photoService: PhotoService,
+    private pictureService: PictureService,
     private equipmentService: EquipmentService,
-    private eventService: EventService,
-    private imagePointService: ImagePointService
+    private eventService: EventService
   ) {
     this.loadExistingData();
   }
@@ -51,26 +54,24 @@ export class WebSocketExportService {
       // Charger les points existants
       this.pointService.getAll().subscribe({
         next: (points) => {
-          points.forEach(p => this.existingPoints.set(p.uuid, p));
+          points.forEach((p) => this.existingPoints.set(p.uuid, p));
         },
-        error: () => {
-        }
+        error: () => {},
       });
 
-      // Charger les photos existantes
-      this.photoService.getAll().subscribe({
-        next: (photos) => {
-          photos.forEach(p => this.existingPhotos.set(p.uuid, p));
+      // Charger les pictures existantes
+      this.pictureService.getAll().subscribe({
+        next: (pictures) => {
+          pictures.forEach((p) => this.existingPictures.set(p.uuid, p));
         },
-        error: () => {
-        }
+        error: () => {},
       });
 
       // Charger les équipements existants
       this.equipmentService.getAll().subscribe({
         next: (equipments) => {
-          equipments.forEach(e => this.existingEquipments.set(e.uuid, e));
-        }
+          equipments.forEach((e) => this.existingEquipments.set(e.uuid, e));
+        },
       });
     } catch {
       // Ignorer les erreurs de chargement
@@ -83,13 +84,17 @@ export class WebSocketExportService {
   async startServerAndConnect(): Promise<void> {
     // Réinitialiser l'eventUuid pour un nouvel import
     this.currentEventUuid = null;
-    
+
+    // Réinitialiser les files d'attente
+    this.pendingPictures.clear();
+    this.pointsBeingCreated.clear();
+
     // Vérifier si le serveur tourne déjà
     await this.checkServerStatus();
-    
+
     // Recharger les données existantes
     await this.loadExistingData();
-    
+
     // Se connecter au serveur
     this.connect();
   }
@@ -116,28 +121,28 @@ export class WebSocketExportService {
     if (this.ws) {
       return;
     }
-    
+
     try {
       this.ws = new WebSocket(WS_URL);
 
       this.ws.onopen = () => {
         this.progressSubject.next({
           type: 'connected',
-          data: { message: 'Connexion établie' }
+          data: { message: 'Connexion établie' },
         });
       };
 
       this.ws.onerror = () => {
         this.progressSubject.next({
           type: 'error',
-          data: { message: 'Erreur de connexion' }
+          data: { message: 'Erreur de connexion' },
         });
       };
 
       this.ws.onclose = () => {
         this.progressSubject.next({
           type: 'disconnected',
-          data: { message: 'Connexion fermée' }
+          data: { message: 'Connexion fermée' },
         });
         this.ws = null;
       };
@@ -148,16 +153,15 @@ export class WebSocketExportService {
           this.processReceivedData(parsedData);
           this.progressSubject.next({
             type: 'message',
-            data: parsedData
+            data: parsedData,
           });
         } catch {
           this.progressSubject.next({
             type: 'message',
-            data: event.data
+            data: event.data,
           });
         }
       };
-
     } catch {
       // Ignorer les erreurs de connexion WebSocket
     }
@@ -179,9 +183,11 @@ export class WebSocketExportService {
       } catch {
         // Ignorer les erreurs de traitement
       }
-    } else if (data.type === 'photo' && data.photo) {
+    } else if ((data.type === 'picture' || data.type === 'photo') && (data.picture || data.photo)) {
       try {
-        await this.processPhoto(data.photo, data.pointUUID);
+        // Supporter les deux formats : 'picture' (nouveau) et 'photo' (ancien/mobile)
+        const photoData = data.picture || data.photo;
+        await this.processPicture(photoData, data.pointUUID);
       } catch {
         // Ignorer les erreurs de traitement
       }
@@ -210,24 +216,24 @@ export class WebSocketExportService {
             if (err.status === 404) {
               const newEvent = {
                 uuid: eventId,
-                name: 'Event Mobile Import',
-                description: 'Event créé automatiquement lors de l\'import des données mobiles',
+                title: 'Event Mobile Import',
                 startDate: new Date(),
-                status: EventStatus.ToOrganize
+                endDate: new Date(),
+                status: EventStatus.ToOrganize,
               };
-              
+
               this.eventService.create(newEvent).subscribe({
                 next: () => {
                   resolve();
                 },
                 error: (createErr) => {
                   reject(createErr);
-                }
+                },
               });
             } else {
               reject(err);
             }
-          }
+          },
         });
       });
     } catch {
@@ -238,184 +244,259 @@ export class WebSocketExportService {
   /**
    * Traite un point reçu (création ou modification)
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, complexity
   private async processPoint(pointData: any): Promise<void> {
     // Le mobile peut envoyer en PascalCase ou camelCase
     const uuid = pointData.UUID || pointData.uuid;
-    
+
     if (!uuid) {
       return;
     }
-    
+
+    // Marquer le point comme en cours de création
+    this.pointsBeingCreated.add(uuid);
+
     // Récupérer l'eventId : priorité au mobile, sinon currentEventUuid, sinon default
-    const mobileEventId = pointData.Event_ID || pointData.eventId;
+    const mobileEventId = pointData.EventID || pointData.Event_ID || pointData.eventId;
     const eventIdToUse = mobileEventId || this.currentEventUuid || DEFAULT_EVENT_UUID;
-    
+
     // S'assurer que l'événement existe
     if (eventIdToUse && eventIdToUse !== DEFAULT_EVENT_UUID) {
       await this.ensureEventExists(eventIdToUse);
     }
-    
+
+    // Récupérer l'équipement ID du format mobile
+    const mobileEquipmentId =
+      pointData.EquipmentID || pointData.Equipement_ID || pointData.equipmentId;
+    // Vérifier si c'est un GUID "null" ou vide
+    const isNullEquipmentId =
+      !mobileEquipmentId || mobileEquipmentId === '00000000-0000-0000-0000-000000000000';
+
     // Convertir du format mobile vers TypeScript (camelCase)
     const point: Point = {
       uuid: uuid,
       eventId: eventIdToUse,
-      equipmentId: '', // Sera défini après vérification de l'équipement
+      name: pointData.Name ?? pointData.name ?? '',
       latitude: pointData.Latitude ?? pointData.latitude,
       longitude: pointData.Longitude ?? pointData.longitude,
-      comment: pointData.Commentaire ?? pointData.Comment ?? pointData.comment ?? '',
-      imageId: pointData.Image_ID ?? pointData.imageId,
+      comment: pointData.Comment ?? pointData.Commentaire ?? pointData.comment ?? '',
       order: pointData.Ordre ?? pointData.Order ?? pointData.order ?? 0,
-      isValid: pointData.Valide !== undefined ? Boolean(pointData.Valide) : (pointData.Is_valid ?? pointData.isValid ?? true),
-      equipmentQuantity: 0, // Sera défini après vérification de l'équipement
-      created: pointData.Created ? new Date(pointData.Created) : (pointData.created ? new Date(pointData.created) : new Date()),
-      modified: pointData.Modified ? new Date(pointData.Modified) : (pointData.modified ? new Date(pointData.modified) : new Date())
+      validated:
+        pointData.Validated !== undefined
+          ? Boolean(pointData.Validated)
+          : pointData.Valide !== undefined
+          ? Boolean(pointData.Valide)
+          : true,
+      isPointOfInterest: pointData.IsPointOfInterest ?? pointData.isPointOfInterest ?? false,
+      equipmentId: isNullEquipmentId ? null : mobileEquipmentId,
     };
-    
-    // Récupérer l'équipement ID du format mobile
-    const mobileEquipmentId = pointData.Equipement_ID || pointData.equipmentId;
-    const mobileEquipmentQuantity = pointData.Equipement_quantite ?? pointData.Equipement_quantity ?? pointData.equipmentQuantity ?? 0;
-    
-    // Si un équipement est spécifié, vérifier s'il existe ou le créer
-    if (mobileEquipmentId) {
+
+    // Si un équipement valide est spécifié, vérifier s'il existe ou le créer
+    if (!isNullEquipmentId && mobileEquipmentId) {
       // Vérifier si l'équipement existe
       const equipmentExists = this.existingEquipments.has(mobileEquipmentId);
-      
+
       if (equipmentExists) {
         point.equipmentId = mobileEquipmentId;
-        point.equipmentQuantity = mobileEquipmentQuantity;
       } else {
         // Créer l'équipement d'abord
         const newEquipment: Equipment = {
           uuid: mobileEquipmentId,
-          unit: 'pièce', // Unité par défaut (obligatoire en base de données)
-          totalStock: mobileEquipmentQuantity,
-          remainingStock: mobileEquipmentQuantity
+          length: 0,
         };
-        
+
         // Essayer de créer l'équipement de manière synchrone
         await new Promise<void>((resolve) => {
           this.equipmentService.create(newEquipment).subscribe({
             next: (created) => {
               this.existingEquipments.set(created.uuid, created);
               point.equipmentId = created.uuid;
-              point.equipmentQuantity = mobileEquipmentQuantity;
               resolve();
             },
             error: () => {
               // Continuer sans équipement
               resolve();
-            }
+            },
           });
         });
       }
     }
-    
-    // Vérifier si le point existe déjà dans l'API
-    this.pointService.getById(uuid).subscribe({
-      next: () => {
-        // Le point existe -> UPDATE
-        this.pointService.update(uuid, point).subscribe({
-          next: (updated) => {
-            this.existingPoints.set(uuid, updated);
-          },
-          error: () => {
-          }
-        });
-      },
-      error: (err) => {
-        if (err.status === 404) {
-          // Le point n'existe pas -> CREATE (garder l'UUID du mobile)
-          this.pointService.create(point).subscribe({
-            next: (created) => {
-              this.existingPoints.set(created.uuid, created);
-            },
-            error: () => {
-            }
-          });
-        }
-      }
-    });
 
-    // Gérer l'équipement associé (déjà géré dans la conversion ci-dessus)
+    // Créer ou mettre à jour le point de manière synchrone
+    await new Promise<void>((resolve) => {
+      this.pointService.getById(uuid).subscribe({
+        next: () => {
+          // Le point existe -> UPDATE
+          this.pointService.update(uuid, point).subscribe({
+            next: (updated) => {
+              console.log('✅ Point mis à jour:', uuid);
+              this.existingPoints.set(uuid, updated);
+              this.pointsBeingCreated.delete(uuid);
+              // Traiter les photos en attente pour ce point
+              this.processPendingPicturesForPoint(uuid);
+              resolve();
+            },
+            error: (err) => {
+              console.error('❌ Erreur mise à jour point:', uuid, err);
+              this.pointsBeingCreated.delete(uuid);
+              resolve();
+            },
+          });
+        },
+        error: (err) => {
+          if (err.status === 404) {
+            // Le point n'existe pas -> CREATE (garder l'UUID du mobile)
+            this.pointService.create(point).subscribe({
+              next: (created) => {
+                console.log('✅ Point créé:', created.uuid);
+                this.existingPoints.set(created.uuid, created);
+                this.pointsBeingCreated.delete(uuid);
+                // Traiter les photos en attente pour ce point
+                this.processPendingPicturesForPoint(uuid);
+                resolve();
+              },
+              error: (createErr) => {
+                console.error('❌ Erreur création point:', uuid, createErr);
+                this.pointsBeingCreated.delete(uuid);
+                resolve();
+              },
+            });
+          } else {
+            console.error('❌ Erreur vérification point:', uuid, err);
+            this.pointsBeingCreated.delete(uuid);
+            resolve();
+          }
+        },
+      });
+    });
   }
 
   /**
-   * Traite une photo reçue (création ou modification)
+   * Traite les photos en attente pour un point donné
+   */
+  private processPendingPicturesForPoint(pointUUID: string): void {
+    const pendingPhotos = this.pendingPictures.get(pointUUID);
+    if (pendingPhotos && pendingPhotos.length > 0) {
+      console.log(
+        `📸 Traitement de ${pendingPhotos.length} photo(s) en attente pour point ${pointUUID}`
+      );
+      pendingPhotos.forEach((photoData) => {
+        this.processPictureInternal(photoData, pointUUID);
+      });
+      this.pendingPictures.delete(pointUUID);
+    }
+  }
+
+  /**
+   * Traite une picture reçue (création ou modification)
+   * Met la photo en file d'attente si le point n'existe pas encore
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private processPhoto(photoData: any, pointUUID: string): void {
-    // Le mobile peut envoyer en PascalCase ou camelCase
-    const uuid = photoData.UUID || photoData.uuid;
-    
+  private processPicture(pictureData: any, pointUUID: string): void {
+    const uuid = pictureData.UUID || pictureData.uuid;
+
     if (!uuid) {
+      console.warn('⚠️ Picture ignorée: UUID manquant', pictureData);
       return;
     }
-    
-    // Récupérer et nettoyer les données de l'image
-    let pictureData = photoData.Picture || photoData.picture || '';
-    if (typeof pictureData === 'string' && pictureData.includes(',')) {
-      // Enlever le préfixe "data:image/...;base64,"
-      pictureData = pictureData.split(',')[1] || pictureData;
+
+    if (!pointUUID) {
+      console.warn('⚠️ Picture ignorée: pointUUID manquant pour picture', uuid);
+      return;
     }
-    
-    // Convertir du format mobile vers TypeScript (camelCase)
-    const photo: Photo = {
-      uuid: uuid,
-      pictureName: photoData.Picture_name || photoData.pictureName || 'photo.jpg',
-      picture: pictureData
-    };
-    
-    // Vérifier si la photo existe déjà
-    if (this.existingPhotos.has(uuid)) {
-      this.photoService.update(uuid, photo).subscribe({
-        next: (updated) => {
-          this.existingPhotos.set(uuid, updated);
-          // Créer la relation ImagePoint
-          this.createImagePointRelation(uuid, pointUUID);
-        },
-        error: () => {
-        }
-      });
-    } else {
-      this.photoService.create(photo).subscribe({
-        next: (created) => {
-          this.existingPhotos.set(uuid, created);
-          // Créer la relation ImagePoint
-          this.createImagePointRelation(uuid, pointUUID);
-        },
-        error: () => {
-        }
-      });
+
+    // Vérifier si le point existe déjà ou est en cours de création
+    const pointExists = this.existingPoints.has(pointUUID);
+    const pointBeingCreated = this.pointsBeingCreated.has(pointUUID);
+
+    if (!pointExists && pointBeingCreated) {
+      // Le point est en cours de création, mettre la photo en attente
+      console.log(`⏳ Photo ${uuid} mise en attente (point ${pointUUID} en cours de création)`);
+      if (!this.pendingPictures.has(pointUUID)) {
+        this.pendingPictures.set(pointUUID, []);
+      }
+      this.pendingPictures.get(pointUUID)!.push(pictureData);
+      return;
     }
+
+    if (!pointExists && !pointBeingCreated) {
+      // Le point n'existe pas encore et n'est pas en cours de création
+      // Mettre en attente quand même, le point arrivera plus tard
+      console.log(`⏳ Photo ${uuid} mise en attente (point ${pointUUID} pas encore reçu)`);
+      if (!this.pendingPictures.has(pointUUID)) {
+        this.pendingPictures.set(pointUUID, []);
+      }
+      this.pendingPictures.get(pointUUID)!.push(pictureData);
+      return;
+    }
+
+    // Le point existe, traiter la photo immédiatement
+    this.processPictureInternal(pictureData, pointUUID);
   }
 
   /**
-   * Crée la relation ImagePoint entre une photo et un point
+   * Traite effectivement une picture (création ou modification dans la BDD)
    */
-  private createImagePointRelation(imageId: string, pointId: string): void {
-    // Vérifier si la relation existe déjà
-    this.imagePointService.getByIds(imageId, pointId).subscribe({
-      next: () => {
-      },
-      error: (err) => {
-        if (err.status === 404) {
-          // La relation n'existe pas, on la crée
-          // IMPORTANT: L'API C# attend PascalCase (ImageId, PointId)
-          const imagePoint: ImagePoint = {
-            imageId: imageId,
-            pointId: pointId
-          };
-          
-          this.imagePointService.create(imagePoint).subscribe({
-            next: () => {
-            },
-            error: () => {
-            }
-          });
-        }
-      }
-    });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private processPictureInternal(pictureData: any, pointUUID: string): void {
+    const uuid = pictureData.UUID || pictureData.uuid;
+
+    // Récupérer et nettoyer les données de l'image
+    let imageData =
+      pictureData.PictureData ||
+      pictureData.pictureData ||
+      pictureData.Picture ||
+      pictureData.picture ||
+      '';
+
+    if (!imageData) {
+      console.warn('⚠️ Picture ignorée: données image manquantes pour picture', uuid);
+      return;
+    }
+
+    if (typeof imageData === 'string' && imageData.includes(',')) {
+      // Enlever le préfixe "data:image/...;base64,"
+      imageData = imageData.split(',')[1] || imageData;
+    }
+
+    // Convertir du format mobile vers TypeScript (camelCase)
+    const picture: Picture = {
+      uuid: uuid,
+      pointId: pointUUID,
+      pictureData: imageData,
+    };
+
+    console.log(
+      '📸 Traitement picture:',
+      uuid,
+      'pour point:',
+      pointUUID,
+      '(données:',
+      imageData.substring(0, 50) + '...)'
+    );
+
+    // Vérifier si la picture existe déjà
+    if (this.existingPictures.has(uuid)) {
+      this.pictureService.update(uuid, picture).subscribe({
+        next: (updated) => {
+          console.log('✅ Picture mise à jour:', uuid);
+          this.existingPictures.set(uuid, updated);
+        },
+        error: (err) => {
+          console.error('❌ Erreur mise à jour picture:', uuid, err);
+        },
+      });
+    } else {
+      this.pictureService.create(picture).subscribe({
+        next: (created) => {
+          console.log('✅ Picture créée:', uuid);
+          this.existingPictures.set(uuid, created);
+        },
+        error: (err) => {
+          console.error('❌ Erreur création picture:', uuid, err);
+        },
+      });
+    }
   }
 
   /**
@@ -423,32 +504,29 @@ export class WebSocketExportService {
    */
   private processEquipment(equipmentData: Equipment): void {
     const uuid = equipmentData.uuid;
-    
+
     // Convertir du format API vers TypeScript
     const equipment: Equipment = {
       uuid: equipmentData.uuid,
       type: equipmentData.type,
-      description: equipmentData.type,
-      totalStock: equipmentData.totalStock || 0,
-      remainingStock: equipmentData.remainingStock || 0
+      description: equipmentData.description,
+      length: equipmentData.length || 0,
     };
-    
+
     // Vérifier si l'équipement existe déjà
     if (this.existingEquipments.has(uuid)) {
       this.equipmentService.update(uuid, equipment).subscribe({
         next: (updated) => {
           this.existingEquipments.set(uuid, updated);
         },
-        error: () => {
-        }
+        error: () => {},
       });
     } else {
       this.equipmentService.create(equipment).subscribe({
         next: (created) => {
           this.existingEquipments.set(uuid, created);
         },
-        error: () => {
-        }
+        error: () => {},
       });
     }
   }

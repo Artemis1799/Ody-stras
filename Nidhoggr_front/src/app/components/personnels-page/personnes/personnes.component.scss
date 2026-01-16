@@ -331,6 +331,10 @@ $danger-bg: rgba(248, 113, 113, 0.15);
     flex-shrink: 0;
   }
   
+  &.favorite .person-avatar {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+  }
+  
   .person-info {
     flex: 1;
     min-width: 0;
@@ -411,6 +415,23 @@ $danger-bg: rgba(248, 113, 113, 0.15);
       border-color: $danger;
       color: $danger;
       transform: scale(1.05);
+    }
+  }
+
+  &.btn-favorite {
+    color: $text-muted;
+    
+    &:hover {
+      background: rgba(255, 193, 7, 0.15);
+      border-color: #ffc107;
+      color: #ffc107;
+      transform: scale(1.05);
+    }
+    
+    &.active {
+      background: rgba(255, 193, 7, 0.15);
+      border-color: #ffc107;
+      color: #ffc107;
     }
   }
 }

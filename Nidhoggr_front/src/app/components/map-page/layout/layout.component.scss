@@ -17,4 +17,67 @@
   flex: 1;
   overflow: hidden;
   background-color: #171c22;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.map-header {
+  position: absolute;
+  left: 40%;
+  top: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, rgba(42, 215, 131, 0.15) 0%, rgba(42, 215, 131, 0.08) 100%);
+  border: 1px solid rgba(42, 215, 131, 0.3);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 500;
+
+  .event-title {
+    z-index: 500;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #000000;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 0.2rem;
+
+    &::before {
+      content: '';
+      width: 3px;
+      height: 16px;
+      background: linear-gradient(135deg, #2ad783 0%, #22c55e 100%);
+      border-radius: 2px;
+      flex-shrink: 0;
+      z-index: 500;
+    }
+
+    &:empty {
+      z-index: 500;
+      color: #6e7681;
+      font-style: italic;
+
+      &::after {
+        content: 'Aucun événement';
+        margin-right: 0.5rem;
+      }
+    }
+  }
+}
+
+router-outlet {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }

@@ -1,19 +1,25 @@
-import { Component, EventEmitter, Output, Input, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, EventEmitter, Output, Input, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PointService } from '../../services/PointService';
-import { PhotoService } from '../../services/PhotoService';
-import { ImagePointService } from '../../services/ImagePointsService';
-import { GeometryService } from '../../services/GeometryService';
+import { PictureService } from '../../services/PictureService';
+import { AreaService } from '../../services/AreaService';
+import { PathService } from '../../services/PathService';
 import { EquipmentService } from '../../services/EquipmentService';
+import { SecurityZoneService } from '../../services/SecurityZoneService';
+import { TeamService } from '../../services/TeamService';
+import { TeamEmployeeService } from '../../services/TeamEmployeeService';
+import { EmployeeService } from '../../services/EmployeeService';
 import { Event } from '../../models/eventModel';
 import { Point } from '../../models/pointModel';
-import { Geometry, GeoJSONGeometry } from '../../models/geometryModel';
+import { Area } from '../../models/areaModel';
+import { RoutePath } from '../../models/routePathModel';
+import { SecurityZone } from '../../models/securityZoneModel';
 import { forkJoin, Subscription } from 'rxjs';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import QRCode from 'qrcode';
+import * as QRCodeLib from 'qrcode';
 import { ButtonModule } from 'primeng/button';
-import { WS_URL } from '../constants/wsUrl';
+import { getWebSocketUrl } from '../constants/wsUrl';
 
 @Component({
   selector: 'app-export-popup',
@@ -27,10 +33,15 @@ export class ExportPopup implements OnInit, OnDestroy {
   @Output() close = new EventEmitter<void>();
   
   private pointService = inject(PointService);
-  private photoService = inject(PhotoService);
-  private imagePointService = inject(ImagePointService);
-  private geometryService = inject(GeometryService);
+  private pictureService = inject(PictureService);
+  private areaService = inject(AreaService);
+  private pathService = inject(PathService);
   private equipmentService = inject(EquipmentService);
+  private securityZoneService = inject(SecurityZoneService);
+  private teamService = inject(TeamService);
+  private teamEmployeeService = inject(TeamEmployeeService);
+  private employeeService = inject(EmployeeService);
+  private cdr = inject(ChangeDetectorRef);
 
   // WebSocket export properties
   showQRCode = false;
@@ -57,8 +68,12 @@ export class ExportPopup implements OnInit, OnDestroy {
     this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
 
     try {
+      // Récupérer l'URL WebSocket dynamiquement
+      const wsUrl = await getWebSocketUrl();
+      console.log('✅ WebSocket URL obtenue pour export:', wsUrl);
+      
       // Générer le QR code avec l'URL du serveur WebSocket
-      this.qrCodeDataURL = await QRCode.toDataURL(WS_URL, {
+      this.qrCodeDataURL = await QRCodeLib.toDataURL(wsUrl, {
         width: 300,
         margin: 2,
         color: {
@@ -67,8 +82,11 @@ export class ExportPopup implements OnInit, OnDestroy {
         }
       });
 
+      // Forcer la détection des changements pour afficher le QR code
+      this.cdr.detectChanges();
+
       // Connexion au WebSocket et attente du téléphone
-      this.connectAndWaitForPhone();
+      this.connectAndWaitForPhone(wsUrl);
 
     } catch (error) {
       console.error('❌ Erreur génération QR code:', error);
@@ -80,12 +98,10 @@ export class ExportPopup implements OnInit, OnDestroy {
   /**
    * Connecte au WebSocket et attend qu'un téléphone se connecte
    */
-  private connectAndWaitForPhone(): void {
-    console.log('🔌 Connexion au WebSocket:', WS_URL);
-    this.ws = new WebSocket(WS_URL);
+  private connectAndWaitForPhone(wsUrl: string): void {
+    this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
-      console.log('✅ WebSocket connecté');
       // S'enregistrer comme client web en attente
       this.ws?.send(JSON.stringify({ type: 'web_waiting', eventUuid: this.event.uuid }));
       this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
@@ -94,11 +110,9 @@ export class ExportPopup implements OnInit, OnDestroy {
     this.ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        console.log('📨 Message reçu:', message.type);
 
         // Un téléphone demande les données
         if (message.type === 'phone_requesting') {
-          console.log('📱 Téléphone connecté, récupération des données...');
           this.exportStatus = '🔄 Téléphone détecté ! Récupération des données...';
           
           // Maintenant on récupère et envoie les données
@@ -106,7 +120,6 @@ export class ExportPopup implements OnInit, OnDestroy {
         }
         // Confirmation que les données ont été envoyées
         else if (message.type === 'export_confirmed') {
-          console.log('✅ Export confirmé:', message);
           this.exportStatus = `✅ ${message.summary.points} points envoyés au téléphone !`;
           
           setTimeout(() => {
@@ -126,7 +139,6 @@ export class ExportPopup implements OnInit, OnDestroy {
     };
 
     this.ws.onclose = () => {
-      console.log('🔌 WebSocket déconnecté');
       this.ws = null;
     };
 
@@ -142,22 +154,17 @@ export class ExportPopup implements OnInit, OnDestroy {
 
   /**
    * Récupère les données et les envoie au serveur pour transmission au téléphone
-   * Note: On envoie l'événement, les géométries et les équipements, PAS les points ni les photos
+   * Note: On envoie l'événement, les areas, paths et équipements, PAS les points ni les photos
    * Les points seront créés/modifiés sur le mobile puis renvoyés au PC
    */
   private fetchAndSendData(): void {
-    // Récupérer les géométries de cet événement et les équipements
+    // Récupérer les areas, paths et équipements de cet événement
     forkJoin({
-      geometries: this.geometryService.getByEventId(this.event.uuid),
+      areas: this.areaService.getByEventId(this.event.uuid),
+      paths: this.pathService.getByEventId(this.event.uuid),
       equipments: this.equipmentService.getAll()
     }).subscribe({
-      next: ({ geometries, equipments }) => {
-        console.log('✅ Données récupérées pour export vers mobile');
-        console.log('   📋 Event:', this.event.name);
-        console.log('   📐 Géométries:', geometries.length);
-        console.log('   🔧 Équipements:', equipments.length);
-        console.log('   ⚠️ Points exclus de l\'export (seront créés sur mobile)');
-        
+      next: ({ areas, paths, equipments }) => {
         this.exportStatus = '📤 Envoi des données au téléphone...';
 
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -165,26 +172,24 @@ export class ExportPopup implements OnInit, OnDestroy {
           return;
         }
 
-        // On envoie l'événement, les géométries et les équipements
+        // On envoie l'événement, les areas, paths et équipements
         // Les points ne sont PAS envoyés - ils seront créés sur le mobile
         const message = {
           type: 'event_export',
           event: this.event,
           points: [], // Pas de points envoyés
-          geometries: geometries,
+          areas: areas,
+          paths: paths,
           equipments: equipments,
           metadata: {
             exportDate: new Date().toISOString(),
-            totalGeometries: geometries.length,
+            totalAreas: areas.length,
+            totalPaths: paths.length,
             totalEquipments: equipments.length,
             note: 'Export sans points - les points seront créés sur le mobile'
           }
         };
-
-        console.log('📤 JSON envoyé au serveur WebSocket:', JSON.stringify(message, null, 2));
-
         this.ws.send(JSON.stringify(message));
-        console.log('✅ Données envoyées au serveur (event + géométries + équipements)');
       },
       error: (error) => {
         console.error('❌ Erreur récupération données:', error);
@@ -225,31 +230,369 @@ export class ExportPopup implements OnInit, OnDestroy {
   }
 
   exportExcel(): void {
-    this.pointService.getByEventId(this.event.uuid).subscribe(points => {
-      // Prepare data for Excel
-      const data = points.map(point => ({
+    forkJoin({
+      points: this.pointService.getByEventId(this.event.uuid),
+      equipments: this.equipmentService.getAll(),
+      paths: this.pathService.getByEventId(this.event.uuid),
+      areas: this.areaService.getByEventId(this.event.uuid),
+      securityZones: this.securityZoneService.getByEventId(this.event.uuid),
+      teams: this.teamService.getByEventId(this.event.uuid)
+    }).subscribe(({ points, areas, securityZones, teams }) => {
+      const wb = XLSX.utils.book_new();
+
+      // Créer une map pour accéder rapidement aux équipes par ID
+      const teamsMap = new Map<string, string>();
+      teams.forEach(team => {
+        teamsMap.set(team.uuid, team.teamName);
+      });
+
+      // Calculer la quantité totale de chaque équipement depuis les zones de sécurité
+      const equipmentQuantities = new Map<string, number>();
+      
+      securityZones.forEach(zone => {
+        if (zone.equipmentId) {
+          const count = equipmentQuantities.get(zone.equipmentId) || 0;
+          equipmentQuantities.set(zone.equipmentId, count + zone.quantity);
+        }
+      });
+
+      // Feuille 2: Zones de Sécurité (avec équipes, dates/heures et coordonnées)
+      const securityZonesData = securityZones.map(zone => {
+        // Extraire les coordonnées GPS (centre de la zone)
+        const coords = this.getZoneCenterCoordinates(zone.geoJson);
+        
+        return {
+          'Équipement': zone.equipment?.type ?? '',
+          'Quantité': zone.quantity ?? 1,
+          'Équipe de pose': zone.installationTeamId ? (teamsMap.get(zone.installationTeamId) || zone.installationTeam?.teamName || '') : '',
+          'Équipe de dépose': zone.removalTeamId ? (teamsMap.get(zone.removalTeamId) || zone.removalTeam?.teamName || '') : '',
+          'Date de pose': zone.installationDate ? this.formatDate(zone.installationDate) : '',
+          'Heure de pose': zone.installationDate ? this.formatTime(zone.installationDate) : '',
+          'Date de dépose': zone.removalDate ? this.formatDate(zone.removalDate) : '',
+          'Heure de dépose': zone.removalDate ? this.formatTime(zone.removalDate) : '',
+          'Latitude': coords.lat ?? '',
+          'Longitude': coords.lng ?? '',
+          'Commentaire': zone.comment ?? ''
+        };
+      });
+      const wsSecurityZones = XLSX.utils.json_to_sheet(securityZonesData);
+      XLSX.utils.book_append_sheet(wb, wsSecurityZones, 'Équipements');
+
+      // Feuille 3: Points
+      const pointsData = points.map(point => ({
+        'Nom': point.name ?? '',
         'Latitude': point.latitude ?? '',
         'Longitude': point.longitude ?? '',
-        'Équipement': point.equipment?.type ?? point.equipment?.description ?? '',
-        'Quantité': point.equipmentQuantity ?? 0,
         'Commentaire': point.comment ?? '',
-        'Date création': point.created ? new Date(point.created).toLocaleString('fr-FR') : '',
+        'Validé': point.validated ? 'Oui' : 'Non',
+        'Point d\'intérêt': point.isPointOfInterest ? 'Oui' : 'Non'
       }));
+      const wsPoints = XLSX.utils.json_to_sheet(pointsData);
+      XLSX.utils.book_append_sheet(wb, wsPoints, 'Points');
+
+      // Feuille 5: Zones (Areas)
+      const areasData = areas.map(area => ({
+        'Nom': area.name ?? '',
+        'Description': area.description ?? '',
+      }));
+      const wsAreas = XLSX.utils.json_to_sheet(areasData);
+      XLSX.utils.book_append_sheet(wb, wsAreas, 'Zones');
+
+      // ========== FEUILLE STATISTIQUES ==========
+      const statsData: { Catégorie: string; Statistique: string; Valeur: string | number; Pourcentage?: string }[] = [];
+
+      // --- 1. Tableau récapitulatif ---
+      statsData.push({ Catégorie: 'RÉCAPITULATIF GÉNÉRAL', Statistique: '', Valeur: '', Pourcentage: '' });
+      statsData.push({ Catégorie: 'Récapitulatif', Statistique: 'Nombre total de points', Valeur: points.length, Pourcentage: '' });
+      statsData.push({ Catégorie: 'Récapitulatif', Statistique: 'Nombre de zones de sécurité', Valeur: securityZones.length, Pourcentage: '' });
+      statsData.push({ Catégorie: 'Récapitulatif', Statistique: 'Nombre de zones (areas)', Valeur: areas.length, Pourcentage: '' });
+      statsData.push({ Catégorie: 'Récapitulatif', Statistique: 'Nombre d\'équipes', Valeur: teams.length, Pourcentage: '' });
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 2. Points validés vs non validés ---
+      const validatedPoints = points.filter(p => p.validated).length;
+      const nonValidatedPoints = points.filter(p => !p.validated).length;
+      const totalPoints = points.length;
+      const validatedPercent = totalPoints > 0 ? ((validatedPoints / totalPoints) * 100).toFixed(1) : '0';
+      const nonValidatedPercent = totalPoints > 0 ? ((nonValidatedPoints / totalPoints) * 100).toFixed(1) : '0';
+
+      statsData.push({ Catégorie: 'POINTS VALIDÉS VS NON VALIDÉS', Statistique: '', Valeur: '', Pourcentage: '' });
+      statsData.push({ Catégorie: 'Validation', Statistique: 'Points validés', Valeur: validatedPoints, Pourcentage: `${validatedPercent}%` });
+      statsData.push({ Catégorie: 'Validation', Statistique: 'Points non validés', Valeur: nonValidatedPoints, Pourcentage: `${nonValidatedPercent}%` });
+      statsData.push({ Catégorie: 'Validation', Statistique: 'Total', Valeur: totalPoints, Pourcentage: '100%' });
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 3. Matrice de statut des points (4 catégories) ---
+      const regularPoints = points.filter(p => !p.isPointOfInterest);
+      const interestPoints = points.filter(p => p.isPointOfInterest);
       
-      // Create worksheet and workbook
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Points');
+      const regularValidated = regularPoints.filter(p => p.validated).length;
+      const regularNonValidated = regularPoints.filter(p => !p.validated).length;
+      const interestValidated = interestPoints.filter(p => p.validated).length;
+      const interestNonValidated = interestPoints.filter(p => !p.validated).length;
+
+      const calcPercent = (val: number) => totalPoints > 0 ? ((val / totalPoints) * 100).toFixed(1) : '0';
+
+      statsData.push({ Catégorie: 'MATRICE STATUT DES POINTS', Statistique: '', Valeur: '', Pourcentage: '' });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Points classiques validés', Valeur: regularValidated, Pourcentage: `${calcPercent(regularValidated)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Points classiques non validés', Valeur: regularNonValidated, Pourcentage: `${calcPercent(regularNonValidated)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Points d\'intérêt validés', Valeur: interestValidated, Pourcentage: `${calcPercent(interestValidated)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Points d\'intérêt non validés', Valeur: interestNonValidated, Pourcentage: `${calcPercent(interestNonValidated)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Total points classiques', Valeur: regularPoints.length, Pourcentage: `${calcPercent(regularPoints.length)}%` });
+      statsData.push({ Catégorie: 'Matrice', Statistique: 'Total points d\'intérêt', Valeur: interestPoints.length, Pourcentage: `${calcPercent(interestPoints.length)}%` });
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 4. Répartition des quantités par type d'équipement ---
+      const equipmentStats = new Map<string, number>();
+      let totalEquipmentQty = 0;
+      securityZones.forEach(zone => {
+        const equipType = zone.equipment?.type || 'Non défini';
+        const qty = zone.quantity || 1;
+        equipmentStats.set(equipType, (equipmentStats.get(equipType) || 0) + qty);
+        totalEquipmentQty += qty;
+      });
+
+      statsData.push({ Catégorie: 'RÉPARTITION PAR TYPE D\'ÉQUIPEMENT', Statistique: '', Valeur: '', Pourcentage: '' });
+      Array.from(equipmentStats.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([type, qty]) => {
+          const pct = totalEquipmentQty > 0 ? ((qty / totalEquipmentQty) * 100).toFixed(1) : '0';
+          statsData.push({ Catégorie: 'Équipement', Statistique: type, Valeur: qty, Pourcentage: `${pct}%` });
+        });
+      statsData.push({ Catégorie: 'Équipement', Statistique: 'Total quantité', Valeur: totalEquipmentQty, Pourcentage: '100%' });
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 5. Nombre de zones par équipe de pose ---
+      const installTeamStats = new Map<string, number>();
+      let zonesWithoutInstallTeam = 0;
+      securityZones.forEach(zone => {
+        if (zone.installationTeamId) {
+          const teamName = teamsMap.get(zone.installationTeamId) || zone.installationTeam?.teamName || 'Équipe inconnue';
+          installTeamStats.set(teamName, (installTeamStats.get(teamName) || 0) + 1);
+        } else {
+          zonesWithoutInstallTeam++;
+        }
+      });
+
+      statsData.push({ Catégorie: 'ZONES PAR ÉQUIPE DE POSE', Statistique: '', Valeur: '', Pourcentage: '' });
+      Array.from(installTeamStats.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([team, count]) => {
+          const pct = securityZones.length > 0 ? ((count / securityZones.length) * 100).toFixed(1) : '0';
+          statsData.push({ Catégorie: 'Équipe pose', Statistique: team, Valeur: count, Pourcentage: `${pct}%` });
+        });
+      if (zonesWithoutInstallTeam > 0) {
+        const pct = securityZones.length > 0 ? ((zonesWithoutInstallTeam / securityZones.length) * 100).toFixed(1) : '0';
+        statsData.push({ Catégorie: 'Équipe pose', Statistique: '⚠️ Sans équipe assignée', Valeur: zonesWithoutInstallTeam, Pourcentage: `${pct}%` });
+      }
+      statsData.push({ Catégorie: '', Statistique: '', Valeur: '', Pourcentage: '' });
+
+      // --- 6. Nombre de zones par équipe de dépose ---
+      const removalTeamStats = new Map<string, number>();
+      let zonesWithoutRemovalTeam = 0;
+      securityZones.forEach(zone => {
+        if (zone.removalTeamId) {
+          const teamName = teamsMap.get(zone.removalTeamId) || zone.removalTeam?.teamName || 'Équipe inconnue';
+          removalTeamStats.set(teamName, (removalTeamStats.get(teamName) || 0) + 1);
+        } else {
+          zonesWithoutRemovalTeam++;
+        }
+      });
+
+      statsData.push({ Catégorie: 'ZONES PAR ÉQUIPE DE DÉPOSE', Statistique: '', Valeur: '', Pourcentage: '' });
+      Array.from(removalTeamStats.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([team, count]) => {
+          const pct = securityZones.length > 0 ? ((count / securityZones.length) * 100).toFixed(1) : '0';
+          statsData.push({ Catégorie: 'Équipe dépose', Statistique: team, Valeur: count, Pourcentage: `${pct}%` });
+        });
+      if (zonesWithoutRemovalTeam > 0) {
+        const pct = securityZones.length > 0 ? ((zonesWithoutRemovalTeam / securityZones.length) * 100).toFixed(1) : '0';
+        statsData.push({ Catégorie: 'Équipe dépose', Statistique: '⚠️ Sans équipe assignée', Valeur: zonesWithoutRemovalTeam, Pourcentage: `${pct}%` });
+      }
+
+      // Créer la feuille avec un ordre de colonnes personnalisé
+      const wsStats = XLSX.utils.json_to_sheet(statsData, {
+        header: ['Catégorie', 'Statistique', 'Valeur', 'Pourcentage']
+      });
       
-      // Download
-      XLSX.writeFile(wb, `${this.event.name || 'Export_Points'}.xlsx`);
+      // Ajuster la largeur des colonnes
+      wsStats['!cols'] = [
+        { wch: 35 },  // Catégorie
+        { wch: 35 },  // Statistique
+        { wch: 15 },  // Valeur
+        { wch: 15 }   // Pourcentage
+      ];
+
+      // Convertir les valeurs numériques en texte pour qu'elles soient alignées à gauche par défaut dans Excel
+      // et forcer l'alignement à gauche en préfixant avec un espace (technique Excel)
+      const range = XLSX.utils.decode_range(wsStats['!ref'] || 'A1');
+      for (let row = range.s.r + 1; row <= range.e.r; row++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: 2 }); // Colonne C (Valeur)
+        const cell = wsStats[cellAddress];
+        if (cell && cell.v !== undefined && cell.v !== '') {
+          // Convertir en string pour que Excel le traite comme texte (aligné à gauche)
+          cell.t = 's';
+          cell.v = String(cell.v);
+        }
+      }
+      
+      XLSX.utils.book_append_sheet(wb, wsStats, 'Statistiques');
+
+      // Télécharger
+      XLSX.writeFile(wb, `${this.event.title || 'Export'}.xlsx`);
     });
   }
 
   /**
-   * Génère une image de carte avec les points et géométries
+   * Formate une date en format JJ/MM/AAAA
    */
-  private async generateMapImage(points: Point[], geometries: Geometry[]): Promise<string | null> {
+  private formatDate(date: Date | string): string {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  /**
+   * Formate une date en format HH:MM
+   */
+  private formatTime(date: Date | string): string {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  /**
+   * Extrait les coordonnées du centre d'une zone à partir du GeoJSON
+   */
+  private getZoneCenterCoordinates(geoJson: string): { lat: number | null; lng: number | null } {
+    try {
+      if (!geoJson) return { lat: null, lng: null };
+      
+      const geometry = JSON.parse(geoJson);
+      let coordinates: number[][] = [];
+      
+      if (geometry.type === 'LineString') {
+        coordinates = geometry.coordinates;
+      } else if (geometry.type === 'MultiLineString') {
+        coordinates = geometry.coordinates.flat();
+      } else if (geometry.type === 'Feature' && geometry.geometry) {
+        if (geometry.geometry.type === 'LineString') {
+          coordinates = geometry.geometry.coordinates;
+        } else if (geometry.geometry.type === 'MultiLineString') {
+          coordinates = geometry.geometry.coordinates.flat();
+        }
+      }
+      
+      if (coordinates.length === 0) return { lat: null, lng: null };
+      
+      // Calculer le centre (moyenne des coordonnées)
+      let sumLat = 0;
+      let sumLng = 0;
+      coordinates.forEach(coord => {
+        sumLng += coord[0];
+        sumLat += coord[1];
+      });
+      
+      return {
+        lat: Math.round((sumLat / coordinates.length) * 1000000) / 1000000,
+        lng: Math.round((sumLng / coordinates.length) * 1000000) / 1000000
+      };
+    } catch {
+      return { lat: null, lng: null };
+    }
+  }
+
+  /**
+   * Génère une mini-carte pour une zone de sécurité spécifique
+   */
+  private async generateSecurityZoneMapImage(zone: SecurityZone): Promise<string | null> {
+    return new Promise((resolve) => {
+      const allCoords: [number, number][] = [];
+      
+      // Parser le geoJson de la zone
+      const geoJson = typeof zone.geoJson === 'string' ? JSON.parse(zone.geoJson) : zone.geoJson;
+      this.extractGeometryCoords(geoJson, allCoords);
+
+      if (allCoords.length === 0) {
+        resolve(null);
+        return;
+      }
+
+      // Calculer le centre et les bounds
+      const lats = allCoords.map(c => c[0]);
+      const lngs = allCoords.map(c => c[1]);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const minLng = Math.min(...lngs);
+      const maxLng = Math.max(...lngs);
+      
+      const centerLat = (minLat + maxLat) / 2;
+      const centerLng = (minLng + maxLng) / 2;
+
+      // Calculer le zoom approprié (plus zoomé pour une zone individuelle)
+      const latDiff = maxLat - minLat;
+      const lngDiff = maxLng - minLng;
+      const maxDiff = Math.max(latDiff, lngDiff);
+      
+      let zoom = 17;
+      if (maxDiff > 0.01) zoom = 15;
+      else if (maxDiff > 0.005) zoom = 16;
+      else if (maxDiff > 0.002) zoom = 17;
+      else zoom = 18;
+
+      // Créer un canvas plus petit pour la mini-carte
+      const canvas = document.createElement('canvas');
+      const width = 300;
+      const height = 150;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        resolve(null);
+        return;
+      }
+
+      this.loadMapTiles(ctx, canvas, centerLat, centerLng, zoom, width, height).then(() => {
+        // Dessiner la zone en orange pour la mettre en évidence
+        ctx.strokeStyle = '#ff6b35';
+        ctx.fillStyle = 'rgba(255, 107, 53, 0.3)';
+        ctx.lineWidth = 3;
+        
+        this.drawGeometryOnCanvas(ctx, geoJson, centerLat, centerLng, zoom, width, height);
+
+        // Ajouter un marqueur au centre
+        ctx.beginPath();
+        ctx.arc(width / 2, height / 2, 8, 0, 2 * Math.PI);
+        ctx.fillStyle = '#ff6b35';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        resolve(canvas.toDataURL('image/png'));
+      }).catch(() => {
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#999';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Carte non disponible', width / 2, height / 2);
+        resolve(canvas.toDataURL('image/png'));
+      });
+    });
+  }
+
+  /**
+   * Génère une image de carte avec les points, areas et paths
+   */
+  private async generateMapImage(points: Point[], areas: Area[], paths: RoutePath[]): Promise<string | null> {
     return new Promise((resolve) => {
       // Calculer les bounds pour centrer la carte
       const allCoords: [number, number][] = [];
@@ -261,9 +604,16 @@ export class ExportPopup implements OnInit, OnDestroy {
         }
       });
 
-      // Ajouter les coordonnées des géométries
-      geometries.forEach(g => {
-        this.extractGeometryCoords(g.geoJson, allCoords);
+      // Ajouter les coordonnées des areas
+      areas.forEach(a => {
+        const geoJson = typeof a.geoJson === 'string' ? JSON.parse(a.geoJson) : a.geoJson;
+        this.extractGeometryCoords(geoJson, allCoords);
+      });
+
+      // Ajouter les coordonnées des paths
+      paths.forEach(p => {
+        const geoJson = typeof p.geoJson === 'string' ? JSON.parse(p.geoJson) : p.geoJson;
+        this.extractGeometryCoords(geoJson, allCoords);
       });
 
       if (allCoords.length === 0) {
@@ -314,13 +664,23 @@ export class ExportPopup implements OnInit, OnDestroy {
       
       // Créer l'image de fond avec plusieurs tuiles
       this.loadMapTiles(ctx, canvas, centerLat, centerLng, zoom, width, height).then(() => {
-        // Dessiner les géométries
-        ctx.strokeStyle = '#2ad783';
-        ctx.fillStyle = 'rgba(42, 215, 131, 0.2)';
+        // Dessiner les areas (polygones) en bleu
+        ctx.strokeStyle = '#3388ff';
+        ctx.fillStyle = 'rgba(51, 136, 255, 0.2)';
         ctx.lineWidth = 3;
 
-        geometries.forEach(g => {
-          this.drawGeometryOnCanvas(ctx, g.geoJson, centerLat, centerLng, zoom, width, height);
+        areas.forEach(a => {
+          const geoJson = typeof a.geoJson === 'string' ? JSON.parse(a.geoJson) : a.geoJson;
+          this.drawGeometryOnCanvas(ctx, geoJson, centerLat, centerLng, zoom, width, height);
+        });
+
+        // Dessiner les paths (polylignes) en rouge
+        ctx.strokeStyle = '#a91a1a';
+        ctx.lineWidth = 4;
+
+        paths.forEach(p => {
+          const geoJson = typeof p.geoJson === 'string' ? JSON.parse(p.geoJson) : p.geoJson;
+          this.drawGeometryOnCanvas(ctx, geoJson, centerLat, centerLng, zoom, width, height);
         });
 
         // Dessiner les points
@@ -331,7 +691,7 @@ export class ExportPopup implements OnInit, OnDestroy {
             // Cercle extérieur
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, 12, 0, 2 * Math.PI);
-            ctx.fillStyle = p.isValid ? '#2ad783' : '#f87171';
+            ctx.fillStyle = p.validated ? '#2ad783' : '#f87171';
             ctx.fill();
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 2;
@@ -380,13 +740,13 @@ export class ExportPopup implements OnInit, OnDestroy {
     for (let tx = 0; tx < tilesX; tx++) {
       for (let ty = 0; ty < tilesY; ty++) {
         const tileX = startTileX + tx;
-        const tileY = startTileY + ty;
+        const tileY = startTileY + ty + 1; // Tuile normale
         
         const url = `https://tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png`;
         
-        // Position de la tuile sur le canvas
-        const offsetX = (tileX - centerTileX) * tileSize + width / 2;
-        const offsetY = (tileY - centerTileY) * tileSize + height / 2;
+        // Position de la tuile sur le canvas (décalée vers l'ouest et le nord)
+        const offsetX = (tileX - centerTileX) * tileSize + width / 2 - 60; 
+        const offsetY = (tileY - centerTileY - 1) * tileSize + height / 2 + 105; 
 
         promises.push(
           new Promise<void>((resolve) => {
@@ -409,7 +769,9 @@ export class ExportPopup implements OnInit, OnDestroy {
   /**
    * Extrait les coordonnées d'une géométrie GeoJSON
    */
-  private extractGeometryCoords(geoJson: GeoJSONGeometry, coords: [number, number][]): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private extractGeometryCoords(geoJson: any, coords: [number, number][]): void {
+    if (!geoJson) return;
     if (geoJson.type === 'Point') {
       const c = geoJson.coordinates as [number, number];
       coords.push([c[1], c[0]]); // GeoJSON est [lng, lat]
@@ -425,10 +787,9 @@ export class ExportPopup implements OnInit, OnDestroy {
   /**
    * Dessine une géométrie sur le canvas
    */
-  private drawGeometryOnCanvas(ctx: CanvasRenderingContext2D, geoJson: GeoJSONGeometry, centerLat: number, centerLng: number, zoom: number, width: number, height: number): void {
-    ctx.strokeStyle = '#2ad783';
-    ctx.fillStyle = 'rgba(42, 215, 131, 0.3)';
-    ctx.lineWidth = 3;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private drawGeometryOnCanvas(ctx: CanvasRenderingContext2D, geoJson: any, centerLat: number, centerLng: number, zoom: number, width: number, height: number): void {
+    if (!geoJson) return;
 
     if (geoJson.type === 'LineString') {
       const coords = geoJson.coordinates as [number, number][];
@@ -495,16 +856,22 @@ export class ExportPopup implements OnInit, OnDestroy {
   exportPDF(): void {
     forkJoin({
       points: this.pointService.getByEventId(this.event.uuid),
-      photos: this.photoService.getAll(),
-      imagePoints: this.imagePointService.getAll(),
-      geometries: this.geometryService.getByEventId(this.event.uuid)
-    }).subscribe(async ({ points, photos, imagePoints, geometries }) => {
+      areas: this.areaService.getByEventId(this.event.uuid),
+      paths: this.pathService.getByEventId(this.event.uuid),
+      securityZones: this.securityZoneService.getByEventId(this.event.uuid),
+      equipments: this.equipmentService.getAll(),
+      teams: this.teamService.getAll(),
+      teamEmployees: this.teamEmployeeService.getAll(),
+      employees: this.employeeService.getAll()
+    }).subscribe(async ({ points, areas, paths, securityZones, equipments, teams, teamEmployees, employees }) => {
+      console.log('🔍 Équipements récupérés pour le PDF:', equipments);
+      console.log('📊 Nombre d\'équipements:', equipments.length);
       const doc = new jsPDF();
       const pageHeight = doc.internal.pageSize.height;
       const pageWidth = doc.internal.pageSize.width;
       const margin = 15;
       let yPosition = 25;
-      const eventTitle = this.event.name || 'Export_Points';
+      const eventTitle = this.event.title || 'Export';
       
       // En-tête du document avec fond coloré
       doc.setFillColor(41, 128, 185);
@@ -513,176 +880,396 @@ export class ExportPopup implements OnInit, OnDestroy {
       doc.setFontSize(20);
       doc.text(eventTitle, pageWidth / 2, 15, { align: 'center' });
       doc.setFontSize(12);
-      doc.text('Rapport d\'export des points', pageWidth / 2, 25, { align: 'center' });
+      doc.text('Rapport complet de l\'événement', pageWidth / 2, 25, { align: 'center' });
       
       yPosition = 45;
       doc.setTextColor(0, 0, 0);
 
-      // === CARTE RÉCAPITULATIVE ===
-      if (points.length > 0 || geometries.length > 0) {
-        try {
-          const mapImageData = await this.generateMapImage(points, geometries);
-          if (mapImageData) {
-            // Titre de la section carte
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Carte récapitulative', margin, yPosition);
-            yPosition += 8;
+      // Fonction helper pour ajouter un titre de section
+      const addSectionTitle = (title: string) => {
+        if (yPosition > pageHeight - 40) {
+          doc.addPage();
+          yPosition = 25;
+        }
+        doc.setFillColor(52, 73, 94);
+        doc.rect(margin, yPosition - 5, pageWidth - 2 * margin, 10, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title, margin + 3, yPosition + 2);
+        yPosition += 12;
+        doc.setTextColor(0, 0, 0);
+      };
 
-            // Dimensions de la carte (format paysage dans la page)
+      // === 1. CARTE RÉCAPITULATIVE ===
+      if (points.length > 0 || areas.length > 0 || paths.length > 0) {
+        try {
+          const mapImageData = await this.generateMapImage(points, areas, paths);
+          if (mapImageData) {
+            addSectionTitle('Carte récapitulative');
             const mapWidth = pageWidth - 2 * margin;
             const mapHeight = 100;
-
             doc.addImage(mapImageData, 'PNG', margin, yPosition, mapWidth, mapHeight);
-            yPosition += mapHeight + 10;
-
-            // Légende
+            yPosition += mapHeight + 5;
             doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
             doc.setTextColor(100, 100, 100);
-            doc.text(`${points.length} point(s) • ${geometries.length} géométrie(s)`, margin, yPosition);
+            doc.text(`${securityZones.length} zone(s) • ${paths.length} chemin(s) • ${points.length} point(s)`, margin, yPosition);
             doc.setTextColor(0, 0, 0);
             yPosition += 15;
           }
         } catch (error) {
           console.error('Erreur lors de la génération de la carte:', error);
-          // Continuer sans la carte en cas d'erreur
         }
       }
-      
-      points.forEach((point, index) => {
-        // Vérifier si on a besoin d'une nouvelle page
-        if (yPosition > pageHeight - 80) {
-          doc.addPage();
-          yPosition = 25;
-        }
-        
-        // Titre du point avec fond gris
-        doc.setFillColor(236, 240, 241);
-        doc.rect(margin, yPosition - 5, pageWidth - 2 * margin, 10, 'F');
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Point #${point.order || index + 1}`, margin + 3, yPosition + 2);
-        
-        // Badge de validation
-        const badgeX = pageWidth - margin - 25;
-        if (point.isValid) {
-          doc.setFillColor(46, 204, 113);
-          doc.setTextColor(255, 255, 255);
-        } else {
-          doc.setFillColor(231, 76, 60);
-          doc.setTextColor(255, 255, 255);
-        }
-        doc.roundedRect(badgeX, yPosition - 3, 20, 6, 1, 1, 'F');
-        doc.setFontSize(8);
-        doc.text(point.isValid ? 'Validé' : 'Non validé', badgeX + 10, yPosition + 1, { align: 'center' });
-        
-        yPosition += 12;
-        doc.setTextColor(0, 0, 0);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        
-        // Informations du point en colonnes
-        const col1X = margin + 5;
-        const col2X = pageWidth / 2 + 5;
-        
-        // Colonne 1
-        doc.setFont('helvetica', 'bold');
-        doc.text('Coordonnées:', col1X, yPosition);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Lat: ${point.latitude?.toFixed(6) ?? 'N/A'}`, col1X + 5, yPosition + 5);
-        doc.text(`Lon: ${point.longitude?.toFixed(6) ?? 'N/A'}`, col1X + 5, yPosition + 10);
-        
-        // Colonne 2
-        doc.setFont('helvetica', 'bold');
-        doc.text('Équipement:', col2X, yPosition);
-        doc.setFont('helvetica', 'normal');
-        const equipText = point.equipment?.type ?? point.equipment?.description ?? 'N/A';
-        doc.text(equipText, col2X + 5, yPosition + 5);
-        doc.text(`Quantité: ${point.equipmentQuantity ?? 0}`, col2X + 5, yPosition + 10);
-        
-        yPosition += 18;
-        
-        // Commentaire
-        if (point.comment) {
-          doc.setFont('helvetica', 'bold');
-          doc.text('Commentaire:', col1X, yPosition);
-          doc.setFont('helvetica', 'normal');
-          const commentLines = doc.splitTextToSize(point.comment, pageWidth - 2 * margin - 10);
-          doc.text(commentLines, col1X + 5, yPosition + 5);
-          yPosition += 5 + commentLines.length * 5;
-        }
-        
-        yPosition += 3;
-        
-        // Photos
-        const pointImagePoints = imagePoints.filter(ip => ip.pointId === point.uuid);
-        const pointPhotos = pointImagePoints
-          .map(ip => photos.find(p => p.uuid === ip.imageId))
-          .filter(p => p != null);
-        
-        if (pointPhotos.length > 0) {
-          doc.setFont('helvetica', 'bold');
-          doc.text(`Photos (${pointPhotos.length}):`, col1X, yPosition);
-          yPosition += 7;
-          doc.setFont('helvetica', 'normal');
+
+      // === 2. ÉQUIPE(S) PRÉSENTE(S) ===
+      const allTeams = teams.filter(t => t.eventId === this.event.uuid);
+      if (allTeams.length > 0) {
+        addSectionTitle(`Équipe(s) présente(s) (${allTeams.length})`);
+        allTeams.forEach((team) => {
+          // Calculer la hauteur nécessaire pour cette équipe
+          const teamMemberIds = teamEmployees.filter(te => te.teamId === team.uuid).map(te => te.employeeId);
+          const teamMembers = employees.filter(emp => teamMemberIds.includes(emp.uuid));
+          const estimatedHeight = 35 + (teamMembers.length * 5);
           
-          for (let photoIndex = 0; photoIndex < pointPhotos.length; photoIndex++) {
-            const photo = pointPhotos[photoIndex];
-            
-            // Afficher uniquement les photos impaires (colonnes de gauche)
-            if (photoIndex % 2 === 0) {
-              if (yPosition > pageHeight - 90) {
-                doc.addPage();
-                yPosition = 25;
-              }
-              
-              doc.setFontSize(9);
-              doc.text(`Image ${photoIndex + 1}/${pointPhotos.length}`, col1X + 5, yPosition);
-              yPosition += 5;
-              
-              if (photo.picture) {
-                try {
-                  const imgData = photo.picture.startsWith('data:') ? photo.picture : `data:image/jpeg;base64,${photo.picture}`;
-                  doc.addImage(imgData, 'JPEG', col1X + 5, yPosition, 70, 70);
-                } catch (err) {
-                  console.error('Error adding image to PDF:', err);
-                  doc.text('(Image non disponible)', col1X + 5, yPosition);
-                }
-              } else {
-                doc.text('(Image non disponible)', col1X + 5, yPosition);
-              }
-              
-              // Afficher la photo paire (colonne de droite) si elle existe
-              if (photoIndex + 1 < pointPhotos.length) {
-                const nextPhoto = pointPhotos[photoIndex + 1];
-                doc.setFontSize(9);
-                doc.text(`Image ${photoIndex + 2}/${pointPhotos.length}`, col2X + 5, yPosition - 5);
-                
-                if (nextPhoto.picture) {
-                  try {
-                    const nextImgData = nextPhoto.picture.startsWith('data:') ? nextPhoto.picture : `data:image/jpeg;base64,${nextPhoto.picture}`;
-                    doc.addImage(nextImgData, 'JPEG', col2X + 5, yPosition, 70, 70);
-                  } catch (err) {
-                    console.error('Error adding image to PDF:', err);
-                    doc.text('(Image non disponible)', col2X + 5, yPosition);
-                  }
-                } else {
-                  doc.text('(Image non disponible)', col2X + 5, yPosition);
-                }
-              }
-              
-              yPosition += 75;
+          if (yPosition > pageHeight - estimatedHeight) {
+            doc.addPage();
+            yPosition = 25;
+          }
+          
+          // Cadre de l'équipe
+          doc.setDrawColor(220, 220, 220);
+          doc.setFillColor(248, 250, 252);
+          doc.roundedRect(margin, yPosition - 3, pageWidth - 2 * margin, estimatedHeight, 3, 3, 'FD');
+          
+          // Pastille violette (sans numéro)
+          doc.setFillColor(138, 43, 226);
+          doc.circle(margin + 12, yPosition + 7, 5, 'F');
+          
+          // Nom de l'équipe
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(50, 50, 50);
+          doc.text(`${team.teamName}`, margin + 22, yPosition + 10);
+          
+          // Membres
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(100, 100, 100);
+          
+          if (teamMembers.length > 0) {
+            let memberY = yPosition + 20;
+            teamMembers.forEach((member) => {
+              doc.setFillColor(230, 230, 230);
+              doc.circle(margin + 12, memberY, 2, 'F');
+              doc.text(`${member.firstName} ${member.lastName}`, margin + 18, memberY + 1);
+              memberY += 5;
+            });
+          } else {
+            doc.setTextColor(180, 180, 180);
+            doc.text('Aucun membre assigné', margin + 25, yPosition + 20);
+          }
+          
+          yPosition += estimatedHeight + 5;
+          doc.setTextColor(0, 0, 0);
+        });
+        yPosition += 5;
+      }
+
+      // === 4. ZONES DE SÉCURITÉ ===
+      if (securityZones.length > 0) {
+        addSectionTitle(`Emplacement(s) à sécuriser (${securityZones.length})`);
+        
+        const colWidth = (pageWidth - 2 * margin - 5) / 2; // Largeur d'une colonne avec 5px d'espacement
+        const textWidthCol = colWidth - 20;
+        
+        // Pré-calculer les hauteurs pour chaque zone
+        const zoneHeights: number[] = [];
+        securityZones.forEach((zone) => {
+          doc.setFontSize(7);
+          const commentLines = zone.comment ? doc.splitTextToSize(zone.comment, textWidthCol) : [];
+          const baseHeight = 35; // Hauteur de base pour titre + équipement
+          const commentHeight = commentLines.length * 3.5;
+          zoneHeights.push(Math.max(45, baseHeight + commentHeight));
+        });
+        
+        for (let index = 0; index < securityZones.length; index++) {
+          const zone = securityZones[index];
+          const isLeftColumn = index % 2 === 0;
+          
+          // Calculer la hauteur de ligne (max des 2 colonnes)
+          const pairIndex = Math.floor(index / 2) * 2;
+          const leftHeight = zoneHeights[pairIndex] || 45;
+          const rightHeight = zoneHeights[pairIndex + 1] || 45;
+          const rowHeight = Math.max(leftHeight, rightHeight);
+          
+          // Nouvelle ligne toutes les 2 zones
+          if (isLeftColumn) {
+            if (yPosition > pageHeight - rowHeight - 10) {
+              doc.addPage();
+              yPosition = 25;
             }
           }
+          
+          // Position X selon la colonne
+          const cardX = isLeftColumn ? margin : margin + colWidth + 5;
+          
+          // Trouver l'équipement lié
+          const equipment = equipments.find(e => e.uuid === zone.equipmentId);
+          
+          // Dessiner un cadre léger pour la zone
+          doc.setDrawColor(200, 200, 200);
+          doc.setFillColor(250, 250, 250);
+          doc.roundedRect(cardX, yPosition - 3, colWidth, rowHeight, 3, 3, 'FD');
+          
+          // Pastille colorée (sans numéro)
+          doc.setFillColor(255, 107, 53);
+          doc.circle(cardX + 8, yPosition + 4, 4, 'F');
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(50, 50, 50);
+          doc.text(`Zone ${index + 1}`, cardX + 15, yPosition + 6);
+          
+          // Informations
+          const infoX = cardX + 8;
+          let infoY = yPosition + 14;
+          
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(80, 80, 80);
+          
+          if (equipment) {
+            doc.setFont('helvetica', 'bold');
+            const typeText = doc.splitTextToSize(equipment.type || 'N/A', textWidthCol);
+            doc.text(typeText[0], infoX, infoY);
+            infoY += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Qté: ${zone.quantity} | Long: ${equipment.length || 'N/A'}m`, infoX, infoY);
+            infoY += 5;
+          } else {
+            doc.text(`Équipement: Non trouvé`, infoX, infoY);
+            infoY += 5;
+          }
+          
+          if (zone.comment) {
+            doc.setFontSize(7);
+            doc.setTextColor(120, 120, 120);
+            const commentLines = doc.splitTextToSize(zone.comment, textWidthCol);
+            doc.text(commentLines, infoX, infoY);
+          }
+          
+          // Avancer à la ligne suivante après 2 zones
+          if (!isLeftColumn || index === securityZones.length - 1) {
+            yPosition += rowHeight + 5;
+          }
+          
+          doc.setTextColor(0, 0, 0);
         }
+        yPosition += 5;
+      }
+
+      // === 5. POINTS NORMAUX ===
+      const normalPoints = points.filter(p => !p.isPointOfInterest);
+      if (normalPoints.length > 0) {
+        addSectionTitle(`Points (${normalPoints.length})`);
         
-        // Ligne de séparation entre les points
-        yPosition += 8;
-        doc.setDrawColor(189, 195, 199);
-        doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += 10;
-      });
+        const colWidth = (pageWidth - 2 * margin - 5) / 2;
+        const textWidth = colWidth - 20;
+        
+        // Pré-calculer les hauteurs pour chaque point
+        const pointHeights: number[] = [];
+        normalPoints.forEach((point) => {
+          doc.setFontSize(9);
+          const pointName = point.name || `Point`;
+          const nameLines = doc.splitTextToSize(pointName, textWidth);
+          doc.setFontSize(7);
+          const commentLines = point.comment ? doc.splitTextToSize(point.comment, textWidth) : [];
+          const baseHeight = 20;
+          const nameHeight = nameLines.length * 4;
+          const commentHeight = commentLines.length * 3.5;
+          pointHeights.push(Math.max(30, baseHeight + nameHeight + commentHeight));
+        });
+        
+        for (let index = 0; index < normalPoints.length; index++) {
+          const point = normalPoints[index];
+          const isLeftColumn = index % 2 === 0;
+          
+          // Calculer la hauteur de ligne (max des 2 colonnes)
+          const pairIndex = Math.floor(index / 2) * 2;
+          const leftHeight = pointHeights[pairIndex] || 30;
+          const rightHeight = pointHeights[pairIndex + 1] || 30;
+          const rowHeight = Math.max(leftHeight, rightHeight);
+          
+          // Nouvelle ligne toutes les 2 points
+          if (isLeftColumn) {
+            if (yPosition > pageHeight - rowHeight - 10) {
+              doc.addPage();
+              yPosition = 25;
+            }
+          }
+          
+          // Position X selon la colonne
+          const cardX = isLeftColumn ? margin : margin + colWidth + 5;
+          
+          // Cadre léger pour le point
+          doc.setDrawColor(230, 230, 230);
+          if (point.validated) {
+            doc.setFillColor(245, 255, 250);
+          } else {
+            doc.setFillColor(255, 252, 245);
+          }
+          doc.roundedRect(cardX, yPosition - 3, colWidth, rowHeight, 2, 2, 'FD');
+          
+          // Pastille colorée (sans numéro)
+          if (point.validated) {
+            doc.setFillColor(46, 204, 113);
+          } else {
+            doc.setFillColor(241, 135, 135);
+          }
+          doc.circle(cardX + 8, yPosition + 5, 5, 'F');
+          
+          // Nom du point (multi-lignes)
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(50, 50, 50);
+          const pointName = point.name || `Point #${point.order || index + 1}`;
+          const nameLines = doc.splitTextToSize(pointName, textWidth);
+          doc.text(nameLines, cardX + 16, yPosition + 6);
+          
+          // Badge validé
+          if (point.validated) {
+            doc.setFillColor(46, 204, 113);
+            doc.roundedRect(cardX + colWidth - 22, yPosition, 18, 5, 1, 1, 'F');
+            doc.setFontSize(5);
+            doc.setTextColor(255, 255, 255);
+            doc.text('VALIDÉ', cardX + colWidth - 13, yPosition + 3.5, { align: 'center' });
+          }
+
+          // Commentaire (multi-lignes)
+          if (point.comment) {
+            doc.setFontSize(7);
+            doc.setTextColor(100, 100, 100);
+            const commentLines = doc.splitTextToSize(point.comment, textWidth);
+            doc.text(commentLines, cardX + 16, yPosition + 6 + (nameLines.length * 4) + 4);
+          }
+          
+          // Avancer à la ligne suivante après 2 points
+          if (!isLeftColumn || index === normalPoints.length - 1) {
+            yPosition += rowHeight + 5;
+          }
+          
+          doc.setTextColor(0, 0, 0);
+        }
+        yPosition += 5;
+      }
+
+      // === 6. POINTS D'ATTENTION ===
+      const attentionPoints = points.filter(p => p.isPointOfInterest);
+      if (attentionPoints.length > 0) {
+        addSectionTitle(`Points d'attention (${attentionPoints.length})`);
+        
+        const textWidthAttention = pageWidth - 2 * margin - 25;
+        
+        for (let index = 0; index < attentionPoints.length; index++) {
+          const point = attentionPoints[index];
+          
+          // Calculer la hauteur dynamique
+          doc.setFontSize(9);
+          const attentionName = point.name || `Point d'attention #${index + 1}`;
+          const nameLines = doc.splitTextToSize(attentionName, textWidthAttention - 20);
+          doc.setFontSize(7);
+          const commentLines = point.comment ? doc.splitTextToSize(point.comment, textWidthAttention) : [];
+          const cardHeight = 15 + (nameLines.length * 4) + (commentLines.length * 3.5);
+          
+          if (yPosition > pageHeight - cardHeight - 10) {
+            doc.addPage();
+            yPosition = 25;
+          }
+          
+          const cardX = margin;
+          
+          // Cadre avec bordure gauche orange (pleine largeur)
+          doc.setDrawColor(255, 193, 7);
+          doc.setFillColor(255, 251, 235);
+          doc.roundedRect(cardX, yPosition - 3, pageWidth - 2 * margin, cardHeight, 2, 2, 'FD');
+          doc.setFillColor(255, 193, 7);
+          doc.rect(cardX, yPosition - 3, 3, cardHeight, 'F');
+          
+          // Pastille orange (sans numéro)
+          doc.setFillColor(255, 193, 7);
+          doc.circle(cardX + 12, yPosition + 5, 5, 'F');
+          
+          // Nom du point (multi-lignes)
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(50, 50, 50);
+          doc.text(nameLines, cardX + 20, yPosition + 6);
+          
+          // Commentaire (multi-lignes)
+          if (commentLines.length > 0) {
+            doc.setFontSize(7);
+            doc.setTextColor(100, 100, 100);
+            doc.text(commentLines, cardX + 20, yPosition + 6 + (nameLines.length * 4) + 4);
+          }
+          
+          yPosition += cardHeight + 5;
+          doc.setTextColor(0, 0, 0);
+        }
+      }
+
+      // === 7. ZONES (AREAS) AVEC COMMENTAIRES ===
+      const areasWithComments = areas.filter(a => a.description && a.description.trim().length > 0);
+      if (areasWithComments.length > 0) {
+        addSectionTitle(`Zones (${areasWithComments.length})`);
+        
+        const textWidthZone = pageWidth - 2 * margin - 25;
+        
+        for (let index = 0; index < areasWithComments.length; index++) {
+          const area = areasWithComments[index];
+          
+          // Calculer la hauteur dynamique
+          doc.setFontSize(9);
+          const areaName = area.name || `Zone #${index + 1}`;
+          const nameLines = doc.splitTextToSize(areaName, textWidthZone);
+          doc.setFontSize(7);
+          const descLines = doc.splitTextToSize(area.description!, textWidthZone);
+          const cardHeight = 15 + (nameLines.length * 4) + (descLines.length * 3.5);
+          
+          if (yPosition > pageHeight - cardHeight - 10) {
+            doc.addPage();
+            yPosition = 25;
+          }
+          
+          const cardX = margin;
+          
+          // Cadre avec couleur de la zone (pleine largeur)
+          doc.setDrawColor(200, 200, 200);
+          doc.setFillColor(250, 250, 255);
+          doc.roundedRect(cardX, yPosition - 3, pageWidth - 2 * margin, cardHeight, 2, 2, 'FD');
+          
+          // Pastille couleur de la zone
+          const hexColor = area.colorHex || '#3498db';
+          const r = parseInt(hexColor.slice(1, 3), 16);
+          const g = parseInt(hexColor.slice(3, 5), 16);
+          const b = parseInt(hexColor.slice(5, 7), 16);
+          doc.setFillColor(r, g, b);
+          doc.circle(cardX + 10, yPosition + 5, 5, 'F');
+          
+          // Nom de la zone (multi-lignes)
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(50, 50, 50);
+          doc.text(nameLines, cardX + 18, yPosition + 6);
+          
+          // Description/commentaire (multi-lignes)
+          doc.setFontSize(7);
+          doc.setTextColor(100, 100, 100);
+          doc.text(descLines, cardX + 18, yPosition + 6 + (nameLines.length * 4) + 4);
+          
+          yPosition += cardHeight + 5;
+          doc.setTextColor(0, 0, 0);
+        }
+      }
       
       // Pied de page sur toutes les pages
       const totalPages = doc.getNumberOfPages();
@@ -691,7 +1278,6 @@ export class ExportPopup implements OnInit, OnDestroy {
         doc.setFontSize(8);
         doc.setTextColor(127, 140, 141);
         doc.text(`Page ${i} / ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-        doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
       }
       
       doc.save(`${eventTitle}.pdf`);

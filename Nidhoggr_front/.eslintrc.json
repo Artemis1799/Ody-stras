@@ -1,6 +1,6 @@
 {
   "root": true,
-  "ignorePatterns": ["*.html"],
+  "ignorePatterns": ["*.html", "*.spec.ts"],
   "overrides": [
     {
       "files": ["*.ts"],
@@ -15,6 +15,7 @@
       "rules": {
         "@typescript-eslint/no-explicit-any": "error",
         "@typescript-eslint/no-unused-vars": "error",
+        "@typescript-eslint/no-require-imports": "off",
         "prefer-const": "error",
         "no-empty": "error",
         "@typescript-eslint/no-unused-expressions": "error",

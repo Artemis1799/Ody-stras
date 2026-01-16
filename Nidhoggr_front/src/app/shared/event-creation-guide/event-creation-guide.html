@@ -1,0 +1,111 @@
+@if (isActive && (currentStep === 'drawing-zone' || currentStep === 'drawing-path')) {
+  @if (!isMinimized) {
+    <!-- Mode maximisé - Notification complète -->
+    <div class="event-creation-guide" [class.drawing-zone]="currentStep === 'drawing-zone'" [class.drawing-path]="currentStep === 'drawing-path'" [class.modification-mode]="isModificationMode">
+      <div class="guide-content">
+        <div class="guide-icon">
+          @if (currentStep === 'drawing-zone') {
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          }
+        </div>
+        
+        <div class="guide-text">
+          @if (isModificationMode) {
+            <div class="guide-step">
+              Mode modification
+            </div>
+            <div class="guide-title">
+              @if (isZoneModificationMode) {
+                Modifiez la zone de l'événement
+              } @else {
+                Modifiez le tracé de l'événement
+              }
+            </div>
+            <div class="guide-description">
+              @if (isZoneModificationMode) {
+                Déplacez les points du polygone pour ajuster la zone de « {{ eventTitle }} ». Cliquez sur "Valider" quand vous avez terminé.
+              } @else {
+                Déplacez les points du tracé pour ajuster le chemin. Cliquez sur "Valider" quand vous avez terminé.
+              }
+            </div>
+          } @else {
+            <div class="guide-step">
+              Étape {{ currentStep === 'drawing-zone' ? '1' : '2' }}/2
+            </div>
+            <div class="guide-title">
+              @if (currentStep === 'drawing-zone') {
+                Dessinez la zone de l'événement
+              } @else {
+                Dessinez le tracé de l'événement
+              }
+            </div>
+            <div class="guide-description">
+              @if (currentStep === 'drawing-zone') {
+                Cliquez sur la carte pour définir les points du polygone représentant la zone de « {{ eventTitle }} ». Double-cliquez pour terminer.
+              } @else {
+                Cliquez sur la carte pour tracer le chemin de l'événement. Double-cliquez pour terminer.
+              }
+            </div>
+          }
+        </div>
+
+        @if (isModificationMode) {
+          <button class="guide-validate" (click)="onValidateModification()" title="Valider les modifications">
+            ✓ Valider
+          </button>
+        } @else if (currentStep === 'drawing-zone') {
+          <button class="guide-skip" (click)="onSkipZone()" title="Passer cette étape">
+            Passer
+          </button>
+        }
+        
+        <button class="guide-minimize" (click)="toggleMinimize()" title="Minimiser">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="guide-progress">
+        <div class="progress-bar" [style.width]="currentStep === 'drawing-zone' ? '50%' : '100%'"></div>
+      </div>
+    </div>
+  } @else {
+    <!-- Mode minimisé - Pastille compacte -->
+    <div class="guide-minimized" [class.drawing-zone]="currentStep === 'drawing-zone'" [class.drawing-path]="currentStep === 'drawing-path'" [class.modification-mode]="isModificationMode" (click)="toggleMinimize()">
+      <div class="minimized-icon">
+        @if (currentStep === 'drawing-zone') {
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        }
+      </div>
+      <span class="minimized-step">
+        @if (isModificationMode) {
+          Mode modification
+        } @else {
+          Étape {{ currentStep === 'drawing-zone' ? '1' : '2' }}/2
+        }
+      </span>
+      <div class="expand-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </div>
+    </div>
+  }
+}

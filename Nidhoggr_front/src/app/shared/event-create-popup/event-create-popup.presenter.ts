@@ -1,27 +1,35 @@
 import { Injectable } from '@angular/core';
 import { EventService } from '../../services/EventService';
+import { MapService } from '../../services/MapService';
 import { Event, EventStatus } from '../../models/eventModel';
 
 export interface EventFormData {
-  name: string;
-  description: string;
+  title: string;
   startDate: string;
+  endDate: string;
   status: EventStatus;
+  minDurationMinutes: number | null;
+  maxDurationMinutes: number | null;
 }
 
 @Injectable()
 export class EventCreatePopupPresenter {
   formData: EventFormData = {
-    name: '',
-    description: '',
+    title: '',
     startDate: '',
-    status: EventStatus.ToOrganize
+    endDate: '',
+    status: EventStatus.ToOrganize,
+    minDurationMinutes: null,
+    maxDurationMinutes: null
   };
 
   isSubmitting = false;
   errorMessage = '';
 
-  constructor(private eventService: EventService) {}
+  constructor(
+    private eventService: EventService,
+    private mapService: MapService
+  ) {}
 
   private generateUuid(): string {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -33,20 +41,53 @@ export class EventCreatePopupPresenter {
 
   reset(): void {
     this.formData = {
-      name: '',
-      description: '',
+      title: '',
       startDate: '',
-      status: EventStatus.ToOrganize
+      endDate: '',
+      status: EventStatus.ToOrganize,
+      minDurationMinutes: null,
+      maxDurationMinutes: null
     };
     this.isSubmitting = false;
     this.errorMessage = '';
   }
 
+  // eslint-disable-next-line complexity
   validate(): boolean {
-    if (!this.formData.name.trim()) {
-      this.errorMessage = 'Le nom de l\'événement est requis.';
+    if (!this.formData.title.trim()) {
+      this.errorMessage = 'Le titre de l\'événement est requis.';
       return false;
     }
+    
+    // Vérifier que la date de fin n'est pas inférieure à la date de début
+    if (this.formData.startDate && this.formData.endDate) {
+      const startDate = new Date(this.formData.startDate);
+      const endDate = new Date(this.formData.endDate);
+      if (endDate < startDate) {
+        this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
+        return false;
+      }
+    }
+    
+    // Vérifier que les durées sont positives
+    if (this.formData.minDurationMinutes !== null && this.formData.minDurationMinutes < 0) {
+      this.errorMessage = 'La durée minimale doit être supérieure ou égale à 0.';
+      return false;
+    }
+    
+    if (this.formData.maxDurationMinutes !== null && this.formData.maxDurationMinutes < 0) {
+      this.errorMessage = 'La durée maximale doit être supérieure ou égale à 0.';
+      return false;
+    }
+    
+    // Vérifier que la durée max est supérieure à la durée min
+    if (this.formData.minDurationMinutes !== null && this.formData.maxDurationMinutes !== null) {
+      if (this.formData.maxDurationMinutes < this.formData.minDurationMinutes) {
+        this.errorMessage = 'La durée maximale ne peut pas être inférieure à la durée minimale.';
+        return false;
+      }
+    }
+    
     this.errorMessage = '';
     return true;
   }
@@ -63,15 +104,19 @@ export class EventCreatePopupPresenter {
 
       const event: Event = {
         uuid: this.generateUuid(),
-        name: this.formData.name.trim(),
-        description: this.formData.description.trim(),
-        startDate: this.formData.startDate ? new Date(this.formData.startDate) : undefined,
-        status: this.formData.status
+        title: this.formData.title.trim(),
+        startDate: this.formData.startDate ? new Date(this.formData.startDate) : new Date(),
+        endDate: this.formData.endDate ? new Date(this.formData.endDate) : new Date(),
+        status: this.formData.status,
+        minDurationMinutes: this.formData.minDurationMinutes ?? 0,
+        maxDurationMinutes: this.formData.maxDurationMinutes ?? 0
       };
 
       this.eventService.create(event).subscribe({
         next: (createdEvent) => {
           this.isSubmitting = false;
+          // Ajouter l'événement à la liste observable
+          this.mapService.addEvent(createdEvent);
           this.reset();
           resolve(createdEvent);
         },

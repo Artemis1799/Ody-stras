@@ -97,4 +97,4 @@ deploy_job:
     - docker build -t "$IMAGE_NAME:latest" -f Nidhoggr_front/dockerfile ./Nidhoggr_front
     - docker push "$IMAGE_NAME:latest"
   only:
-    - main
+    - main  
