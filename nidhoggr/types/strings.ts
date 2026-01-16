@@ -29,6 +29,13 @@ export const Strings = {
     managePoints: "Gestion des points",
     exportEvent: "Exporter l'événement",
   },
+  eventStatus: {
+    toOrganize: "À organiser",
+    inProgress: "En cours",
+    installation: "Installation",
+    uninstallation: "Désinstallation",
+    completed: "Terminé",
+  },
   eventList: {
     resetDB: "Réinitialiser la base de données",
   },

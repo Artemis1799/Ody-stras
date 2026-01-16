@@ -2,7 +2,6 @@ import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { CreateEventScreen } from "./src/screens/addEvent";
 import { EventListScreen } from "./src/screens/eventList";
 import { CreatePointScreen } from "./src/screens/createPoint";
 import { PointPhotosScreen } from "./src/screens/pointPhotos";
@@ -11,8 +10,10 @@ import WelcomeScreen from "./src/screens/HomeScreen";
 import SimulateScreen from "./src/screens/simulateScreen";
 import PointsScreen from "./src/screens/points";
 import EventScreen from "./src/screens/Event";
+import PlanningTimelineScreen from "./src/screens/planningTimeline";
+import PlanningNavigationScreen from "./src/screens/planningNavigation";
 
-import { setupDatabase } from "./database/database";
+import { setupDatabase, deleteDatabase } from "./database/database";
 import { SQLiteDatabase, SQLiteProvider } from "expo-sqlite";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import exportEventScreen from "./src/screens/exportEvent";
@@ -48,14 +49,16 @@ function AppContent() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={skipVideo ? "Events" : "Home"}>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName={skipVideo ? "Events" : "Home"}
+    >
       <Stack.Screen name="Home" component={WelcomeScreen} />
       <Stack.Screen
         name="Events"
         component={EventListScreen}
         options={{ animation: "fade" }}
       />
-      <Stack.Screen name="AddEvent" component={CreateEventScreen} />
       <Stack.Screen name="Event" component={EventScreen} />
       <Stack.Screen name="AddPoint" component={CreatePointScreen} />
       <Stack.Screen name="AddPhoto" component={PointPhotosScreen} />
@@ -64,9 +67,12 @@ function AppContent() {
       {/*<Stack.Screen name="SimulateScreen" component={SimulateScreen} />*/}
       <Stack.Screen name="ExportEvent" component={exportEventScreen} />
       <Stack.Screen name="ImportEvent" component={ImportEventScreen} />
+      <Stack.Screen name="PlanningTimeline" component={PlanningTimelineScreen} />
+      <Stack.Screen name="PlanningNavigation" component={PlanningNavigationScreen} />
     </Stack.Navigator>
   );
 }
+//      <Stack.Screen name="AddEvent" component={CreateEventScreen} />
 
 export default function App() {
   const [isAudioReady, setIsAudioReady] = useState(false);
@@ -98,9 +104,10 @@ export default function App() {
     <ThemeProvider>
       <SQLiteProvider
         databaseName="base.db"
-        assetSource={{ assetId: require("./data/base.db") }}
+        //assetSource={{ assetId: require("./data/base.db") }}
         onInit={async (db) => {
           console.log("Initialisation de la base…");
+          //await deleteDatabase(db);
           await setupDatabase(db);
         }}
       >

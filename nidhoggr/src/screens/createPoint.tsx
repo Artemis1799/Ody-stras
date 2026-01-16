@@ -9,6 +9,11 @@ import {
   Image,
   Keyboard,
   TouchableWithoutFeedback,
+  InputAccessoryView,
+  Platform,
+  Button,
+  KeyboardAvoidingView,
+  ScrollView
 } from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -19,8 +24,10 @@ import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import { useSQLiteContext } from "expo-sqlite";
 import DropDownPicker from "react-native-dropdown-picker";
 import {
-  Equipement,
-  EquipementList,
+  Area,
+  Path,
+  Equipment,
+  EquipmentListItem,
   EventScreenNavigationProp,
   Point,
   UserLocation,
@@ -38,6 +45,8 @@ import { Header } from "../components/header";
 import { useTheme } from "../utils/ThemeContext";
 import { getStyles } from "../utils/theme";
 import { NO_EQUIPMENT_ID } from "../constants/constants";
+import RenderAreas from "../utils/RenderAreas";
+import RenderPaths from "../utils/RenderPaths";
 
 export function CreatePointScreen() {
   const db = useSQLiteContext();
@@ -46,8 +55,8 @@ export function CreatePointScreen() {
   const [open, setOpen] = useState(false);
   const navigation = useNavigation<EventScreenNavigationProp>();
   const [comment, setComment] = useState("");
-  const [qty, setQty] = useState("");
-  const [equipmentList, setEquipmentList] = useState<EquipementList[]>([]);
+  const [name, setName] = useState("");
+  const [equipmentList, setEquipmentList] = useState<EquipmentListItem[]>([]);
   const [equipment, setEquipment] = useState<string | null>(null);
   const [pointId, setPointId] = useState("");
   const mapRef = useRef<MapView>(null);
@@ -58,6 +67,8 @@ export function CreatePointScreen() {
   );
   const route = useRoute();
   const { eventId, pointIdParam } = route.params as createPointParams;
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [paths, setPaths] = useState<Path[]>([]);
 
   const handleGoBack = async () => {
     if (!pointIdParam) {
@@ -110,28 +121,25 @@ export function CreatePointScreen() {
         alert(Strings.createPoint.addComment);
         return;
       }
-      if (!equipment) {
-        alert(Strings.createPoint.selectEquipment);
-        return;
-      }
-      if (!qty || Number(qty) < 1) {
-        alert(Strings.createPoint.enterQuantity);
-        return;
-      }
-
-      await update<Point>(db, "Point", { Commentaire: comment }, "UUID = ?", [
-        pointId,
-      ]);
+      console.log("updating !");
       await update<Point>(
         db,
         "Point",
-        { Equipement_quantite: Number(qty), Equipement_ID: equipment },
+        { Name: name, Comment: comment, Validated: 1 },
+        "UUID = ?",
+        [pointId]
+      );
+      await update<Point>(
+        db,
+        "Point",
+        { EquipmentID: equipment || undefined },
         "UUID = ?",
         [pointId]
       );
 
       navigation.goBack();
     } catch (e) {
+      console.log("Error on updating!");
       console.log(e);
     }
   };
@@ -169,27 +177,29 @@ export function CreatePointScreen() {
           const existingPoints = await getAllWhere<Point>(
             db,
             "Point",
-            ["Event_ID"],
+            ["EventID"],
             [eventId]
           );
           const nextOrdre = existingPoints.length + 1;
 
           await insert<Point>(db, "Point", {
             UUID: newId,
-            Event_ID: eventId,
+            EventID: eventId,
+            Name: "",
             Latitude: coords.latitude,
             Longitude: coords.longitude,
-            Equipement_ID: NO_EQUIPMENT_ID,
-            Equipement_quantite: 0,
+            Comment: "",
+            Validated: 0,
+            EquipmentID: NO_EQUIPMENT_ID,
+            EquipmentQuantity: 0,
             Ordre: nextOrdre,
           });
         } else {
           const res = await getAllWhere<Point>(db, "Point", ["UUID"], [newId]);
           if (res[0]) {
-            setComment(res[0].Commentaire);
-            if (res[0]?.Equipement_ID) setEquipment(res[0].Equipement_ID);
-            if (res[0]?.Equipement_quantite)
-              setQty(res[0].Equipement_quantite.toString());
+            setComment(res[0].Comment || "");
+            setName(res[0].Name || "");
+            if (res[0]?.EquipmentID) setEquipment(res[0].EquipmentID);
             // Charger la position du point existant
             if (res[0].Latitude && res[0].Longitude) {
               const existingCoords = {
@@ -209,14 +219,22 @@ export function CreatePointScreen() {
           }
         }
 
-        const equipments = await getAll<Equipement>(db, "Equipement");
+        const equipments = await getAll<Equipment>(db, "Equipment");
         setEquipmentList([
-            { label: "Aucun équipement", value: NO_EQUIPMENT_ID },
-            ...equipments.map((e) => ({
-              label: e.Type,
-              value: e.UUID,
-            })),
-          ]);
+          { label: "Aucun équipement", value: NO_EQUIPMENT_ID },
+          ...equipments.map((e) => ({
+            label: e.Type,
+            value: e.UUID,
+          })),
+        ]);
+
+        // Charger les zones et tracés de l'événement
+        const areasDB = await getAllWhere<Area>(db, "Area", ["EventID"], [eventId]);
+        const pathsDB = await getAllWhere<Path>(db, "Path", ["EventID"], [eventId]);
+        console.log("=== CreatePoint: Areas chargées ===", areasDB.length, areasDB);
+        console.log("=== CreatePoint: Paths chargés ===", pathsDB.length, pathsDB);
+        setAreas(areasDB);
+        setPaths(pathsDB);
       } catch (e) {
         console.log(e);
       }
@@ -227,104 +245,139 @@ export function CreatePointScreen() {
     <SafeAreaView style={styles.container}>
       <Header onBack={handleGoBack} />
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.mapContainer}>
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              initialRegion={{
-                latitude: userLocation?.latitude || 48.5839,
-                longitude: userLocation?.longitude || 7.7455,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-              showsUserLocation={true}
-              showsMyLocationButton={!isEditingLocation}
-              followsUserLocation={false}
-              showsCompass={true}
-              rotateEnabled={!isEditingLocation}
-              pitchEnabled={!isEditingLocation}
-              scrollEnabled={isEditingLocation}
-              zoomEnabled={isEditingLocation}
-              onRegionChangeComplete={handleRegionChange}
-            >
-              {!isEditingLocation && markerPosition && (
-                <Marker
-                  coordinate={{
-                    latitude: markerPosition.latitude,
-                    longitude: markerPosition.longitude,
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View>
+              <View style={styles.mapContainer}>
+                <MapView
+                  key={`map-${areas.length}-${paths.length}`}
+                  ref={mapRef}
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: userLocation?.latitude || 48.5839,
+                    longitude: userLocation?.longitude || 7.7455,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
                   }}
-                />
-              )}
-            </MapView>
-            {isEditingLocation && (
-              <View style={styles.centerMarker}>
-                <Ionicons name="location-sharp" size={48} color="#8DC63F" />
+                  showsUserLocation={true}
+                  showsMyLocationButton={!isEditingLocation}
+                  followsUserLocation={false}
+                  showsCompass={true}
+                  rotateEnabled={!isEditingLocation}
+                  pitchEnabled={!isEditingLocation}
+                  scrollEnabled={isEditingLocation}
+                  zoomEnabled={isEditingLocation}
+                  onRegionChangeComplete={handleRegionChange}
+                >
+                  <RenderAreas areas={areas} />
+                  <RenderPaths paths={paths} />
+                  {!isEditingLocation && markerPosition && (
+                    <Marker
+                      coordinate={{
+                        latitude: markerPosition.latitude,
+                        longitude: markerPosition.longitude,
+                      }}
+                    />
+                  )}
+                </MapView>
+                {isEditingLocation && (
+                  <View style={styles.centerMarker}>
+                    <Ionicons name="location-sharp" size={48} color="#8DC63F" />
+                  </View>
+                )}
               </View>
-            )}
+
+              <TouchableOpacity
+                style={styles.editLocationButton}
+                onPress={toggleEditLocation}
+              >
+                <Ionicons
+                  name={isEditingLocation ? "checkmark-circle" : "location"}
+                  size={20}
+                  color={theme === "light" ? "#8DC63F" : "#2ad783"}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.editLocationButtonText}>
+                  {isEditingLocation
+                    ? Strings.createPoint.validatePosition
+                    : Strings.createPoint.editMarker}
+                </Text>
+              </TouchableOpacity>
+
+              <TextInput
+                placeholder="Nom du point"
+                style={styles.inputCreatePoint}
+                value={name}
+                onChangeText={setName}
+                inputAccessoryViewID="nameInputID"
+              />
+
+              <TextInput
+                placeholder="Commentaire"
+                style={styles.inputComment}
+                multiline
+                value={comment}
+                onChangeText={setComment}
+                inputAccessoryViewID="nameInputID"
+              />
+
+              <TouchableOpacity
+                style={styles.inputFake}
+                onPress={() =>
+                  navigation.navigate("AddPhoto", { pointId: pointId })
+                }
+              >
+                <Text>Photos</Text>
+                <Text>→</Text>
+              </TouchableOpacity>
+              <DropDownPicker
+                open={open}
+                value={equipment}
+                items={equipmentList}
+                setOpen={setOpen}
+                setValue={setEquipment}
+                setItems={setEquipmentList}
+                placeholder={Strings.createPoint.selectEquipmentPlaceholder}
+                listMode="SCROLLVIEW"
+                style={styles.dropdown}
+              />
+
+              <TouchableOpacity style={styles.validateButton} onPress={validate}>
+                <Text style={styles.validateButtonText}>
+                  {Strings.createPoint.validate}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {Platform.OS === "ios" && (
+        <InputAccessoryView nativeID="nameInputID">
+          <View style={localStyles.accessoryView}>
+            <Button onPress={() => Keyboard.dismiss()} title="OK" />
           </View>
-
-          <TouchableOpacity
-            style={styles.editLocationButton}
-            onPress={toggleEditLocation}
-          >
-            <Ionicons
-              name={isEditingLocation ? "checkmark-circle" : "location"}
-              size={20}
-              color={theme === "light" ? "#8DC63F" : "#2ad783"}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.editLocationButtonText}>
-              {isEditingLocation
-                ? Strings.createPoint.validatePosition
-                : Strings.createPoint.editMarker}
-            </Text>
-          </TouchableOpacity>
-
-          <TextInput
-            placeholder="Commentaire"
-            style={styles.inputComment}
-            multiline
-            value={comment}
-            onChangeText={setComment}
-          />
-
-          <TouchableOpacity
-            style={styles.inputFake}
-            onPress={() =>
-              navigation.navigate("AddPhoto", { pointId: pointId })
-            }
-          >
-            <Text>Photos</Text>
-            <Text>→</Text>
-          </TouchableOpacity>
-          <DropDownPicker
-            open={open}
-            value={equipment}
-            items={equipmentList}
-            setOpen={setOpen}
-            setValue={setEquipment}
-            setItems={setEquipmentList}
-            placeholder={Strings.createPoint.selectEquipmentPlaceholder}
-            listMode="SCROLLVIEW"
-            style={styles.dropdown}
-          />
-          <TextInput
-            placeholder="Quantité"
-            style={styles.inputCreatePoint}
-            keyboardType="numeric"
-            value={qty}
-            onChangeText={setQty}
-          />
-
-          <TouchableOpacity style={styles.validateButton} onPress={validate}>
-            <Text style={styles.validateButtonText}>
-              {Strings.createPoint.validate}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableWithoutFeedback>
+        </InputAccessoryView>
+      )}
     </SafeAreaView>
   );
 }
+
+const localStyles = StyleSheet.create({
+  accessoryView: {
+    backgroundColor: "#f0f0f0", // Gris clair standard iOS
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#d0d0d0",
+  },
+});

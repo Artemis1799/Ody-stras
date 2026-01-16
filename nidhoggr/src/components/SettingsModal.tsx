@@ -20,7 +20,7 @@ type SettingsModalProps = {
 };
 
 export function SettingsModal({ visible, onClose }: SettingsModalProps) {
-  const { theme, toggleTheme, skipVideo, toggleSkipVideo, colors } = useTheme();
+  const { theme, toggleTheme, skipVideo, toggleSkipVideo, showMiniMaps, toggleShowMiniMaps, colors } = useTheme();
   const db = useSQLiteContext();
 
   const handleResetDatabase = () => {
@@ -91,6 +91,18 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               value={skipVideo}
               onValueChange={toggleSkipVideo}
               color={skipVideo ? colors.fab : undefined}
+            />
+          </View>
+
+          {/* Show Mini Maps Checkbox */}
+          <View style={styles.settingRow}>
+            <Text style={[styles.settingText, { color: colors.text }]}>
+              Afficher mini-maps (planning)
+            </Text>
+            <Checkbox
+              value={showMiniMaps}
+              onValueChange={toggleShowMiniMaps}
+              color={showMiniMaps ? colors.fab : undefined}
             />
           </View>
 

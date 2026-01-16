@@ -1,24 +1,5 @@
 import { SQLiteDatabase, useSQLiteContext } from "expo-sqlite";
-
-/*
-export function usePoints(eventId: string) {
-  const [points, setPoints] = useState<Point[]>([]);
-
-  useEffect(() => {
-    load();
-  }, [eventId]);
-
-  const load = async () => {
-    const res: Point[] = await db.getAllAsync(
-      "SELECT * FROM Point WHERE Event_ID = ?",
-      [eventId]
-    );
-    console.log(res);
-    setPoints(res);
-  };
-
-  return points;
-}*/
+import { deleteDatabase } from "./database";
 
 export async function getAll<T>(db: SQLiteDatabase, table: string) {
   return (await db.getAllAsync(`SELECT * FROM ${table}`)) as T[];
@@ -66,7 +47,7 @@ export async function insert<T>(
 
     await db.runAsync(query, values);
   } catch (e) {
-    console.log(e);
+    console.error("Error in insert:", e);
   }
 }
 
@@ -86,7 +67,7 @@ export async function insertOrReplace<T>(
 
     await db.runAsync(query, values);
   } catch (e) {
-    console.log(e);
+    console.error("Error in insertOrReplace:", e);
   }
 }
 
@@ -111,10 +92,10 @@ export async function getPointsForEvent<T>(
   eventId: string
 ) {
   return (await db.getAllAsync(
-    `SELECT Point.*, Equipement.Type AS EquipType
+    `SELECT Point.*, Equipment.Type AS EquipmentType
      FROM Point
-     LEFT JOIN Equipement ON Equipement.UUID = Point.Equipement_ID
-     WHERE Point.Event_ID = ?`,
+     LEFT JOIN Equipment ON Equipment.UUID = Point.EquipmentID
+     WHERE Point.EventID = ?`,
     [eventId]
   )) as T[];
 }
@@ -124,9 +105,8 @@ export async function getPhotosForPoint<T>(
   pointId: string
 ) {
   return (await db.getAllAsync(
-    `SELECT Photo.* FROM Photo
-    JOIN Image_Point ON Photo.UUID = Image_Point.Image_ID
-    WHERE Image_Point.Point_ID = ?`,
+    `SELECT Picture.* FROM Picture
+    WHERE Picture.PointID = ?`,
     [pointId]
   )) as T[];
 }
@@ -139,7 +119,9 @@ export async function deleteWhere(
 ): Promise<number> {
   try {
     if (columns.length === 0) {
-      throw new Error("deleteWhere: columns cannot be empty — refusing full table delete.");
+      throw new Error(
+        "deleteWhere: columns cannot be empty — refusing full table delete."
+      );
     }
 
     const where = columns.map((col) => `${col} = ?`).join(" AND ");
@@ -160,14 +142,107 @@ export async function deleteWhere(
 export async function flushDatabase(db: SQLiteDatabase): Promise<void> {
   try {
     console.log("Flushing database...");
-    await db.runAsync("DELETE FROM Image_Point");
-    await db.runAsync("DELETE FROM Photo");
+    // Ordre de suppression important pour respecter les contraintes de clés étrangères
+    await db.runAsync("DELETE FROM Picture");
     await db.runAsync("DELETE FROM Point");
-    await db.runAsync("DELETE FROM EventGeometries");
+    await db.runAsync("DELETE FROM Area");
+    await db.runAsync("DELETE FROM Path");
+    await db.runAsync("DELETE FROM PlanningTask");
+    await db.runAsync("DELETE FROM PlanningMember");
+    await db.runAsync("DELETE FROM PlanningTeam");
+    await db.runAsync("DELETE FROM Action");
+    await db.runAsync("DELETE FROM Planning");
+    await db.runAsync("DELETE FROM SecurityArea");
+    await db.runAsync("DELETE FROM TeamEmployees");
+    await db.runAsync("DELETE FROM Team");
+    await db.runAsync("DELETE FROM Employees");
+    await db.runAsync("DELETE FROM Equipment");
     await db.runAsync("DELETE FROM Evenement");
-    await db.runAsync("DELETE FROM Equipement");
     console.log("Database flushed successfully.");
   } catch (error) {
     console.error("Error flushing database:", error);
+    console.error("Deleting db instead");
+    await deleteDatabase(db);
   }
 }
+
+/**
+ * Supprime un événement spécifique et toutes ses données liées.
+ * NE supprime PAS les équipements (ils sont globaux et potentiellement partagés).
+ * @param db - Connexion à la base de données
+ * @param eventUUID - L'UUID de l'événement à supprimer
+ */
+export async function deleteEventAndRelatedData(
+  db: SQLiteDatabase,
+  eventUUID: string
+): Promise<void> {
+  try {
+    console.log(`Suppression de l'événement ${eventUUID} et ses données liées...`);
+
+    // 1. Récupérer les points de l'événement pour supprimer leurs photos
+    const points = await db.getAllAsync<{ UUID: string }>(
+      "SELECT UUID FROM Point WHERE EventID = ?",
+      [eventUUID]
+    );
+
+    // 2. Supprimer les photos des points
+    for (const point of points) {
+      await db.runAsync("DELETE FROM Picture WHERE PointID = ?", [point.UUID]);
+    }
+    console.log(`Photos supprimées pour ${points.length} points`);
+
+    // 3. Supprimer les points
+    await db.runAsync("DELETE FROM Point WHERE EventID = ?", [eventUUID]);
+    console.log("Points supprimés");
+
+    // 4. Supprimer les zones (Area)
+    await db.runAsync("DELETE FROM Area WHERE EventID = ?", [eventUUID]);
+    console.log("Zones supprimées");
+
+    // 5. Supprimer les chemins (Path)
+    await db.runAsync("DELETE FROM Path WHERE EventID = ?", [eventUUID]);
+    console.log("Chemins supprimés");
+
+    // 6. Récupérer les équipes de planning pour supprimer leurs tâches et membres
+    const planningTeams = await db.getAllAsync<{ UUID: string }>(
+      "SELECT UUID FROM PlanningTeam WHERE EventID = ?",
+      [eventUUID]
+    );
+
+    for (const team of planningTeams) {
+      // Supprimer les tâches de l'équipe
+      await db.runAsync("DELETE FROM PlanningTask WHERE TeamID = ?", [team.UUID]);
+      // Supprimer les membres de l'équipe
+      await db.runAsync("DELETE FROM PlanningMember WHERE TeamID = ?", [team.UUID]);
+    }
+    console.log(`Tâches et membres supprimés pour ${planningTeams.length} équipes de planning`);
+
+    // 7. Supprimer les équipes de planning
+    await db.runAsync("DELETE FROM PlanningTeam WHERE EventID = ?", [eventUUID]);
+    console.log("Équipes de planning supprimées");
+
+    // 8. Récupérer les équipes (Team) pour supprimer leurs liens employés
+    const teams = await db.getAllAsync<{ UUID: string }>(
+      "SELECT UUID FROM Team WHERE EventID = ?",
+      [eventUUID]
+    );
+
+    for (const team of teams) {
+      await db.runAsync("DELETE FROM TeamEmployees WHERE TeamID = ?", [team.UUID]);
+    }
+    console.log(`Liens TeamEmployees supprimés pour ${teams.length} équipes`);
+
+    // 9. Supprimer les équipes
+    await db.runAsync("DELETE FROM Team WHERE EventID = ?", [eventUUID]);
+    console.log("Équipes supprimées");
+
+    // 10. Finalement, supprimer l'événement lui-même
+    await db.runAsync("DELETE FROM Evenement WHERE UUID = ?", [eventUUID]);
+    console.log(`Événement ${eventUUID} supprimé avec succès`);
+
+  } catch (error) {
+    console.error("Erreur lors de la suppression de l'événement:", error);
+    throw error;
+  }
+}
+

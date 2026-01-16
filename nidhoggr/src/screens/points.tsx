@@ -41,7 +41,7 @@ export default function PointsScreen() {
           const data: Point[] = await getAllWhere<Point>(
             db,
             "Point",
-            ["Event_ID"],
+            ["EventID"],
             [eventUUID],
             "Ordre ASC"
           );
@@ -72,9 +72,7 @@ export default function PointsScreen() {
     console.log("=== AVANT DÉPLACEMENT ===");
     points.forEach((p, i) =>
       console.log(
-        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
-          p.Ordre
-        }, Commentaire=${p.Commentaire}`
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Commentaire=${p.Comment}`
       )
     );
 
@@ -96,14 +94,11 @@ export default function PointsScreen() {
     console.log("=== APRÈS DÉPLACEMENT ===");
     updatedPoints.forEach((p, i) =>
       console.log(
-        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Ordre=${
-          p.Ordre
-        }, Commentaire=${p.Commentaire}`
+        `Point ${i}: UUID=${p.UUID.substring(0, 8)}, Commentaire=${p.Comment}`
       )
     );
 
     setPoints(updatedPoints);
-
     // Mettre à jour l'ordre dans la base de données
     try {
       console.log("=== MISE À JOUR BDD ===");
@@ -130,7 +125,7 @@ export default function PointsScreen() {
   const deletePoint = async (point: Point) => {
     Alert.alert(
       "Supprimer le point",
-      `Êtes-vous sûr de vouloir supprimer ${point.Commentaire || `Point ${point.Ordre}`} ?`,
+      `Êtes-vous sûr de vouloir supprimer ${point.Name} ?`,
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -187,12 +182,7 @@ export default function PointsScreen() {
           })
         }
       >
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{item.Ordre}</Text>
-        </View>
-        <Text style={[styles.pointName, { flex: 1 }]}>
-          {item.Commentaire || Strings.points.pointLabel(item.Ordre ?? 0)}
-        </Text>
+        <Text style={[styles.pointName, { flex: 1 }]}>{item.Name}</Text>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
             style={{ padding: 10 }}
@@ -235,3 +225,4 @@ export default function PointsScreen() {
     </SafeAreaView>
   );
 }
+
