@@ -13,41 +13,36 @@ public class Point
     
     [Required]
     public Guid EventId { get; set; }
-
-	public Guid? EquipmentId { get; set; }
     
-    public float? Latitude { get; set; }
+    [Required]
+    [MaxLength(255)]
+    public string Name { get; set; } = string.Empty;
     
-    public float? Longitude { get; set; }
+    [Required]
+    public float Latitude { get; set; }
+    
+    [Required]
+    public float Longitude { get; set; }
     
     public string? Comment { get; set; }
     
-    public Guid? ImageId { get; set; }
-    
     public int? Order { get; set; }
     
-    public bool IsValid { get; set; } = false;
+    public bool Validated { get; set; } = false;
     
-    public DateTime Created { get; set; } = DateTime.UtcNow;
+    public bool IsPointOfInterest { get; set; } = false;
     
-    public DateTime Modified { get; set; } = DateTime.UtcNow;
-
-    public int EquipmentQuantity { get; set; } = 0;
-    
-    public DateTime? InstalledAt { get; set; }
-    
-    public DateTime? RemovedAt { get; set; }
+    public Guid? EquipmentId { get; set; }
     
     [ForeignKey("EventId")]
-    [NotMapped]
     [JsonIgnore]
     public Event? Event { get; set; }
 
     [ForeignKey("EquipmentId")]
-    [NotMapped]
     [JsonIgnore]
     public Equipment? Equipment { get; set; }
     
     [JsonIgnore]
-    public ICollection<ImagePoint> ImagePoints { get; set; } = new List<ImagePoint>();
+    public ICollection<Picture>? Pictures { get; set; }
 }
+

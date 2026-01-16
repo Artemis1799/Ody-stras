@@ -3,82 +3,111 @@ using t5_back.Data;
 using t5_back.Models;
 
 namespace t5_back.Services;
+
 public class TeamService : ITeamService
 {
-	private readonly AppDbContext _context;
+    private readonly AppDbContext _context;
 
-	public TeamService(AppDbContext context)
-	{
-		_context = context;
-	}
+    public TeamService(AppDbContext context)
+    {
+        _context = context;
+    }
 
-	public async Task<IEnumerable<Team>> GetAllAsync()
-	{
-		return await _context.Teams
-			.Include(team => team.TeamMembers)
-			.Include(team => team.EventTeams)
-			.ToListAsync();
-	}
+    public async Task<IEnumerable<Team>> GetAllAsync()
+    {
+        return await _context.Teams
+            .Include(t => t.TeamEmployees)
+            .ToListAsync();
+    }
 
-	public async Task<Team?> GetByIdAsync(Guid id)
-	{
-		return await _context.Teams
-			.Include(team => team.TeamMembers)
-			.Include(team => team.EventTeams)
-			.FirstOrDefaultAsync(team => team.UUID == id);
-	}
+    public async Task<Team?> GetByIdAsync(Guid id)
+    {
+        return await _context.Teams
+            .Include(t => t.TeamEmployees)
+            .FirstOrDefaultAsync(t => t.UUID == id);
+    }
 
-	public async Task<Team> CreateAsync(Team team)
-	{
-		if (team.UUID == Guid.Empty)
-		{
-			team.UUID = Guid.NewGuid();
-		}
+    public async Task<IEnumerable<Team>> GetByEventIdAsync(Guid eventId)
+    {
+        return await _context.Teams
+            .Where(t => t.EventId == eventId)
+            .Include(t => t.TeamEmployees)
+            .ToListAsync();
+    }
 
-		_context.Teams.Add(team);
-		await _context.SaveChangesAsync();
+    public async Task<Team> CreateAsync(Team team)
+    {
+        if (team.UUID == Guid.Empty)
+        {
+            team.UUID = Guid.NewGuid();
+        }
 
-		return team;
-	}
+        _context.Teams.Add(team);
+        await _context.SaveChangesAsync();
 
-	public async Task<Team?> UpdateAsync(Guid id, Team team)
-	{
-		var existing = await _context.Teams.FindAsync(id);
+        return team;
+    }
 
-		if (existing == null)
-		{
-			return null;
-		}
+    public async Task<Team?> UpdateAsync(Guid id, Team team)
+    {
+        var existing = await _context.Teams.FindAsync(id);
 
-		existing.TeamName = team.TeamName;
-		existing.TeamNumber = team.TeamNumber;
+        if (existing == null)
+        {
+            return null;
+        }
 
-		await _context.SaveChangesAsync();
+        // Si l'EventId change, on enlève cette équipe des SecurityZones de l'ancien event
+        if (existing.EventId != team.EventId)
+        {
+            var securityZonesToUpdate = await _context.SecurityZones
+                .Where(sz => sz.InstallationTeamId == id || sz.RemovalTeamId == id)
+                .Where(sz => sz.EventId == existing.EventId)
+                .ToListAsync();
 
-		return existing;
-	}
+            foreach (var sz in securityZonesToUpdate)
+            {
+                if (sz.InstallationTeamId == id)
+                {
+                    sz.InstallationTeamId = null;
+                }
+                if (sz.RemovalTeamId == id)
+                {
+                    sz.RemovalTeamId = null;
+                }
+            }
+        }
 
-	public async Task<bool> DeleteAsync(Guid id)
-	{
-		var existing = await _context.Teams.FindAsync(id);
+        existing.TeamName = team.TeamName;
+        existing.EventId = team.EventId;
 
-		if (existing == null)
-		{
-			return false;
-		}
+        await _context.SaveChangesAsync();
 
-		_context.Teams.Remove(existing);
-		await _context.SaveChangesAsync();
+        return existing;
+    }
 
-		return true;
-	}
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var existing = await _context.Teams.FindAsync(id);
 
-	public async Task<int> DeleteAllAsync()
-	{
-		var teams = await _context.Teams.ToListAsync();
-		var count = teams.Count;
-		_context.Teams.RemoveRange(teams);
-		await _context.SaveChangesAsync();
-		return count;
-	}
+        if (existing == null)
+        {
+            return false;
+        }
+
+        _context.Teams.Remove(existing);
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<int> DeleteAllAsync()
+    {
+        var teams = await _context.Teams.ToListAsync();
+        var count = teams.Count;
+        _context.Teams.RemoveRange(teams);
+        await _context.SaveChangesAsync();
+        return count;
+    }
 }
+

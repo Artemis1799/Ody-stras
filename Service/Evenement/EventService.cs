@@ -3,6 +3,7 @@ using t5_back.Data;
 using t5_back.Models;
 
 namespace t5_back.Services;
+
 public class EventService : IEventService
 {
     private readonly AppDbContext _context;
@@ -14,26 +15,21 @@ public class EventService : IEventService
 
     public async Task<IEnumerable<Event>> GetAllAsync()
     {
-        return await _context.Events
-            .Include(eventItem => eventItem.EventTeams)
-            .ToListAsync();
+        return await _context.Events.ToListAsync();
     }
 
     public async Task<Event?> GetByIdAsync(Guid id)
     {
         return await _context.Events
-            .Include(eventItem => eventItem.EventTeams)
-            .FirstOrDefaultAsync(eventItem => eventItem.UUID == id);
+            .FirstOrDefaultAsync(e => e.UUID == id);
     }
 
-    public async Task<Event> CreateAsync(Event evenement)
+    public async Task<Event> CreateAsync(Event eventModel)
     {
-        if (evenement.UUID == Guid.Empty)
+        if (eventModel.UUID == Guid.Empty)
         {
-            evenement.UUID = Guid.NewGuid();
+            eventModel.UUID = Guid.NewGuid();
         }
-
-        var eventModel = evenement;
 
         _context.Events.Add(eventModel);
         await _context.SaveChangesAsync();
@@ -50,11 +46,14 @@ public class EventService : IEventService
             return null;
         }
 
-        existingEvent.Name = eventModel.Name;
-        existingEvent.Description = eventModel.Description;
+        existingEvent.Title = eventModel.Title;
         existingEvent.StartDate = eventModel.StartDate;
+        existingEvent.EndDate = eventModel.EndDate;
         existingEvent.Status = eventModel.Status;
-        existingEvent.EventTeams = eventModel.EventTeams;
+        existingEvent.MinDurationMinutes = eventModel.MinDurationMinutes;
+        existingEvent.MaxDurationMinutes = eventModel.MaxDurationMinutes;
+        existingEvent.IsArchived = eventModel.IsArchived;
+        existingEvent.IsFavorite = eventModel.IsFavorite;
 
         await _context.SaveChangesAsync();
 

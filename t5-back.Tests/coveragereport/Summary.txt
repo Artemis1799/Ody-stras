@@ -1,0 +1,82 @@
+Summary
+  Generated on: 14/01/2026 - 09:20:57
+  Coverage date: 14/01/2026 - 09:00:29 - 14/01/2026 - 09:18:58
+  Parser: MultiReport (6x Cobertura)
+  Assemblies: 1
+  Classes: 60
+  Files: 68
+  Line coverage: 11%
+  Covered lines: 1041
+  Uncovered lines: 8354
+  Coverable lines: 9395
+  Total lines: 12058
+  Branch coverage: 26.6% (110 of 412)
+  Covered branches: 110
+  Total branches: 412
+  Method coverage: 50.9% (209 of 410)
+  Full method coverage: 50.9% (209 of 410)
+  Covered methods: 209
+  Fully covered methods: 209
+  Total methods: 410
+
+t5-back                                                           11%
+  Microsoft.AspNetCore.OpenApi.Generated                           0%
+  Program                                                          0%
+  System.Runtime.CompilerServices                                  0%
+  t5_back.Controllers.ActionController                             0%
+  t5_back.Controllers.AreaController                               0%
+  t5_back.Controllers.AssignTeamRequest                            0%
+  t5_back.Controllers.DatabaseController                           0%
+  t5_back.Controllers.EmployeeController                           0%
+  t5_back.Controllers.EquipmentController                          0%
+  t5_back.Controllers.EventController                              0%
+  t5_back.Controllers.LoginRequest                                 0%
+  t5_back.Controllers.PathController                               0%
+  t5_back.Controllers.PictureController                            0%
+  t5_back.Controllers.PlanningController                           0%
+  t5_back.Controllers.PointController                              0%
+  t5_back.Controllers.SecurityZoneController                       0%
+  t5_back.Controllers.TeamController                               0%
+  t5_back.Controllers.TeamEmployeeController                       0%
+  t5_back.Controllers.UserController                               0%
+  t5_back.Data.AppDbContext                                      100%
+  t5_back.Migrations.AddCommentAndPicturesToSecurityZone           0%
+  t5_back.Migrations.AddDescriptionToAreaAndPath                   0%
+  t5_back.Migrations.AddDurationFieldsToEvent                      0%
+  t5_back.Migrations.AddIsArchivedToEvent                          0%
+  t5_back.Migrations.AddIsPointOfInterestToPoint                   0%
+  t5_back.Migrations.AddTeamToSecurityZone                         0%
+  t5_back.Migrations.AppDbContextModelSnapshot                     0%
+  t5_back.Migrations.deletespeedtopath                             0%
+  t5_back.Migrations.FixPictureDeleteBehavior                      0%
+  t5_back.Migrations.InitialCreate                                 0%
+  t5_back.Migrations.RemovePicturePointAddPointIdToPicture         0%
+  t5_back.Migrations.SplitTeamIntoInstallationAndRemovalTeams      0%
+  t5_back.Models.Action                                          100%
+  t5_back.Models.Area                                           85.7%
+  t5_back.Models.Employee                                       83.3%
+  t5_back.Models.Equipment                                      71.4%
+  t5_back.Models.Event                                          61.5%
+  t5_back.Models.Picture                                        66.6%
+  t5_back.Models.Planning                                         75%
+  t5_back.Models.Point                                          84.6%
+  t5_back.Models.RoutePath                                      87.5%
+  t5_back.Models.SecurityZone                                   81.2%
+  t5_back.Models.Team                                           71.4%
+  t5_back.Models.TeamEmployee                                    100%
+  t5_back.Models.User                                            100%
+  t5_back.Services.ActionService                                 100%
+  t5_back.Services.AreaService                                   100%
+  t5_back.Services.DatabaseService                                 0%
+  t5_back.Services.EmployeeService                               100%
+  t5_back.Services.EquipmentService                              100%
+  t5_back.Services.EventService                                  100%
+  t5_back.Services.JwtService                                    100%
+  t5_back.Services.PathService                                   100%
+  t5_back.Services.PictureService                                100%
+  t5_back.Services.PlanningService                               100%
+  t5_back.Services.PointService                                  100%
+  t5_back.Services.SecurityZoneService                           100%
+  t5_back.Services.TeamEmployeeService                           100%
+  t5_back.Services.TeamService                                   100%
+  t5_back.Services.UserService                                   100%

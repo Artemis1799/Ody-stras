@@ -12,33 +12,32 @@ public class AppDbContext : DbContext
 
     public DbSet<Event> Events { get; set; }
     public DbSet<Point> Points { get; set; }
-    public DbSet<Photo> Photos { get; set; }
-    public DbSet<ImagePoint> ImagePoints { get; set; }
+    public DbSet<Picture> Pictures { get; set; }
     public DbSet<Equipment> Equipments { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Team> Teams { get; set; }
-    public DbSet<TeamMember> TeamMembers { get; set; }
-    public DbSet<Member> Members { get; set; }
-    public DbSet<EventTeam> EventTeams { get; set; }
-    public DbSet<Geometry> Geometries { get; set; }
+    public DbSet<TeamEmployee> TeamEmployees { get; set; }
+    public DbSet<Employee> Employees { get; set; }
+    public DbSet<Area> Areas { get; set; }
+    public DbSet<RoutePath> Paths { get; set; }
+    public DbSet<SecurityZone> SecurityZones { get; set; }
+    public DbSet<Planning> Plannings { get; set; }
+    public DbSet<Models.Action> Actions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<ImagePoint>()
-            .HasKey(ip => new { ip.ImageId, ip.PointId });
+        // TeamEmployee composite key
+        modelBuilder.Entity<TeamEmployee>()
+            .HasKey(te => new { te.TeamId, te.EmployeeId });
 
-        modelBuilder.Entity<TeamMember>()
-            .HasKey(tm => new { tm.TeamId, tm.MemberId });
-
-        modelBuilder.Entity<EventTeam>()
-            .HasKey(et => new { et.EventId, et.TeamId });
-
+        // Point -> Event relationship
         modelBuilder.Entity<Point>()
             .HasOne(p => p.Event)
-            .WithMany()
+            .WithMany(e => e.Points)
             .HasForeignKey(p => p.EventId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Point -> Equipment relationship
         modelBuilder.Entity<Point>()
             .HasOne(p => p.Equipment)
             .WithMany(e => e.Points)
@@ -46,46 +45,106 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
 
-        modelBuilder.Entity<TeamMember>()
-            .HasOne(tm => tm.Team)
-            .WithMany(t => t.TeamMembers)
-            .HasForeignKey(tm => tm.TeamId)
+        // Picture -> Point relationship
+        modelBuilder.Entity<Picture>()
+            .HasOne(p => p.Point)
+            .WithMany(pt => pt.Pictures)
+            .HasForeignKey(p => p.PointId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        // Picture -> SecurityZone relationship
+        modelBuilder.Entity<Picture>()
+            .HasOne(p => p.SecurityZone)
+            .WithMany(sz => sz.Pictures)
+            .HasForeignKey(p => p.SecurityZoneId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired(false);
+
+        // Team -> Event relationship
+        modelBuilder.Entity<Team>()
+            .HasOne(t => t.Event)
+            .WithMany(e => e.Teams)
+            .HasForeignKey(t => t.EventId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<TeamMember>()
-            .HasOne(tm => tm.Member)
-            .WithMany(m => m.TeamMembers)
-            .HasForeignKey(tm => tm.MemberId)
+        // TeamEmployee -> Team relationship
+        modelBuilder.Entity<TeamEmployee>()
+            .HasOne(te => te.Team)
+            .WithMany(t => t.TeamEmployees)
+            .HasForeignKey(te => te.TeamId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<EventTeam>()
-            .HasOne(et => et.Event)
-            .WithMany(e => e.EventTeams)
-            .HasForeignKey(et => et.EventId)
+        // TeamEmployee -> Employee relationship
+        modelBuilder.Entity<TeamEmployee>()
+            .HasOne(te => te.Employee)
+            .WithMany(e => e.TeamEmployees)
+            .HasForeignKey(te => te.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<EventTeam>()
-            .HasOne(et => et.Team)
-            .WithMany(t => t.EventTeams)
-            .HasForeignKey(et => et.TeamId)
+        // Area -> Event relationship
+        modelBuilder.Entity<Area>()
+            .HasOne(a => a.Event)
+            .WithMany(e => e.Areas)
+            .HasForeignKey(a => a.EventId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<ImagePoint>()
-            .HasOne(ip => ip.Photo)
-            .WithMany(ph => ph.ImagePoints)
-            .HasForeignKey(ip => ip.ImageId)
+        // RoutePath -> Event relationship
+        modelBuilder.Entity<RoutePath>()
+            .HasOne(p => p.Event)
+            .WithMany(e => e.Paths)
+            .HasForeignKey(p => p.EventId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<ImagePoint>()
-            .HasOne(ip => ip.Point)
-            .WithMany(p => p.ImagePoints)
-            .HasForeignKey(ip => ip.PointId)
+        // SecurityZone -> Event relationship
+        modelBuilder.Entity<SecurityZone>()
+            .HasOne(sz => sz.Event)
+            .WithMany(e => e.SecurityZones)
+            .HasForeignKey(sz => sz.EventId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Geometry>()
-            .HasOne(g => g.Event)
+        // SecurityZone -> Equipment relationship
+        modelBuilder.Entity<SecurityZone>()
+            .HasOne(sz => sz.Equipment)
+            .WithMany(e => e.SecurityZones)
+            .HasForeignKey(sz => sz.EquipmentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // SecurityZone -> InstallationTeam relationship
+        modelBuilder.Entity<SecurityZone>()
+            .HasOne(sz => sz.InstallationTeam)
             .WithMany()
-            .HasForeignKey(g => g.EventId)
+            .HasForeignKey(sz => sz.InstallationTeamId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        // SecurityZone -> RemovalTeam relationship
+        modelBuilder.Entity<SecurityZone>()
+            .HasOne(sz => sz.RemovalTeam)
+            .WithMany()
+            .HasForeignKey(sz => sz.RemovalTeamId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        // Planning -> Team relationship (one-to-one)
+        modelBuilder.Entity<Planning>()
+            .HasOne(p => p.Team)
+            .WithOne(t => t.Planning)
+            .HasForeignKey<Planning>(p => p.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Action -> Planning relationship
+        modelBuilder.Entity<Models.Action>()
+            .HasOne(a => a.Planning)
+            .WithMany(p => p.Actions)
+            .HasForeignKey(a => a.PlanningId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Action -> SecurityZone relationship
+        modelBuilder.Entity<Models.Action>()
+            .HasOne(a => a.SecurityZone)
+            .WithMany(sz => sz.Actions)
+            .HasForeignKey(a => a.SecurityZoneId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

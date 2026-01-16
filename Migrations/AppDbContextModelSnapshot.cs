@@ -17,6 +17,103 @@ namespace t5_back.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
 
+            modelBuilder.Entity("t5_back.Models.Action", b =>
+                {
+                    b.Property<Guid>("UUID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<float>("Latitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<float>("Longitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<Guid>("PlanningId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SecurityZoneId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("UUID");
+
+                    b.HasIndex("PlanningId");
+
+                    b.HasIndex("SecurityZoneId");
+
+                    b.ToTable("Actions");
+                });
+
+            modelBuilder.Entity("t5_back.Models.Area", b =>
+                {
+                    b.Property<Guid>("UUID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ColorHex")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GeoJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UUID");
+
+                    b.HasIndex("EventId");
+
+                    b.ToTable("Areas");
+                });
+
+            modelBuilder.Entity("t5_back.Models.Employee", b =>
+                {
+                    b.Property<Guid>("UUID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsFavorite")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UUID");
+
+                    b.ToTable("Employees");
+                });
+
             modelBuilder.Entity("t5_back.Models.Equipment", b =>
                 {
                     b.Property<Guid>("UUID")
@@ -26,18 +123,14 @@ namespace t5_back.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
-                    b.Property<float?>("RemainingStock")
+                    b.Property<float?>("Length")
                         .HasColumnType("REAL");
 
-                    b.Property<float?>("TotalStock")
-                        .HasColumnType("REAL");
+                    b.Property<int?>("StorageType")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Type")
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Unit")
-                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.HasKey("UUID");
@@ -51,143 +144,77 @@ namespace t5_back.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
+                    b.Property<DateTime>("EndDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTime?>("StartDate")
+                    b.Property<bool>("IsFavorite")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MaxDurationMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MinDurationMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("StartDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
 
                     b.HasKey("UUID");
 
                     b.ToTable("Events");
                 });
 
-            modelBuilder.Entity("t5_back.Models.EventTeam", b =>
+            modelBuilder.Entity("t5_back.Models.Picture", b =>
                 {
-                    b.Property<Guid>("EventId")
+                    b.Property<Guid>("UUID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("PictureData")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<Guid?>("PointId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("SecurityZoneId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UUID");
+
+                    b.HasIndex("PointId");
+
+                    b.HasIndex("SecurityZoneId");
+
+                    b.ToTable("Pictures");
+                });
+
+            modelBuilder.Entity("t5_back.Models.Planning", b =>
+                {
+                    b.Property<Guid>("UUID")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("TeamId")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("EventId", "TeamId");
-
-                    b.HasIndex("TeamId");
-
-                    b.ToTable("EventTeams");
-                });
-
-            modelBuilder.Entity("t5_back.Models.Geometry", b =>
-                {
-                    b.Property<Guid>("UUID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("uuid");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("created");
-
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("eventId");
-
-                    b.Property<string>("GeoJsonString")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("Modified")
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("modified");
-
-                    b.Property<string>("PropertiesString")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT")
-                        .HasJsonPropertyName("type");
-
                     b.HasKey("UUID");
 
-                    b.HasIndex("EventId");
+                    b.HasIndex("TeamId")
+                        .IsUnique();
 
-                    b.ToTable("Geometries");
-                });
-
-            modelBuilder.Entity("t5_back.Models.ImagePoint", b =>
-                {
-                    b.Property<Guid>("ImageId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("PointId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("ImageId", "PointId");
-
-                    b.HasIndex("PointId");
-
-                    b.ToTable("ImagePoints");
-                });
-
-            modelBuilder.Entity("t5_back.Models.Member", b =>
-                {
-                    b.Property<Guid>("UUID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("UUID");
-
-                    b.ToTable("Members");
-                });
-
-            modelBuilder.Entity("t5_back.Models.Photo", b =>
-                {
-                    b.Property<Guid>("UUID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<byte[]>("Picture")
-                        .IsRequired()
-                        .HasColumnType("BLOB");
-
-                    b.Property<string>("PictureName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("UUID");
-
-                    b.ToTable("Photos");
+                    b.ToTable("Plannings");
                 });
 
             modelBuilder.Entity("t5_back.Models.Point", b =>
@@ -199,43 +226,109 @@ namespace t5_back.Migrations
                     b.Property<string>("Comment")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("TEXT");
-
                     b.Property<Guid?>("EquipmentId")
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("EquipmentQuantity")
-                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("EventId")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("EventUUID")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("ImageId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("InstalledAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsValid")
+                    b.Property<bool>("IsPointOfInterest")
                         .HasColumnType("INTEGER");
 
-                    b.Property<float?>("Latitude")
+                    b.Property<float>("Latitude")
                         .HasColumnType("REAL");
 
-                    b.Property<float?>("Longitude")
+                    b.Property<float>("Longitude")
                         .HasColumnType("REAL");
 
-                    b.Property<DateTime>("Modified")
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("Order")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime?>("RemovedAt")
+                    b.Property<bool>("Validated")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("UUID");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("EventId");
+
+                    b.ToTable("Points");
+                });
+
+            modelBuilder.Entity("t5_back.Models.RoutePath", b =>
+                {
+                    b.Property<Guid>("UUID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ColorHex")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GeoJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UUID");
+
+                    b.HasIndex("EventId");
+
+                    b.ToTable("Paths");
+                });
+
+            modelBuilder.Entity("t5_back.Models.SecurityZone", b =>
+                {
+                    b.Property<Guid>("UUID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EquipmentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GeoJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("InstallationDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("InstallationTeamId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("RemovalDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("RemovalTeamId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("UUID");
@@ -244,15 +337,20 @@ namespace t5_back.Migrations
 
                     b.HasIndex("EventId");
 
-                    b.HasIndex("EventUUID");
+                    b.HasIndex("InstallationTeamId");
 
-                    b.ToTable("Points");
+                    b.HasIndex("RemovalTeamId");
+
+                    b.ToTable("SecurityZones");
                 });
 
             modelBuilder.Entity("t5_back.Models.Team", b =>
                 {
                     b.Property<Guid>("UUID")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EventId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TeamName")
@@ -265,22 +363,24 @@ namespace t5_back.Migrations
 
                     b.HasKey("UUID");
 
+                    b.HasIndex("EventId");
+
                     b.ToTable("Teams");
                 });
 
-            modelBuilder.Entity("t5_back.Models.TeamMember", b =>
+            modelBuilder.Entity("t5_back.Models.TeamEmployee", b =>
                 {
                     b.Property<Guid>("TeamId")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("MemberId")
+                    b.Property<Guid>("EmployeeId")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("TeamId", "MemberId");
+                    b.HasKey("TeamId", "EmployeeId");
 
-                    b.HasIndex("MemberId");
+                    b.HasIndex("EmployeeId");
 
-                    b.ToTable("TeamMembers");
+                    b.ToTable("TeamEmployees");
                 });
 
             modelBuilder.Entity("t5_back.Models.User", b =>
@@ -305,53 +405,62 @@ namespace t5_back.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("t5_back.Models.EventTeam", b =>
+            modelBuilder.Entity("t5_back.Models.Action", b =>
+                {
+                    b.HasOne("t5_back.Models.Planning", "Planning")
+                        .WithMany("Actions")
+                        .HasForeignKey("PlanningId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("t5_back.Models.SecurityZone", "SecurityZone")
+                        .WithMany("Actions")
+                        .HasForeignKey("SecurityZoneId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planning");
+
+                    b.Navigation("SecurityZone");
+                });
+
+            modelBuilder.Entity("t5_back.Models.Area", b =>
                 {
                     b.HasOne("t5_back.Models.Event", "Event")
-                        .WithMany("EventTeams")
+                        .WithMany("Areas")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("t5_back.Models.Team", "Team")
-                        .WithMany("EventTeams")
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
-
-                    b.Navigation("Team");
-                });
-
-            modelBuilder.Entity("t5_back.Models.Geometry", b =>
-                {
-                    b.HasOne("t5_back.Models.Event", "Event")
-                        .WithMany()
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("t5_back.Models.ImagePoint", b =>
+            modelBuilder.Entity("t5_back.Models.Picture", b =>
                 {
-                    b.HasOne("t5_back.Models.Photo", "Photo")
-                        .WithMany("ImagePoints")
-                        .HasForeignKey("ImageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("t5_back.Models.Point", "Point")
-                        .WithMany("ImagePoints")
+                        .WithMany("Pictures")
                         .HasForeignKey("PointId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("Photo");
+                    b.HasOne("t5_back.Models.SecurityZone", "SecurityZone")
+                        .WithMany("Pictures")
+                        .HasForeignKey("SecurityZoneId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Point");
+
+                    b.Navigation("SecurityZone");
+                });
+
+            modelBuilder.Entity("t5_back.Models.Planning", b =>
+                {
+                    b.HasOne("t5_back.Models.Team", "Team")
+                        .WithOne("Planning")
+                        .HasForeignKey("t5_back.Models.Planning", "TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("t5_back.Models.Point", b =>
@@ -362,71 +471,137 @@ namespace t5_back.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("t5_back.Models.Event", "Event")
-                        .WithMany()
+                        .WithMany("Points")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("t5_back.Models.Event", null)
-                        .WithMany("Points")
-                        .HasForeignKey("EventUUID");
 
                     b.Navigation("Equipment");
 
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("t5_back.Models.TeamMember", b =>
+            modelBuilder.Entity("t5_back.Models.RoutePath", b =>
                 {
-                    b.HasOne("t5_back.Models.Member", "Member")
-                        .WithMany("TeamMembers")
-                        .HasForeignKey("MemberId")
+                    b.HasOne("t5_back.Models.Event", "Event")
+                        .WithMany("Paths")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("t5_back.Models.SecurityZone", b =>
+                {
+                    b.HasOne("t5_back.Models.Equipment", "Equipment")
+                        .WithMany("SecurityZones")
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("t5_back.Models.Event", "Event")
+                        .WithMany("SecurityZones")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("t5_back.Models.Team", "InstallationTeam")
+                        .WithMany()
+                        .HasForeignKey("InstallationTeamId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("t5_back.Models.Team", "RemovalTeam")
+                        .WithMany()
+                        .HasForeignKey("RemovalTeamId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Equipment");
+
+                    b.Navigation("Event");
+
+                    b.Navigation("InstallationTeam");
+
+                    b.Navigation("RemovalTeam");
+                });
+
+            modelBuilder.Entity("t5_back.Models.Team", b =>
+                {
+                    b.HasOne("t5_back.Models.Event", "Event")
+                        .WithMany("Teams")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("t5_back.Models.TeamEmployee", b =>
+                {
+                    b.HasOne("t5_back.Models.Employee", "Employee")
+                        .WithMany("TeamEmployees")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("t5_back.Models.Team", "Team")
-                        .WithMany("TeamMembers")
+                        .WithMany("TeamEmployees")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Member");
+                    b.Navigation("Employee");
 
                     b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("t5_back.Models.Employee", b =>
+                {
+                    b.Navigation("TeamEmployees");
                 });
 
             modelBuilder.Entity("t5_back.Models.Equipment", b =>
                 {
                     b.Navigation("Points");
+
+                    b.Navigation("SecurityZones");
                 });
 
             modelBuilder.Entity("t5_back.Models.Event", b =>
                 {
-                    b.Navigation("EventTeams");
+                    b.Navigation("Areas");
+
+                    b.Navigation("Paths");
 
                     b.Navigation("Points");
+
+                    b.Navigation("SecurityZones");
+
+                    b.Navigation("Teams");
                 });
 
-            modelBuilder.Entity("t5_back.Models.Member", b =>
+            modelBuilder.Entity("t5_back.Models.Planning", b =>
                 {
-                    b.Navigation("TeamMembers");
-                });
-
-            modelBuilder.Entity("t5_back.Models.Photo", b =>
-                {
-                    b.Navigation("ImagePoints");
+                    b.Navigation("Actions");
                 });
 
             modelBuilder.Entity("t5_back.Models.Point", b =>
                 {
-                    b.Navigation("ImagePoints");
+                    b.Navigation("Pictures");
+                });
+
+            modelBuilder.Entity("t5_back.Models.SecurityZone", b =>
+                {
+                    b.Navigation("Actions");
+
+                    b.Navigation("Pictures");
                 });
 
             modelBuilder.Entity("t5_back.Models.Team", b =>
                 {
-                    b.Navigation("EventTeams");
+                    b.Navigation("Planning");
 
-                    b.Navigation("TeamMembers");
+                    b.Navigation("TeamEmployees");
                 });
 #pragma warning restore 612, 618
         }
