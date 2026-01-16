@@ -19,7 +19,8 @@ import { Event } from '../../../models/eventModel';
 import { Area } from '../../../models/areaModel';
 import { RoutePath } from '../../../models/routePathModel';
 import { Subscription, Subject, Observable, forkJoin } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap, filter } from 'rxjs/operators';
+import { WebSocketExportService } from '../../../services/WebSocketExportService';
 import { ExportPopup } from '../../../shared/export-popup/export-popup';
 import { ImportPopup } from '../../../shared/import-popup/import-popup';
 import { EventCreatePopup } from '../../../shared/event-create-popup/event-create-popup';
@@ -65,6 +66,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   private selectedEventSubscription?: Subscription;
   private eventsSubscription?: Subscription;
   private areasSubscription?: Subscription;
+  private importCompletedSubscription?: Subscription;
 
   // Onglet actif: 'points' ou 'zones' ou 'organized'
   activeTab: 'points' | 'zones' = 'points';
@@ -147,7 +149,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     private router: Router,
     private cdr: ChangeDetectorRef,
     private nominatimService: NominatimService,
-    private eventStoreService: EventStoreService
+    private eventStoreService: EventStoreService,
+    private wsExportService: WebSocketExportService
   ) {
     // Initialiser points$ après l'injection de mapService
     this.points$ = this.mapService.points$;
@@ -299,6 +302,21 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       }
     });
+
+    // S'abonner à la fin de l'import WebSocket pour rafraîchir automatiquement les points
+    this.importCompletedSubscription = this.wsExportService.progress$
+      .pipe(
+        filter((msg) => msg.type === 'message' && msg.data?.type === 'end')
+      )
+      .subscribe(() => {
+        console.log('📥 Import terminé, rafraîchissement des points...');
+        if (this.selectedEvent) {
+          // Recharger les données de l'événement après un court délai pour laisser le temps à la BDD
+          setTimeout(() => {
+            this.loadPointsAndCenterMap(this.selectedEvent!.uuid);
+          }, 500);
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -318,6 +336,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     this.eventAreaVisibleSubscription?.unsubscribe();
     this.areasSubscription?.unsubscribe();
     this.drawerSubscription?.unsubscribe();
+    this.importCompletedSubscription?.unsubscribe();
   }
 
   /**
@@ -633,10 +652,10 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   onEventCreated(event: Event): void {
     // Ajouter l'événement à la liste locale
     this.events.push(event);
-    
+
     // Désélectionner l'ancien événement pour nettoyer la carte
     this.mapService.setSelectedEvent(null);
-    
+
     // Petit délai pour que le nettoyage se fasse
     setTimeout(() => {
       // Sélectionner le nouvel événement
@@ -645,7 +664,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
       this.mapService.setSelectedEvent(event);
       // Charger les points (vide pour un nouvel événement)
       this.loadPointsForEvent(event.uuid);
-      
+
       // Naviguer vers la page événements
       this.router.navigate(['/evenements']).then(() => {
         // Une fois la navigation terminée, démarrer le mode création
@@ -1005,8 +1024,8 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
   }
 
   // ============= Organized List Methods =============
-  
-  onOrganizedItemClick(item: {type: string; data: Point | SecurityZone | RoutePath | Area}): void {
+
+  onOrganizedItemClick(item: { type: string; data: Point | SecurityZone | RoutePath | Area }): void {
     if (item.type === 'point') {
       const point = item.data as Point;
       this.onPointClick(point);
@@ -1030,7 +1049,7 @@ export class PointsSidebarComponent implements OnInit, OnDestroy {
     }
   }
 
-  onItemVisibilityChange(event: {item: {type: string; data: Point | SecurityZone | RoutePath | Area}, visible: boolean}): void {
+  onItemVisibilityChange(event: { item: { type: string; data: Point | SecurityZone | RoutePath | Area }, visible: boolean }): void {
     if (event.item.type === 'zone') {
       const zone = event.item.data as SecurityZone;
       this.mapService.toggleSecurityZoneVisibility(zone.uuid, event.visible);
