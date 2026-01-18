@@ -1,0 +1,63 @@
+image: node:18
+
+before_script:
+  - cd nidhoggr
+
+stages:
+  - install
+  - lint
+  - test
+  - deploy
+
+install_job:
+  stage: install
+  script:
+    - npm install
+  artifacts:
+    paths:
+      - nidhoggr/node_modules/
+    expire_in: 1 hour
+
+lint_job:
+  stage: lint
+  needs:
+    - install_job
+  script:
+    - npm run lint > gl-code-quality-report.json
+  artifacts:
+    when: always
+    reports:
+      codequality: nidhoggr/gl-code-quality-report.json
+    expire_in: 1 week
+  allow_failure: false
+
+test_job:
+  stage: test
+  needs:
+    - install_job
+  script:
+    - npm install --no-save jest-junit
+    - npm test -- --ci --coverage --coverageReporters=cobertura --reporters=default --reporters=jest-junit
+  artifacts:
+    when: always
+    reports:
+      junit: nidhoggr/test-reports/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: nidhoggr/coverage/cobertura-coverage.xml
+    paths:
+      - nidhoggr/coverage/
+    expire_in: 1 week
+  allow_failure: false
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+
+deploy_job:
+  stage: deploy
+  needs:
+    - install_job
+    - test_job
+  script:
+    - npm install -g eas-cli
+    - eas build -p android --profile preview --non-interactive
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
