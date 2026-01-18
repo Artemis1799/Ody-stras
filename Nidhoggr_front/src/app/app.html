@@ -1,0 +1,21 @@
+@if (isBrowser) {
+  @if (!isInitialized) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p>Chargement...</p>
+    </div>
+  } @else if (isAuthenticated) {
+    <p-toast position="top-right"></p-toast>
+    <app-navbar></app-navbar>
+    <div class="main-content">
+      <router-outlet></router-outlet>
+    </div>
+  } @else {
+    <app-login-page></app-login-page>
+  }
+} @else {
+  <div class="loading-container">
+    <div class="spinner"></div>
+    <p>Chargement...</p>
+  </div>
+}

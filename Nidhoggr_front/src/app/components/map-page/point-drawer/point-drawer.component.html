@@ -1,0 +1,115 @@
+<p-drawer 
+  [(visible)]="visible"
+  position="right" 
+  [modal]="false" 
+  [closeOnEscape]="false" 
+  [dismissible]="false"
+  [closable]="false"
+>
+  <ng-template #header class="drawer-header-template">
+    <div class="drawer-header">
+      <div class="header-content">
+        <h3>Point #{{ selectedPointIndex || selectedPoint?.order || '?' }}</h3>
+      </div>
+      <button 
+        type="button" 
+        class="close-button"
+        (click)="closeDrawer()"
+        title="Fermer"
+      >✕</button>
+    </div>
+  </ng-template>
+
+  <ng-container *ngIf="selectedPoint" class="drawer-content">
+    <div class="unified-section">
+      <!-- Statut validé -->
+      <div class="form-row toggle-row">
+        <label for="validated">Point traité</label>
+        <p-toggleSwitch 
+          inputId="validated" 
+          [(ngModel)]="isValidated"
+        />
+      </div>
+
+      <!-- Commentaire -->
+      <div class="form-row">
+        <label for="comment">Commentaire</label>
+        <input 
+          id="comment" 
+          type="text" 
+          pInputText 
+          [(ngModel)]="editedComment"
+          placeholder="Ajouter un commentaire..."
+          class="w-full"
+        />
+      </div>
+
+      <!-- Équipement -->
+      <div class="form-row equipment-selector">
+        <label for="equipment">Équipement (optionnel)<span class="required"></span></label>
+        <p-autoComplete
+          inputId="equipment"
+          [(ngModel)]="selectedEquipmentName"
+          [suggestions]="filteredEquipments"
+          (completeMethod)="filterEquipments($event)"
+          (onSelect)="onEquipmentSelect($event)"
+          placeholder="Sélectionner un équipement..."
+          [dropdown]="true"
+          [forceSelection]="true"
+          [showEmptyMessage]="true"
+          emptyMessage="Aucun équipement trouvé"
+          appendTo="body"
+          panelStyleClass="equipment-dropdown-panel"
+          class="w-full"
+        />
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #footer>
+    <div class="drawer-footer">
+      <button 
+        type="button" 
+        class="btn btn-secondary"
+        (click)="openPhotoViewer()"
+      >
+        <span class="pi pi-image"></span>
+        Photos
+      </button>
+      <div class="main-actions">
+        <button 
+          type="button" 
+          class="btn btn-danger"
+          (click)="confirmDeletePoint()"
+          [disabled]="isEventArchived"
+        >
+          <span class="pi pi-trash"></span>
+          Supprimer
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary"
+          [disabled]="!hasChanges() || isEventArchived"
+          (click)="saveChanges()"
+        >
+          <span class="pi pi-save"></span>
+          Enregistrer
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</p-drawer>
+
+@if (showPhotoViewer && selectedPoint) {
+  <app-photo-viewer [pointId]="selectedPoint.uuid" (close)="closePhotoViewer()"></app-photo-viewer>
+}
+
+@if (showDeleteConfirm && selectedPoint) {
+  <app-delete-popup
+    [title]="'Supprimer le point'"
+    [itemName]="'Point #' + (selectedPointIndex || selectedPoint.order)"
+    [warningMessage]="'Cette action est irréversible. Le point et toutes ses photos seront supprimés.'"
+    (confirm)="deletePoint()"
+    (close)="cancelDeletePoint()"
+  ></app-delete-popup>
+}

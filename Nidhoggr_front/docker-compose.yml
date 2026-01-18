@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # Backend .NET API
+  # ============================================
+  nidhoggr-back:
+    build:
+      context: ../../t5-back
+      dockerfile: Dockerfile
+    container_name: nidhoggr-back
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: "Data Source=/data/database.db"
+    volumes:
+      - nidhoggr-data:/data
+    restart: unless-stopped
+    networks:
+      - nidhoggr-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5000/api/Event"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ============================================
+  # Application Angular SSR + WebSocket
+  # ============================================
+  nidhoggr-front:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: nidhoggr-front
+    ports:
+      - "4000:4000"   # SSR Server
+      - "3001:3001"   # WebSocket Server
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      WS_PORT: 3001
+      API_URL: http://nidhoggr-back:5000
+    restart: unless-stopped
+    depends_on:
+      nidhoggr-back:
+        condition: service_healthy
+      nominatim:
+        condition: service_started
+    networks:
+      - nidhoggr-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================
+  # Nominatim - Service de géocodage
+  # ============================================
+  nominatim:
+    image: mediagis/nominatim:4.4
+    container_name: nominatim-search
+    ports:
+      - "8080:8080"
+    environment:
+      PBF_URL: https://download.geofabrik.de/europe/france/alsace-latest.osm.pbf
+      REPLICATION_URL: https://download.geofabrik.de/europe/france/alsace-updates/
+      IMPORT_WIKIPEDIA: "false"
+      IMPORT_US_POSTCODES: "false"
+      IMPORT_GB_POSTCODES: "false"
+      THREADS: 4
+    volumes:
+      - nominatim-data:/var/lib/postgresql/14/main
+    shm_size: 1gb
+    restart: unless-stopped
+    networks:
+      - nidhoggr-network
+
+networks:
+  nidhoggr-network:
+    driver: bridge
+
+volumes:
+  nominatim-data:
+  nidhoggr-data:

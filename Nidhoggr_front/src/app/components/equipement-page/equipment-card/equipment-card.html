@@ -1,0 +1,74 @@
+<div class="equipment-card" [class.editing]="isEditing">
+  <div *ngIf="!isEditing" class="equipment-view">
+    <div class="equipment-header">
+      <div class="equipment-info">
+        <h3>{{ equipment.type }}</h3>
+        <p class="type">{{ equipment.description }}<span *ngIf="equipment.length"> • {{ equipment.length }}m</span></p>
+      </div>
+    </div>
+    
+    <div class="equipment-actions">
+      <button 
+        type="button" 
+        class="edit-button"
+        (click)="onEdit()"
+      >
+        <span class="pi pi-pencil"></span>
+        Modifier
+      </button>
+      <button 
+        type="button" 
+        class="delete-button"
+        (click)="onDelete()"
+      >
+        <span class="pi pi-trash"></span>
+        Supprimer
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isEditing" class="equipment-edit">
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Type</label>
+        <input 
+          type="text"
+          pInputText
+          [(ngModel)]="editingEquipment!.type"
+          placeholder="Type d'équipement"
+        />
+      </div>
+
+      <div class="form-field">
+        <label>Description (max 40 caractères)</label>
+        <input 
+          type="text"
+          pInputText
+          [(ngModel)]="editingEquipment!.description"
+          placeholder="Description"
+          maxlength="40"
+        />
+        <small class="char-count">{{ editingEquipment!.description?.length || 0 }}/40</small>
+      </div>
+
+      <div class="form-field">
+        <label>Longueur (m)</label>
+        <p-inputnumber
+          [(ngModel)]="editingEquipment!.length"
+          [min]="0"
+          [showButtons]="true"
+        ></p-inputnumber>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="cancel-button" (click)="onCancelEdit()">
+        Annuler
+      </button>
+      <button type="button" class="save-button" (click)="onSave()">
+        <span class="pi pi-check"></span>
+        Enregistrer
+      </button>
+    </div>
+  </div>
+</div>

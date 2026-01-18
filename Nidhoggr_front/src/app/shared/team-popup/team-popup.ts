@@ -1,0 +1,721 @@
+import { Component, EventEmitter, Input, Output, signal, OnDestroy, OnChanges, SimpleChanges, OnInit, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Team } from '../../models/teamModel';
+import { Employee } from '../../models/employeeModel';
+import { Event } from '../../models/eventModel';
+import { SecurityZone } from '../../models/securityZoneModel';
+import { Planning } from '../../models/planningModel';
+import { MapService } from '../../services/MapService';
+import { getWebSocketUrl } from '../constants/wsUrl';
+import jsPDF from 'jspdf';
+import * as QRCodeLib from 'qrcode';
+
+export interface TeamFormData {
+  team: Partial<Team>;
+  selectedEmployees: Employee[];
+}
+
+@Component({
+  selector: 'app-team-popup',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './team-popup.html',
+  styleUrl: './team-popup.scss'
+})
+export class TeamPopupComponent implements OnDestroy, OnChanges, OnInit {
+  @Input() isEditing = false;
+  @Input() team: Partial<Team> = {};
+  @Input() allEmployees: Employee[] = [];
+  @Input() selectedEmployees: Employee[] = [];
+  @Input() events: Event[] = [];
+  @Input() securityZones: SecurityZone[] = [];
+  @Input() plannings: Planning[] = [];
+  
+  constructor(private mapService: MapService, private cdr: ChangeDetectorRef) {}
+
+  get isEventArchived(): boolean {
+    return this.mapService.isSelectedEventArchived();
+  }
+  
+  // Event change confirmation
+  showEventChangeConfirm = false;
+  pendingEventId: string | null = null;
+  originalEventId: string | null = null;
+  
+  // Selected events for export (multi-select)
+  selectedEventIds: string[] = [];
+  
+  // QR Code popup properties
+  showQRCodePopup = false;
+  qrCodeDataURL = '';
+  exportStatus = '';
+  isExporting = false;
+  private ws: WebSocket | null = null;
+  
+  // Signaux de recherche
+  searchLastName = signal('');
+  searchFirstName = signal('');
+  
+  get sortedEmployees(): Employee[] {
+    return [...this.allEmployees].sort((a, b) => {
+      // D'abord les favoris
+      if (a.isFavorite && !b.isFavorite) return -1;
+      if (!a.isFavorite && b.isFavorite) return 1;
+      // Ensuite tri alphabétique
+      const firstNameCompare = a.firstName.localeCompare(b.firstName, 'fr');
+      return firstNameCompare !== 0 ? firstNameCompare : a.lastName.localeCompare(b.lastName, 'fr');
+    });
+  }
+  
+  @Output() selectedEmployeesChange = new EventEmitter<Employee[]>();
+  @Output() save = new EventEmitter<TeamFormData>();
+  @Output() close = new EventEmitter<void>();
+  @Output() eventChangeRequested = new EventEmitter<{ teamId: string; oldEventId: string; newEventId: string }>();
+
+  ngOnInit(): void {
+    // Mémoriser l'eventId original pour la vérification de changement
+    if (this.isEditing && this.team.eventId) {
+      this.originalEventId = this.team.eventId;
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Pas besoin d'initialiser selectedEventIds ici, c'est fait dans la popup d'export
+    if (changes['team'] && this.isEditing) {
+      this.originalEventId = this.team.eventId || null;
+    }
+  }
+  
+  getFilteredEmployees(): Employee[] {
+    const lastNameFilter = this.searchLastName().toLowerCase().trim();
+    const firstNameFilter = this.searchFirstName().toLowerCase().trim();
+    
+    return this.sortedEmployees.filter(employee => {
+      const matchesLastName = !lastNameFilter || employee.lastName.toLowerCase().includes(lastNameFilter);
+      const matchesFirstName = !firstNameFilter || employee.firstName.toLowerCase().includes(firstNameFilter);
+      
+      return matchesLastName && matchesFirstName;
+    });
+  }
+
+  isEmployeeSelected(employee: Employee): boolean {
+    return this.selectedEmployees.some(e => e.uuid === employee.uuid);
+  }
+
+  toggleEmployee(employee: Employee): void {
+    if (this.isEmployeeSelected(employee)) {
+      this.selectedEmployees = this.selectedEmployees.filter(e => e.uuid !== employee.uuid);
+    } else {
+      this.selectedEmployees = [...this.selectedEmployees, employee];
+    }
+    this.selectedEmployeesChange.emit(this.selectedEmployees);
+  }
+
+  /**
+   * Récupère le nom de l'event actuel
+   */
+  getCurrentEventName(): string {
+    if (!this.team.eventId) return 'Aucun événement';
+    const event = this.events.find(e => e.uuid === this.team.eventId);
+    return event?.title || 'Événement inconnu';
+  }
+
+  /**
+   * Récupère le nom d'un event par son ID
+   */
+  getEventNameById(eventId: string): string {
+    const event = this.events.find(e => e.uuid === eventId);
+    return event?.title || 'Événement inconnu';
+  }
+
+  /**
+   * Gère le changement d'event avec vérification
+   */
+  onEventChange(newEventId: string): void {
+    // Si on est en mode édition et qu'on change vraiment d'event
+    if (this.isEditing && this.team.uuid && this.originalEventId && newEventId !== this.originalEventId) {
+      // Toujours demander confirmation car ça peut impacter les poses/déposes
+      this.pendingEventId = newEventId;
+      this.showEventChangeConfirm = true;
+      return;
+    }
+    // Mode création ou pas de changement, on peut changer directement
+    this.team.eventId = newEventId;
+  }
+
+  /**
+   * Confirme le changement d'event (va détacher les plannings et actions)
+   */
+  confirmEventChange(): void {
+    if (this.pendingEventId && this.team.uuid && this.originalEventId) {
+      // Émettre l'événement pour que le parent détache les plannings/actions
+      this.eventChangeRequested.emit({
+        teamId: this.team.uuid,
+        oldEventId: this.originalEventId,
+        newEventId: this.pendingEventId
+      });
+      this.team.eventId = this.pendingEventId;
+      this.originalEventId = this.pendingEventId;
+    }
+    this.cancelEventChange();
+  }
+
+  /**
+   * Annule le changement d'event
+   */
+  cancelEventChange(): void {
+    this.showEventChangeConfirm = false;
+    this.pendingEventId = null;
+  }
+
+  /**
+   * Vérifie si le bouton d'export planning est disponible
+   */
+  canExportPlanning(): boolean {
+    return !!this.team.eventId && !!this.team.uuid;
+  }
+
+  onSave(): void {
+    if (this.team.teamName?.trim() && this.team.eventId) {
+      this.save.emit({
+        team: { ...this.team },
+        selectedEmployees: [...this.selectedEmployees]
+      });
+    }
+  }
+
+  onClose(): void {
+    this.close.emit();
+  }
+  
+  parseNumber(value: string | number | null): number | undefined {
+    if (!value) return undefined;
+    const num = parseInt(String(value), 10);
+    return isNaN(num) ? undefined : num;
+  }
+
+  /**
+   * Normalise le texte pour le PDF en remplaçant les caractères accentués
+   * par leurs équivalents ASCII (nécessaire car la police helvetica de jsPDF
+   * ne supporte pas les caractères UTF-8)
+   */
+  private normalizePdfText(text: string): string {
+    if (!text) return '';
+    const charMap: { [key: string]: string } = {
+      'à': 'a', 'â': 'a', 'ä': 'a', 'á': 'a', 'ã': 'a',
+      'è': 'e', 'ê': 'e', 'ë': 'e', 'é': 'e',
+      'ì': 'i', 'î': 'i', 'ï': 'i', 'í': 'i',
+      'ò': 'o', 'ô': 'o', 'ö': 'o', 'ó': 'o', 'õ': 'o',
+      'ù': 'u', 'û': 'u', 'ü': 'u', 'ú': 'u',
+      'ç': 'c', 'ñ': 'n',
+      'À': 'A', 'Â': 'A', 'Ä': 'A', 'Á': 'A', 'Ã': 'A',
+      'È': 'E', 'Ê': 'E', 'Ë': 'E', 'É': 'E',
+      'Ì': 'I', 'Î': 'I', 'Ï': 'I', 'Í': 'I',
+      'Ò': 'O', 'Ô': 'O', 'Ö': 'O', 'Ó': 'O', 'Õ': 'O',
+      'Ù': 'U', 'Û': 'U', 'Ü': 'U', 'Ú': 'U',
+      'Ç': 'C', 'Ñ': 'N',
+      '\u00AB': '"', '\u00BB': '"', '\u2018': "'", '\u2019': "'", '\u201C': '"', '\u201D': '"',
+      '\u2013': '-', '\u2014': '-', '\u2026': '...',
+      'œ': 'oe', 'Œ': 'OE', 'æ': 'ae', 'Æ': 'AE'
+    };
+    return text.split('').map(char => charMap[char] || char).join('');
+  }
+
+  generatePlanningPDF(): void {
+    if (!this.team.uuid) return;
+
+    const teamId = this.team.uuid;
+    const installationZones = this.securityZones.filter(z => z.installationTeamId === teamId);
+    const removalZones = this.securityZones.filter(z => z.removalTeamId === teamId);
+
+    // Tri par date
+    installationZones.sort((a, b) => new Date(a.installationDate).getTime() - new Date(b.installationDate).getTime());
+    removalZones.sort((a, b) => new Date(a.removalDate).getTime() - new Date(b.removalDate).getTime());
+
+    const doc = new jsPDF();
+    const pageHeight = doc.internal.pageSize.height;
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 15;
+    let yPosition = 25;
+
+    const teamName = this.team.teamName || 'Équipe';
+    const eventName = this.events.find(e => e.uuid === this.team.eventId)?.title || '';
+
+    // === EN-TÊTE DU DOCUMENT ===
+    doc.setFillColor(23, 28, 34);
+    doc.rect(0, 0, pageWidth, 45, 'F');
+    
+    // Titre principal
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text(this.normalizePdfText(`Planning - ${teamName}`), pageWidth / 2, 22, { align: 'center' });
+    
+    // Sous-titre événement
+    if (eventName) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(139, 148, 158);
+      doc.text(this.normalizePdfText(eventName), pageWidth / 2, 32, { align: 'center' });
+    }
+
+    yPosition = 62;
+    doc.setTextColor(0, 0, 0);
+
+    // === MEMBRES DE L'ÉQUIPE ===
+    if (this.selectedEmployees.length > 0) {
+      // Icône utilisateurs (petit cercle)
+      doc.setFillColor(42, 215, 131);
+      doc.circle(margin + 4, yPosition - 2, 3, 'F');
+      
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(23, 28, 34);
+      doc.text(this.normalizePdfText('Membre(s) de l\'equipe'), margin + 12, yPosition);
+      yPosition += 10;
+      
+      // Liste des membres dans un encadré
+      doc.setFillColor(245, 247, 250);
+      const membersText = this.selectedEmployees.map(e => `${e.firstName} ${e.lastName}`).join('  -  ');
+      const memberLines = doc.splitTextToSize(this.normalizePdfText(membersText), pageWidth - 2 * margin - 10);
+      const boxHeight = memberLines.length * 6 + 8;
+      doc.roundedRect(margin, yPosition - 4, pageWidth - 2 * margin, boxHeight, 3, 3, 'F');
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(52, 73, 94);
+      doc.text(memberLines, margin + 5, yPosition + 2);
+      yPosition += boxHeight + 12;
+    }
+
+    // Section Installation
+    yPosition = this.renderSection(doc, 'Équipement(s) à poser', installationZones, 'installation', yPosition, margin, pageWidth, pageHeight);
+
+    // Section Dépose
+    yPosition = this.renderSection(doc, 'Équipement(s) à récupérer', removalZones, 'removal', yPosition, margin, pageWidth, pageHeight);
+
+    // Si aucune zone assignée
+    if (installationZones.length === 0 && removalZones.length === 0) {
+      doc.setFillColor(245, 247, 250);
+      doc.roundedRect(margin, yPosition, pageWidth - 2 * margin, 30, 3, 3, 'F');
+      doc.setFontSize(11);
+      doc.setTextColor(127, 140, 141);
+      doc.text(this.normalizePdfText('Aucun equipement assigne a cette equipe.'), pageWidth / 2, yPosition + 18, { align: 'center' });
+    }
+
+    // Pied de page
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(220, 220, 220);
+      doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+      doc.setFontSize(8);
+      doc.setTextColor(127, 140, 141);
+      doc.text(this.normalizePdfText(`${teamName} - ${eventName}`), margin, pageHeight - 8);
+      doc.text(`Page ${i} / ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+    }
+
+    doc.save(`Planning_${this.normalizePdfText(teamName).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  }
+
+  private renderSection(
+    doc: jsPDF,
+    title: string,
+    zones: SecurityZone[],
+    type: 'installation' | 'removal',
+    yPosition: number,
+    margin: number,
+    pageWidth: number,
+    pageHeight: number
+  ): number {
+    if (zones.length === 0) return yPosition;
+
+    // Ajouter de l'espace avant le titre de section
+    yPosition += 8;
+
+    // Vérifier si on a besoin d'une nouvelle page
+    if (yPosition > pageHeight - 70) {
+      doc.addPage();
+      yPosition = 25;
+    }
+
+    // === TITRE DE SECTION ===
+    const isInstall = type === 'installation';
+    const mainColor = isInstall ? [52, 136, 108] : [156, 89, 82]; // Vert sauge ou Terracotta doux
+    const lightBg = isInstall ? [240, 248, 245] : [250, 244, 243]; // Fond très clair
+    
+    // Bande de couleur à gauche + fond
+    doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+    doc.roundedRect(margin, yPosition - 6, pageWidth - 2 * margin, 14, 2, 2, 'F');
+    doc.setFillColor(mainColor[0], mainColor[1], mainColor[2]);
+    doc.rect(margin, yPosition - 6, 4, 14, 'F');
+    
+    // Texte du titre
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(mainColor[0], mainColor[1], mainColor[2]);
+    doc.text(this.normalizePdfText(title), margin + 10, yPosition + 2);
+    
+    // Badge avec le nombre
+    const badgeText = `${zones.length}`;
+    const badgeWidth = doc.getTextWidth(badgeText) + 8;
+    doc.setFillColor(mainColor[0], mainColor[1], mainColor[2]);
+    doc.roundedRect(pageWidth - margin - badgeWidth - 5, yPosition - 4, badgeWidth, 10, 2, 2, 'F');
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text(badgeText, pageWidth - margin - badgeWidth / 2 - 5, yPosition + 2, { align: 'center' });
+    
+    yPosition += 18;
+
+    // === EN-TÊTE DU TABLEAU ===
+    const dateColX = pageWidth - margin - 60;
+    const qtyColX = pageWidth - margin - 25;
+    
+    doc.setFillColor(245, 247, 250);
+    doc.rect(margin, yPosition - 4, pageWidth - 2 * margin, 10, 'F');
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 110, 120);
+    doc.text('EQUIPEMENT', margin + 5, yPosition + 2);
+    doc.text('DATE', dateColX, yPosition + 2);
+    doc.text('QTE', qtyColX, yPosition + 2);
+    yPosition += 12;
+
+    doc.setTextColor(0, 0, 0);
+
+    // === LIGNES DU TABLEAU ===
+    zones.forEach((zone, index) => {
+      if (yPosition > pageHeight - 25) {
+        doc.addPage();
+        yPosition = 25;
+        // Répéter l'en-tête sur la nouvelle page
+        const dateColX = pageWidth - margin - 60;
+        const qtyColX = pageWidth - margin - 25;
+        
+        doc.setFillColor(245, 247, 250);
+        doc.rect(margin, yPosition - 4, pageWidth - 2 * margin, 10, 'F');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 110, 120);
+        doc.text('EQUIPEMENT', margin + 5, yPosition + 2);
+        doc.text('DATE', dateColX, yPosition + 2);
+        doc.text('QTE', qtyColX, yPosition + 2);
+        yPosition += 12;
+        doc.setTextColor(0, 0, 0);
+      }
+
+      // Ligne alternée
+      if (index % 2 === 0) {
+        doc.setFillColor(252, 252, 253);
+        doc.rect(margin, yPosition - 4, pageWidth - 2 * margin, 12, 'F');
+      }
+      
+      // Bordure gauche colorée
+      doc.setFillColor(mainColor[0], mainColor[1], mainColor[2]);
+      doc.rect(margin, yPosition - 4, 2, 12, 'F');
+
+      const date = type === 'installation' ? zone.installationDate : zone.removalDate;
+      const dateStr = new Date(date).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'short'
+      });
+
+      // Données
+      const equipName = this.normalizePdfText(zone.equipment?.type || 'Equipement');
+      const dateColX = pageWidth - margin - 60;
+      const qtyColX = pageWidth - margin - 25;
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(23, 28, 34);
+      doc.text(equipName, margin + 5, yPosition + 3);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 90, 100);
+      doc.text(this.normalizePdfText(dateStr), dateColX, yPosition + 3);
+      doc.text(String(zone.quantity), qtyColX, yPosition + 3);
+      
+      yPosition += 12;
+      
+      // Commentaire sur une ligne séparée si présent
+      if (zone.comment) {
+        doc.setFontSize(8);
+        doc.setTextColor(120, 130, 140);
+        
+        // Calculer la largeur disponible pour le commentaire
+        const commentMaxWidth = pageWidth - 2 * margin - 15;
+        const normalizedComment = this.normalizePdfText(zone.comment);
+        const commentLines = doc.splitTextToSize(`-> ${normalizedComment}`, commentMaxWidth);
+        const commentHeight = commentLines.length * 4 + 4;
+        
+        // Vérifier si on a besoin d'une nouvelle page en tenant compte de la hauteur du commentaire
+        if (yPosition + commentHeight > pageHeight - 20) {
+          doc.addPage();
+          yPosition = 25;
+        }
+        
+        doc.text(commentLines, margin + 8, yPosition);
+        yPosition += commentHeight;
+      }
+    });
+
+    yPosition += 8;
+    return yPosition;
+  }
+
+  ngOnDestroy(): void {
+    this.disconnectWebSocket();
+  }
+
+  /**
+   * Exporte le planning via QR Code - utilise l'event de l'équipe directement
+   */
+  async exportPlanningQRCode(): Promise<void> {
+    if (!this.team.uuid || !this.team.eventId) return;
+
+    // Utiliser l'event de l'équipe directement, pas de sélection
+    this.selectedEventIds = [this.team.eventId];
+    this.qrCodeDataURL = '';
+    this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
+    this.isExporting = true;
+    this.showQRCodePopup = true;
+
+    try {
+      // Récupérer l'URL WebSocket dynamiquement
+      const wsUrl = await getWebSocketUrl();
+      console.log('✅ WebSocket URL obtenue pour team export:', wsUrl);
+      
+      // Générer le QR code avec l'URL du serveur WebSocket
+      this.qrCodeDataURL = await QRCodeLib.toDataURL(wsUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+
+      // Forcer la détection des changements pour afficher le QR code
+      this.cdr.detectChanges();
+
+      // Connexion au WebSocket et attente du téléphone
+      this.connectAndWaitForPhone(wsUrl);
+    } catch (error) {
+      console.error('❌ Erreur génération QR code:', error);
+      this.exportStatus = '❌ Erreur lors de la génération du QR code';
+      this.isExporting = false;
+    }
+  }
+
+  /**
+   * Confirme la sélection des événements et génère le QR Code (obsolète - gardé pour compatibilité)
+   */
+  async confirmAndGenerateQRCode(): Promise<void> {
+    if (!this.team.uuid || this.selectedEventIds.length === 0) return;
+
+    this.isExporting = true;
+    this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
+
+    try {
+      // Récupérer l'URL WebSocket dynamiquement
+      const wsUrl = await getWebSocketUrl();
+      console.log('✅ WebSocket URL obtenue pour team export:', wsUrl);
+      
+      // Générer le QR code avec l'URL du serveur WebSocket
+      this.qrCodeDataURL = await QRCodeLib.toDataURL(wsUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+
+      // Forcer la détection des changements pour afficher le QR code
+      this.cdr.detectChanges();
+
+      // Connexion au WebSocket et attente du téléphone
+      this.connectAndWaitForPhone(wsUrl);
+    } catch (error) {
+      console.error('❌ Erreur génération QR code:', error);
+      this.exportStatus = '❌ Erreur lors de la génération du QR code';
+      this.isExporting = false;
+    }
+  }
+
+  /**
+   * Connecte au WebSocket et attend qu'un téléphone se connecte
+   */
+  private connectAndWaitForPhone(wsUrl: string): void {
+    this.ws = new WebSocket(wsUrl);
+
+    this.ws.onopen = () => {
+      this.ws?.send(JSON.stringify({ type: 'web_waiting_planning', teamUuid: this.team.uuid }));
+      this.exportStatus = '📱 Scannez le QR code avec votre téléphone...';
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+
+        if (message.type === 'phone_requesting') {
+          this.exportStatus = '🔄 Téléphone détecté ! Envoi du planning...';
+          this.sendPlanningData();
+        } else if (message.type === 'export_confirmed') {
+          this.exportStatus = '✅ Planning envoyé au téléphone !';
+          
+          setTimeout(() => {
+            this.isExporting = false;
+            this.showQRCodePopup = false;
+            this.disconnectWebSocket();
+          }, 3000);
+        }
+      } catch (error) {
+        console.error('Erreur parsing message:', error);
+      }
+    };
+
+    this.ws.onerror = (error) => {
+      console.error('❌ Erreur WebSocket:', error);
+      this.exportStatus = '❌ Erreur de connexion au serveur';
+      this.isExporting = false;
+    };
+
+    this.ws.onclose = () => {
+      this.ws = null;
+    };
+
+    // Timeout après 2 minutes
+    setTimeout(() => {
+      if (this.isExporting) {
+        this.exportStatus = '⏱️ Délai d\'attente dépassé';
+        this.isExporting = false;
+        this.disconnectWebSocket();
+      }
+    }, 120000);
+  }
+
+  /**
+   * Envoie les données du planning via WebSocket
+   */
+  private sendPlanningData(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error('❌ WebSocket non connecté');
+      return;
+    }
+
+    const teamId = this.team.uuid!;
+    
+    // Filtrer les zones de sécurité par équipe ET par événements sélectionnés
+    const selectedEvents = this.selectedEventIds.length > 0 ? this.selectedEventIds : [];
+    
+    const installationZones = this.securityZones.filter(z => 
+      z.installationTeamId === teamId && 
+      (selectedEvents.length === 0 || selectedEvents.includes(z.eventId))
+    );
+    const removalZones = this.securityZones.filter(z => 
+      z.removalTeamId === teamId && 
+      (selectedEvents.length === 0 || selectedEvents.includes(z.eventId))
+    );
+
+    // Tri par date
+    installationZones.sort((a, b) => new Date(a.installationDate).getTime() - new Date(b.installationDate).getTime());
+    removalZones.sort((a, b) => new Date(a.removalDate).getTime() - new Date(b.removalDate).getTime());
+
+    const selectedEventNames = this.events
+      .filter(e => selectedEvents.includes(e.uuid))
+      .map(e => e.title)
+      .join(', ');
+    const eventName = selectedEventNames || this.events.find(e => e.uuid === this.team.eventId)?.title || '';
+
+    // Construire l'objet JSON du planning
+    const planningData = {
+      type: 'planning_data',
+      team: {
+        uuid: this.team.uuid,
+        name: this.team.teamName,
+        number: this.team.teamNumber,
+        eventId: this.team.eventId,
+        eventName: eventName
+      },
+      members: this.selectedEmployees.map(e => ({
+        uuid: e.uuid,
+        firstName: e.firstName,
+        lastName: e.lastName
+      })),
+      installations: installationZones.map(z => ({
+        uuid: z.uuid,
+        equipmentType: z.equipment?.type || '',
+        quantity: z.quantity,
+        date: z.installationDate,
+        comment: z.comment || '',
+        geoJson: z.geoJson
+      })),
+      removals: removalZones.map(z => ({
+        uuid: z.uuid,
+        equipmentType: z.equipment?.type || '',
+        quantity: z.quantity,
+        date: z.removalDate,
+        comment: z.comment || '',
+        geoJson: z.geoJson
+      }))
+    };
+    this.ws.send(JSON.stringify(planningData));
+    this.exportStatus = '📤 Envoi du planning...';
+  }
+
+  /**
+   * Déconnecte le WebSocket
+   */
+  private disconnectWebSocket(): void {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+  }
+
+  /**
+   * Ferme le popup QR code
+   */
+  closeQRCodePopup(): void {
+    this.showQRCodePopup = false;
+    this.qrCodeDataURL = '';
+    this.exportStatus = '';
+    this.isExporting = false;
+    this.disconnectWebSocket();
+  }
+
+  /**
+   * Vérifie si un événement est sélectionné pour l'export
+   */
+  isEventSelected(eventId: string): boolean {
+    return this.selectedEventIds.includes(eventId);
+  }
+
+  /**
+   * Bascule la sélection d'un événement
+   */
+  toggleEventSelection(eventId: string): void {
+    const index = this.selectedEventIds.indexOf(eventId);
+    if (index > -1) {
+      this.selectedEventIds = this.selectedEventIds.filter(id => id !== eventId);
+    } else {
+      this.selectedEventIds = [...this.selectedEventIds, eventId];
+    }
+  }
+
+  /**
+   * Sélectionne tous les événements
+   */
+  selectAllEvents(): void {
+    this.selectedEventIds = this.events.map(e => e.uuid);
+  }
+
+  /**
+   * Désélectionne tous les événements
+   */
+  clearEventSelection(): void {
+    this.selectedEventIds = [];
+  }
+}

@@ -1,0 +1,39 @@
+<div class="accueil-container">
+  <div class="accueil-content">
+    <h1>Bienvenue sur Ody'stras</h1>
+    <p>Votre application de gestion d'événements</p>
+
+    @if (favoriteEvents().length > 0) {
+      <div class="favorites-section">
+        <h2>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          Événements favoris
+        </h2>
+        <div class="favorites-grid">
+          @for (event of favoriteEvents(); track event.uuid) {
+            <a class="event-card" [routerLink]="['/evenements']" [queryParams]="{event: event.uuid}">
+              <div class="event-header">
+                <span class="event-status" [class]="getStatusClass(event.status)">
+                  {{ getStatusLabel(event.status) }}
+                </span>
+                <span class="favorite-star">⭐</span>
+              </div>
+              <h3 class="event-title">{{ event.title }}</h3>
+              <div class="event-dates">
+                <span class="date-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  {{ formatDate(event.startDate) }} - {{ formatDate(event.endDate) }}
+                </span>
+              </div>
+            </a>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

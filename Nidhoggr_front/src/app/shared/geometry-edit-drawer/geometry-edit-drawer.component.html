@@ -1,0 +1,217 @@
+<div class="geometry-overlay" (click)="close.emit()">
+  <div class="geometry-dialog" (click)="$event.stopPropagation()">
+    <button class="geometry-close" (click)="close.emit()">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+
+    <div class="dialog-header">
+      <div class="header-icon" [class.path-icon]="!isArea">
+        <!-- Zone icon -->
+        <svg
+          *ngIf="isArea"
+          xmlns="http://www.w3.org/2000/svg"
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"></polygon>
+        </svg>
+        <!-- Path icon -->
+        <svg
+          *ngIf="!isArea"
+          xmlns="http://www.w3.org/2000/svg"
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 17l6-6 4 4 8-8"></path>
+          <path d="M17 7h4v4"></path>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h4>{{ title }}</h4>
+        <p>{{ subtitle }}</p>
+      </div>
+    </div>
+
+    <form (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="name">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          Nom {{ !isArea ? '' : '(optionnel)' }} <span class="required" *ngIf="!isArea">*</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          [(ngModel)]="formData.name"
+          name="name"
+          [placeholder]="isArea ? 'Ex: Zone VIP' : 'Ex: Parcours principal'"
+          [required]="!isArea"
+          [class.has-value]="formData.name"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="description">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="17" y1="10" x2="3" y2="10"></line>
+            <line x1="21" y1="6" x2="3" y2="6"></line>
+            <line x1="21" y1="14" x2="3" y2="14"></line>
+            <line x1="17" y1="18" x2="3" y2="18"></line>
+          </svg>
+          Description (optionnel)
+        </label>
+        <textarea
+          id="description"
+          [(ngModel)]="formData.description"
+          name="description"
+          placeholder="Décrivez cette zone ou ce parcours..."
+          rows="4"
+          [class.has-value]="formData.description"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="color">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="1"></circle>
+            <path d="M8 12a4 4 0 1 0 8 0"></path>
+            <path
+              d="M12 2v4M12 16v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M2 12h4M16 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"
+            ></path>
+          </svg>
+          Couleur
+        </label>
+        <div class="color-picker-container">
+          <div class="color-display">
+            <div class="color-swatch" [style.backgroundColor]="formData.colorHex"></div>
+            <input
+              type="text"
+              id="color"
+              [(ngModel)]="formData.colorHex"
+              name="colorHex"
+              placeholder="#3388ff"
+              class="color-input"
+            />
+          </div>
+          <div class="color-presets">
+            <button
+              type="button"
+              *ngFor="let color of availableColors"
+              class="color-preset"
+              [style.backgroundColor]="color"
+              [class.selected]="formData.colorHex.toUpperCase() === color.toUpperCase()"
+              (click)="formData.colorHex = color"
+              [title]="color"
+            ></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="error-message" *ngIf="errorMessage">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        {{ errorMessage }}
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="cancel-btn" (click)="close.emit()">Annuler</button>
+        <button type="submit" class="submit-btn" [disabled]="isSubmitting || isEventArchived">
+          <svg
+            *ngIf="isSubmitting"
+            class="spinner"
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle>
+          </svg>
+          <svg
+            *ngIf="!isSubmitting"
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          {{ isSubmitting ? 'Enregistrement...' : 'Enregistrer' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

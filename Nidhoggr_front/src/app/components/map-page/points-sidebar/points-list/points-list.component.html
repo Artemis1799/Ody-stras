@@ -1,0 +1,27 @@
+@if (isLoading) {
+  <div class="loading">Chargement des points...</div>
+} @else if (errorMessage) {
+  <div class="error">{{ errorMessage }}</div>
+} @else if (points.length === 0) {
+  <div class="empty-state">{{ emptyMessage || 'Aucun point pour le moment' }}</div>
+} @else {
+  <div class="points-list">
+    @for (point of points; track point.uuid; let i = $index) {
+      <div 
+        class="point-item"
+        [class.selected]="selectedPointUuid === point.uuid"
+        (click)="onPointClick(point)"
+      >
+        <div class="point-content">
+          <span class="point-order">{{ point.order }}</span>
+          <div class="point-info">
+            <span class="point-name">{{ getPointDisplayName(point) }}</span>
+          </div>
+        </div>
+        <div class="point-status" [class.valid]="point.validated" [class.invalid]="!point.validated">
+          {{ point.validated ? '✓' : '✗' }}
+        </div>
+      </div>
+    }
+  </div>
+}

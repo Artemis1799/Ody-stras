@@ -1,0 +1,267 @@
+.equipment-card {
+  background: linear-gradient(145deg, #1a2028 0%, #171c22 100%);
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  border: 1px solid #30363d;
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    border-color: #484f58;
+    transform: translateY(-2px);
+  }
+
+  &.editing {
+    border-color: #2ad783;
+    box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.15);
+  }
+}
+
+.equipment-view {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.equipment-header {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.equipment-info {
+  flex: 1;
+
+  h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #8b949e;
+  }
+
+  .type {
+    font-weight: 500;
+    color: #c9d1d9;
+  }
+}
+
+.stock-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+  padding: 0.625rem 0.875rem;
+  background: #0d1117;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+
+  .stock-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #2ad783;
+  }
+
+  .stock-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.equipment-actions {
+  display: flex;
+  gap: 0.5rem;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .edit-button {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #484f58;
+      color: #fff;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  .delete-button {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    color: #f87171;
+
+    &:hover {
+      background: rgba(248, 113, 113, 0.2);
+      border-color: #f87171;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+}
+
+.equipment-edit {
+  padding: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-field {
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #c9d1d9;
+  }
+
+  .help-text {
+    display: block;
+    margin-top: 0.375rem;
+    font-size: 0.8125rem;
+    color: #8b949e;
+    font-style: italic;
+  }
+
+  .char-count {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #6e7681;
+    text-align: right;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #21262d;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  .cancel-button {
+    background: transparent;
+    border: 1px solid #30363d;
+    color: #8b949e;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: #484f58;
+      color: #c9d1d9;
+    }
+  }
+
+  .save-button {
+    background: linear-gradient(135deg, #2ad783 0%, #22c55e 100%);
+    color: #171c22;
+    box-shadow: 0 4px 14px rgba(42, 215, 131, 0.3);
+
+    &:hover {
+      box-shadow: 0 6px 20px rgba(42, 215, 131, 0.4);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+::ng-deep {
+  .p-inputtext,
+  .p-inputnumber-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #30363d !important;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+    background-color: #0d1117 !important;
+    color: #c9d1d9 !important;
+    
+    &::placeholder {
+      color: #6e7681 !important;
+    }
+    
+    &:hover {
+      border-color: #484f58 !important;
+    }
+    
+    &:focus {
+      border-color: #2ad783 !important;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(42, 215, 131, 0.15);
+      background: #161b22 !important;
+    }
+  }
+
+  .p-inputnumber {
+    width: 100%;
+    
+    .p-inputnumber-button {
+      width: 2.5rem;
+      background-color: #30363d;
+      border-color: #30363d;
+      color: #c9d1d9;
+      
+      &:hover {
+        background-color: #2ad783;
+        border-color: #2ad783;
+        color: #171c22;
+      }
+
+      &:active {
+        background-color: #22c55e;
+      }
+    }
+  }
+}

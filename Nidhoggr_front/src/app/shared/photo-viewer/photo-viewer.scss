@@ -1,0 +1,311 @@
+// Styles pour le popup personnalisé
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-30px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.popup-dialog {
+  background: linear-gradient(145deg, #1a2028 0%, #171c22 100%);
+  padding: 0;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 900px;
+  position: relative;
+  box-shadow: 
+    0 25px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: slideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #2ad783, #22c55e, #2ad783);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.popup-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  color: #8b949e;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 2rem 1.5rem;
+  background: linear-gradient(180deg, rgba(42, 215, 131, 0.08) 0%, transparent 100%);
+
+  .header-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #2ad783 0%, #22c55e 100%);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #171c22;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(42, 215, 131, 0.3);
+  }
+
+  .header-text {
+    flex: 1;
+
+    h4 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      margin: 0;
+      color: #8b949e;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+  }
+}
+
+.dialog-content {
+  background: #171c22;
+}
+
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+// État de chargement
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 3rem;
+  gap: 1.5rem;
+  background: #171c22;
+  
+  .loading-spinner {
+    .pi-spinner {
+      font-size: 3rem;
+      color: #2ad783;
+    }
+  }
+  
+  .loading-text {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #8b949e;
+    font-weight: 500;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+}
+
+// Styles pour la dialog de photos
+.photo-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #171c22;
+  
+  .photo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0d1117;
+    overflow: hidden;
+    min-height: 500px;
+    max-height: 70vh;
+    position: relative;
+    
+    .photo-image {
+      max-width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+      display: block;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      border-radius: 8px;
+    }
+  }
+  
+  .photo-navigation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(to top, #1a2028, #171c22);
+    border-top: 1px solid #21262d;
+    
+    .nav-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border: none;
+      background: linear-gradient(135deg, #2ad783 0%, #22c55e 100%);
+      color: #171c22;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 1.5rem;
+      font-weight: bold;
+      box-shadow: 0 4px 14px rgba(42, 215, 131, 0.3);
+      
+      &:hover:not(:disabled) {
+        box-shadow: 0 6px 20px rgba(42, 215, 131, 0.4);
+        transform: translateY(-2px);
+      }
+      
+      &:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(42, 215, 131, 0.3);
+      }
+      
+      &:disabled {
+        background: #30363d;
+        color: #6e7681;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+    }
+    
+    .photo-counter {
+      font-weight: 600;
+      color: #c9d1d9;
+      font-size: 1rem;
+      min-width: 120px;
+      text-align: center;
+      background: #0d1117;
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      border: 1px solid #30363d;
+    }
+  }
+  
+  .photo-info {
+    text-align: center;
+    padding: 1rem 1.5rem 1.5rem;
+    background: #171c22;
+    
+    p {
+      margin: 0;
+      color: #8b949e;
+      font-size: 0.9375rem;
+      font-style: italic;
+    }
+  }
+}
+
+.no-photos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 3rem;
+  gap: 1.5rem;
+  text-align: center;
+  background: #171c22;
+  
+  .no-photos-icon {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0d1117;
+    border-radius: 50%;
+    margin-bottom: 0.5rem;
+    border: 2px solid #30363d;
+    
+    .pi-image {
+      font-size: 3.5rem;
+      color: #6e7681;
+    }
+  }
+  
+  .no-photos-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+  
+  .no-photos-text {
+    margin: 0;
+    color: #8b949e;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    max-width: 350px;
+  }
+}

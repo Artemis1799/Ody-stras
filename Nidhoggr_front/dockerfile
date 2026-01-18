@@ -1,0 +1,70 @@
+### Multi-stage Dockerfile for Angular (SSR) + WebSocket server
+# Optimized for fast deployment and small image size
+
+# ============================================
+# Stage 1: Build the Angular application
+# ============================================
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+# Install build dependencies for native modules (better-sqlite3, etc.)
+RUN apk add --no-cache python3 make g++ git
+
+# Copy package files for better layer caching
+COPY package.json package-lock.json* ./
+
+# Install ALL dependencies (dev deps needed for build)
+RUN npm ci --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+# Build the Angular application (production mode)
+RUN npm run build -- --configuration=production
+
+# ============================================
+# Stage 2: Production runtime
+# ============================================
+FROM node:20-alpine AS runtime
+
+WORKDIR /app
+
+# Install runtime dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
+# Set production environment
+ENV NODE_ENV=production
+ENV PORT=4000
+ENV WS_PORT=3001
+
+# Copy compiled application from build stage
+COPY --from=build /app/dist ./dist
+
+# Copy WebSocket server
+COPY --from=build /app/websocket-server.js ./
+
+# Copy package files and install production dependencies only
+COPY package.json package-lock.json* ./
+RUN npm ci --legacy-peer-deps --omit=dev && \
+    npm cache clean --force
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S angular -u 1001 -G nodejs
+
+# Change ownership of app directory
+RUN chown -R angular:nodejs /app
+
+# Switch to non-root user
+USER angular
+
+# Expose ports (SSR server + WebSocket server)
+EXPOSE 4000 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:4000 || exit 1
+
+# Start both SSR server and WebSocket server
+CMD ["sh", "-c", "node websocket-server.js & node dist/Nidhoggr_front/server/server.mjs"]

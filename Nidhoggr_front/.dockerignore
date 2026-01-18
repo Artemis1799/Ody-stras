@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build output (will be created during build)
+dist
+
+# IDE / Editor
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+
+# Testing
+coverage
+.nyc_output
+*.spec.ts
+
+# Angular cache
+.angular
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env.local
+.env.*.local
+
+# Documentation
+README.md
+CHANGELOG.md
+docs
+
+# Docker files
+docker-compose*.yml
+
+# Misc
+*.log
+*.tmp
+*.temp

@@ -1,0 +1,375 @@
+.export-overlay {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.7);
+	z-index: 2000;
+	backdrop-filter: blur(8px);
+	animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes slideIn {
+	from {
+		transform: translateY(-30px) scale(0.95);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0) scale(1);
+		opacity: 1;
+	}
+}
+
+@keyframes shimmer {
+	0%, 100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+}
+
+.export-dialog {
+	background: linear-gradient(145deg, #1a2028 0%, #171c22 100%);
+	padding: 0;
+	border-radius: 20px;
+	min-width: 480px;
+	max-width: 560px;
+	width: 90%;
+	position: relative;
+	box-shadow: 
+		0 25px 80px rgba(0, 0, 0, 0.5),
+		0 0 0 1px rgba(255, 255, 255, 0.05),
+		inset 0 1px 0 rgba(255, 255, 255, 0.05);
+	animation: slideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+	overflow: hidden;
+
+	&::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 3px;
+		background: linear-gradient(90deg, #2ad783, #22c55e, #2ad783);
+		background-size: 200% 100%;
+		animation: shimmer 3s ease-in-out infinite;
+	}
+}
+
+.export-close {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	cursor: pointer;
+	color: #8b949e;
+	width: 36px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 10px;
+	transition: all 0.2s ease;
+	z-index: 10;
+	font-size: 1.25rem;
+
+	&:hover {
+		background: rgba(255, 255, 255, 0.1);
+		color: #fff;
+	}
+}
+
+.dialog-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 1rem;
+	padding: 2rem 2rem 1.5rem;
+	background: linear-gradient(180deg, rgba(42, 215, 131, 0.08) 0%, transparent 100%);
+
+	.header-icon {
+		width: 56px;
+		height: 56px;
+		background: linear-gradient(135deg, #2ad783 0%, #22c55e 100%);
+		border-radius: 14px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #171c22;
+		flex-shrink: 0;
+		box-shadow: 0 8px 24px rgba(42, 215, 131, 0.3);
+
+		svg {
+			width: 28px;
+			height: 28px;
+		}
+	}
+
+	.header-text {
+		flex: 1;
+		padding-top: 0.25rem;
+
+		h4 {
+			margin: 0 0 0.375rem 0;
+			font-size: 1.5rem;
+			font-weight: 700;
+			color: #ffffff;
+			letter-spacing: -0.02em;
+		}
+
+		p {
+			margin: 0;
+			color: #8b949e;
+			font-size: 0.9rem;
+			line-height: 1.4;
+		}
+	}
+}
+
+.export-content {
+	padding: 1rem 2rem 2rem;
+}
+
+.export-actions {
+	display: flex;
+	gap: 1rem;
+	margin-top: 1rem;
+
+	.export-btn {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 1.5rem 1.25rem;
+		border-radius: 14px;
+		border: 1px solid #30363d;
+		background: #0d1117;
+		cursor: pointer;
+		transition: all 0.2s ease;
+
+		.btn-icon {
+			width: 48px;
+			height: 48px;
+			border-radius: 12px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			svg {
+				width: 28px;
+				height: 28px;
+			}
+		}
+
+		.btn-label {
+			font-size: 1rem;
+			font-weight: 600;
+			color: #c9d1d9;
+		}
+
+		&:hover {
+			border-color: #484f58;
+			background: #161b22;
+			transform: translateY(-2px);
+			box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+		}
+
+		&:active {
+			transform: translateY(0);
+		}
+
+		&.excel {
+			.btn-icon {
+				background: rgba(34, 197, 94, 0.15);
+				color: #22c55e;
+			}
+
+			&:hover {
+				border-color: #22c55e;
+				box-shadow: 0 8px 24px rgba(34, 197, 94, 0.2);
+			}
+		}
+
+		&.pdf {
+			.btn-icon {
+				background: rgba(239, 68, 68, 0.15);
+				color: #ef4444;
+			}
+
+			&:hover {
+				border-color: #ef4444;
+				box-shadow: 0 8px 24px rgba(239, 68, 68, 0.2);
+			}
+		}
+
+		&.phone {
+			.btn-icon {
+				background: rgba(99, 102, 241, 0.15);
+				color: #6366f1;
+			}
+
+			&:hover {
+				border-color: #6366f1;
+				box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+			}
+		}
+	}
+}
+
+.export-section {
+	margin-bottom: 1.5rem;
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+
+	.section-title {
+		margin: 0 0 0.75rem 0;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #8b949e;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+}
+
+// QR Code Section
+.qrcode-section {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1.5rem;
+	padding: 1rem 0;
+}
+
+.qrcode-container {
+	background: #ffffff;
+	border-radius: 16px;
+	padding: 1rem;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.qrcode-image {
+	display: block;
+	width: 250px;
+	height: 250px;
+	border-radius: 8px;
+}
+
+.qrcode-loading {
+	width: 250px;
+	height: 250px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	color: #333;
+
+	.spinner {
+		width: 40px;
+		height: 40px;
+		border: 3px solid #e0e0e0;
+		border-top-color: #2ad783;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.qrcode-status {
+	text-align: center;
+
+	.status-text {
+		margin: 0;
+		font-size: 1rem;
+		color: #c9d1d9;
+		line-height: 1.5;
+	}
+}
+
+.qrcode-actions {
+	display: flex;
+	gap: 1rem;
+	margin-top: 0.5rem;
+}
+
+.back-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	border-radius: 10px;
+	border: 1px solid #30363d;
+	background: rgba(255, 255, 255, 0.05);
+	color: #c9d1d9;
+	font-size: 0.9rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+
+	svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	&:hover {
+		background: rgba(255, 255, 255, 0.1);
+		border-color: #484f58;
+		color: #fff;
+	}
+}
+
+// Responsive
+@media (max-width: 560px) {
+	.export-dialog {
+		min-width: unset;
+		margin: 1rem;
+		border-radius: 16px;
+	}
+
+	.dialog-header {
+		padding: 1.5rem 1.5rem 1rem;
+
+		.header-icon {
+			width: 48px;
+			height: 48px;
+			border-radius: 12px;
+
+			svg {
+				width: 24px;
+				height: 24px;
+			}
+		}
+
+		.header-text h4 {
+			font-size: 1.25rem;
+		}
+	}
+
+	.export-content {
+		padding: 1rem 1.5rem 1.5rem;
+	}
+
+	.export-actions {
+		flex-direction: column;
+	}
+}
+

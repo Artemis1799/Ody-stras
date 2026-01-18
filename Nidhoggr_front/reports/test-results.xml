@@ -1,0 +1,217 @@
+<?xml version="1.0"?>
+<testsuite name="Chrome 143.0.0.0 (Windows 10)" package="Tests" timestamp="2026-01-14T13:37:01" id="0" hostname="LAPTOP-CFLJKDC4" tests="118" errors="0" failures="5" time="0.861">
+  <properties>
+    <property name="browser.fullName" value="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"/>
+  </properties>
+  <testcase name="AreaService should be created" time="0.006" classname=".AreaService"/>
+  <testcase name="AreaService should get area by id" time="0.003" classname=".AreaService"/>
+  <testcase name="AreaService should get areas by event id and update areas$" time="0.002" classname=".AreaService"/>
+  <testcase name="AreaService should get all areas and update areas$" time="0.002" classname=".AreaService"/>
+  <testcase name="AreaService should delete area and update areas$" time="0.002" classname=".AreaService"/>
+  <testcase name="AreaService should delete all areas" time="0.001" classname=".AreaService"/>
+  <testcase name="AreaService should create area and update areas$" time="0.002" classname=".AreaService"/>
+  <testcase name="AreaService should update area and update areas$" time="0.001" classname=".AreaService"/>
+  <testcase name="UserService devrait créer un nouvel utilisateur" time="0.002" classname=".UserService"/>
+  <testcase name="UserService devrait mettre à jour un utilisateur" time="0.001" classname=".UserService"/>
+  <testcase name="UserService devrait créer le service" time="0.001" classname=".UserService"/>
+  <testcase name="UserService devrait récupérer tous les utilisateurs" time="0.001" classname=".UserService"/>
+  <testcase name="UserService devrait gérer les erreurs" time="0.001" classname=".UserService"/>
+  <testcase name="UserService devrait récupérer un utilisateur par ID" time="0.001" classname=".UserService"/>
+  <testcase name="UserService devrait déconnecter l'utilisateur" time="0.001" classname=".UserService"/>
+  <testcase name="UserService devrait vérifier l'authentification" time="0.001" classname=".UserService"/>
+  <testcase name="UserService devrait connecter un utilisateur" time="0.001" classname=".UserService"/>
+  <testcase name="UserService devrait supprimer tous les utilisateurs" time="0.001" classname=".UserService"/>
+  <testcase name="UserService devrait supprimer un utilisateur" time="0.001" classname=".UserService"/>
+  <testcase name="TeamService devrait récupérer toutes les équipes" time="0.001" classname=".TeamService"/>
+  <testcase name="TeamService devrait restaurer l'état en cas d'erreur de mise à jour" time="0.001" classname=".TeamService"/>
+  <testcase name="TeamService devrait initialiser les signals" time="0.001" classname=".TeamService"/>
+  <testcase name="TeamService devrait supprimer une équipe" time="0" classname=".TeamService"/>
+  <testcase name="TeamService devrait créer le service" time="0.002" classname=".TeamService"/>
+  <testcase name="TeamService devrait supprimer toutes les équipes" time="0.001" classname=".TeamService"/>
+  <testcase name="TeamService devrait récupérer les équipes par événement" time="0.001" classname=".TeamService"/>
+  <testcase name="TeamService devrait récupérer une équipe par ID" time="0.001" classname=".TeamService"/>
+  <testcase name="TeamService devrait mettre à jour une équipe" time="0.001" classname=".TeamService"/>
+  <testcase name="TeamService devrait créer une équipe" time="0.001" classname=".TeamService"/>
+  <testcase name="TeamService devrait charger les équipes" time="0.001" classname=".TeamService"/>
+  <testcase name="TeamService devrait rafraîchir les équipes" time="0.001" classname=".TeamService"/>
+  <testcase name="ToastService devrait utiliser un détail vide par défaut" time="0.001" classname=".ToastService"/>
+  <testcase name="ToastService devrait effacer tous les messages" time="0.001" classname=".ToastService"/>
+  <testcase name="ToastService devrait afficher un message d'erreur" time="0.001" classname=".ToastService"/>
+  <testcase name="ToastService devrait afficher un message de succès" time="0.001" classname=".ToastService"/>
+  <testcase name="ToastService devrait créer le service" time="0.001" classname=".ToastService"/>
+  <testcase name="ToastService devrait afficher un message d'information" time="0.001" classname=".ToastService"/>
+  <testcase name="ToastService devrait afficher un message d'avertissement" time="0" classname=".ToastService"/>
+  <testcase name="ToastService devrait avoir des durées différentes pour chaque type" time="0.001" classname=".ToastService"/>
+  <testcase name="ToastService devrait pouvoir afficher plusieurs messages successifs" time="0.001" classname=".ToastService"/>
+  <testcase name="ActionService should get actions by security zone id" time="0.001" classname=".ActionService"/>
+  <testcase name="ActionService should get actions by planning id" time="0.001" classname=".ActionService"/>
+  <testcase name="ActionService should update action and update actions$" time="0.241" classname=".ActionService">
+    <failure type="">Error: An asynchronous spec, beforeEach, or afterEach function called its 'done' callback more than once.
+(in spec: ActionService should update action and update actions$)
+    at &lt;Jasmine&gt;
+    at Object.next (src/app/services/__tests__/ActionService.spec.ts:132:7)
+    at ConsumerObserver.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:91:33)
+    at SafeSubscriber._next (node_modules/rxjs/dist/esm/internal/Subscriber.js:60:26)
+    at SafeSubscriber.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:31:18)
+    at node_modules/rxjs/dist/esm/internal/Subject.js:34:30
+    at errorContext (node_modules/rxjs/dist/esm/internal/util/errorContext.js:19:9)
+    at BehaviorSubject.next (node_modules/rxjs/dist/esm/internal/Subject.js:27:9)
+</failure>
+  </testcase>
+  <testcase name="ActionService should create action and update actions$" time="0.001" classname=".ActionService"/>
+  <testcase name="ActionService should be created" time="0.001" classname=".ActionService"/>
+  <testcase name="ActionService should get all actions and update actions$" time="0.001" classname=".ActionService"/>
+  <testcase name="ActionService should get action by id" time="0.001" classname=".ActionService"/>
+  <testcase name="ActionService should delete action and update actions$" time="0.002" classname=".ActionService"/>
+  <testcase name="ActionService should delete all actions" time="0.001" classname=".ActionService"/>
+  <testcase name="TeamEmployeeService devrait mettre à jour une association" time="0.001" classname=".TeamEmployeeService"/>
+  <testcase name="TeamEmployeeService devrait supprimer une association" time="0" classname=".TeamEmployeeService"/>
+  <testcase name="TeamEmployeeService devrait créer le service" time="0" classname=".TeamEmployeeService"/>
+  <testcase name="TeamEmployeeService devrait charger les associations" time="0.001" classname=".TeamEmployeeService"/>
+  <testcase name="TeamEmployeeService devrait créer une association" time="0.001" classname=".TeamEmployeeService"/>
+  <testcase name="TeamEmployeeService devrait récupérer toutes les associations" time="0.001" classname=".TeamEmployeeService"/>
+  <testcase name="TeamEmployeeService devrait récupérer une association par ID" time="0" classname=".TeamEmployeeService"/>
+  <testcase name="PathService devrait récupérer un chemin par ID" time="0.001" classname=".PathService"/>
+  <testcase name="PathService devrait émettre via BehaviorSubject" time="0.002" classname=".PathService">
+    <failure type="">Expected 0 to be 1.
+    at &lt;Jasmine&gt;
+    at Object.next (src/app/services/__tests__/PathService.spec.ts:79:28)
+    at ConsumerObserver.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:91:33)
+    at SafeSubscriber._next (node_modules/rxjs/dist/esm/internal/Subscriber.js:60:26)
+    at SafeSubscriber.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:31:18)
+</failure>
+    <failure type="">Error: An asynchronous spec, beforeEach, or afterEach function called its 'done' callback more than once.
+(in spec: PathService devrait émettre via BehaviorSubject)
+    at &lt;Jasmine&gt;
+    at Object.next (src/app/services/__tests__/PathService.spec.ts:80:7)
+    at ConsumerObserver.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:91:33)
+    at SafeSubscriber._next (node_modules/rxjs/dist/esm/internal/Subscriber.js:60:26)
+    at SafeSubscriber.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:31:18)
+    at node_modules/rxjs/dist/esm/internal/Subject.js:34:30
+    at errorContext (node_modules/rxjs/dist/esm/internal/util/errorContext.js:19:9)
+    at BehaviorSubject.next (node_modules/rxjs/dist/esm/internal/Subject.js:27:9)
+</failure>
+  </testcase>
+  <testcase name="PathService devrait mettre à jour un chemin" time="0.002" classname=".PathService"/>
+  <testcase name="PathService devrait créer un chemin" time="0.001" classname=".PathService"/>
+  <testcase name="PathService devrait récupérer les chemins par événement" time="0" classname=".PathService"/>
+  <testcase name="PathService devrait récupérer tous les chemins" time="0" classname=".PathService"/>
+  <testcase name="PathService devrait créer le service" time="0.001" classname=".PathService"/>
+  <testcase name="PathService devrait supprimer un chemin" time="0.001" classname=".PathService"/>
+  <testcase name="PictureService devrait gérer les erreurs" time="0.001" classname=".PictureService"/>
+  <testcase name="PictureService devrait récupérer toutes les images" time="0.001" classname=".PictureService"/>
+  <testcase name="PictureService devrait supprimer une image" time="0.001" classname=".PictureService"/>
+  <testcase name="PictureService devrait créer le service" time="0.001" classname=".PictureService"/>
+  <testcase name="PictureService devrait émettre via BehaviorSubject" time="0.001" classname=".PictureService">
+    <failure type="">Expected 0 to be 1.
+    at &lt;Jasmine&gt;
+    at Object.next (src/app/services/__tests__/PictureService.spec.ts:71:31)
+    at ConsumerObserver.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:91:33)
+    at SafeSubscriber._next (node_modules/rxjs/dist/esm/internal/Subscriber.js:60:26)
+    at SafeSubscriber.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:31:18)
+</failure>
+    <failure type="">Error: An asynchronous spec, beforeEach, or afterEach function called its 'done' callback more than once.
+(in spec: PictureService devrait émettre via BehaviorSubject)
+    at &lt;Jasmine&gt;
+    at Object.next (src/app/services/__tests__/PictureService.spec.ts:72:7)
+    at ConsumerObserver.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:91:33)
+    at SafeSubscriber._next (node_modules/rxjs/dist/esm/internal/Subscriber.js:60:26)
+    at SafeSubscriber.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:31:18)
+    at node_modules/rxjs/dist/esm/internal/Subject.js:34:30
+    at errorContext (node_modules/rxjs/dist/esm/internal/util/errorContext.js:19:9)
+    at BehaviorSubject.next (node_modules/rxjs/dist/esm/internal/Subject.js:27:9)
+</failure>
+  </testcase>
+  <testcase name="PictureService devrait récupérer une image par ID" time="0.002" classname=".PictureService"/>
+  <testcase name="PictureService devrait créer une image" time="0.001" classname=".PictureService"/>
+  <testcase name="PictureService devrait mettre à jour une image" time="0.001" classname=".PictureService"/>
+  <testcase name="EventService should be created" time="0.001" classname=".EventService"/>
+  <testcase name="EventService should get all events" time="0.001" classname=".EventService"/>
+  <testcase name="EventService should create event" time="0.001" classname=".EventService"/>
+  <testcase name="EventService should delete event" time="0.001" classname=".EventService"/>
+  <testcase name="EventService should update event" time="0.001" classname=".EventService"/>
+  <testcase name="EventService should get event by id" time="0.001" classname=".EventService"/>
+  <testcase name="NominatimService devrait encoder la requête de recherche" time="0.001" classname=".NominatimService"/>
+  <testcase name="NominatimService devrait faire une recherche inversée par coordonnées" time="0.001" classname=".NominatimService"/>
+  <testcase name="NominatimService devrait créer le service" time="0.001" classname=".NominatimService"/>
+  <testcase name="NominatimService devrait rechercher des lieux" time="0.001" classname=".NominatimService"/>
+  <testcase name="NominatimService devrait inclure les paramètres corrects dans la requête" time="0.001" classname=".NominatimService"/>
+  <testcase name="NominatimService devrait gérer les erreurs de recherche" time="0.001" classname=".NominatimService"/>
+  <testcase name="NominatimService devrait gérer les résultats vides" time="0.001" classname=".NominatimService"/>
+  <testcase name="PointService should update point" time="0.002" classname=".PointService"/>
+  <testcase name="PointService should delete point" time="0.002" classname=".PointService"/>
+  <testcase name="PointService should create point" time="0.001" classname=".PointService"/>
+  <testcase name="PointService should be created" time="0.001" classname=".PointService"/>
+  <testcase name="PointService should get all points" time="0.001" classname=".PointService"/>
+  <testcase name="PointService should get points by event" time="0.147" classname=".PointService">
+    <failure type="">Error: Expected one matching request for criteria "Match URL: http://localhost:5014/api/Point?eventId=event-1", found none. Requests received are: GET http://localhost:5014/api/Point/event/event-1.
+    at _HttpClientTestingBackend.expectOne (node_modules/@angular/common/fesm2022/http/testing.mjs:273:19)
+    at UserContext.&lt;anonymous&gt; (src/app/services/__tests__/PointService.spec.ts:46:26)
+    at &lt;Jasmine&gt;
+    at _ZoneDelegate.invoke (node_modules/zone.js/fesm2015/zone.js:398:28)
+    at ZoneImpl.run (node_modules/zone.js/fesm2015/zone.js:113:43)
+    at node_modules/zone.js/fesm2015/zone.js:2537:40
+</failure>
+    <failure type="">Error: Expected no open requests, found 1: GET http://localhost:5014/api/Point/event/event-1
+    at _HttpClientTestingBackend.verify (node_modules/@angular/common/fesm2022/http/testing.mjs:301:19)
+    at UserContext.&lt;anonymous&gt; (src/app/services/__tests__/PointService.spec.ts:22:14)
+    at &lt;Jasmine&gt;
+    at _ZoneDelegate.invoke (node_modules/zone.js/fesm2015/zone.js:398:28)
+    at ZoneImpl.run (node_modules/zone.js/fesm2015/zone.js:113:43)
+    at node_modules/zone.js/fesm2015/zone.js:2537:40
+</failure>
+  </testcase>
+  <testcase name="ExportPopup should create" time="0.021" classname=".ExportPopup"/>
+  <testcase name="SecurityZoneService devrait supprimer une zone" time="0.002" classname=".SecurityZoneService"/>
+  <testcase name="SecurityZoneService devrait créer le service" time="0.001" classname=".SecurityZoneService"/>
+  <testcase name="SecurityZoneService devrait récupérer une zone par ID" time="0.001" classname=".SecurityZoneService"/>
+  <testcase name="SecurityZoneService devrait récupérer toutes les zones" time="0.001" classname=".SecurityZoneService"/>
+  <testcase name="SecurityZoneService devrait émettre via BehaviorSubject" time="0.001" classname=".SecurityZoneService">
+    <failure type="">Expected 0 to be 1.
+    at &lt;Jasmine&gt;
+    at Object.next (src/app/services/__tests__/SecurityZoneService.spec.ts:79:28)
+    at ConsumerObserver.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:91:33)
+    at SafeSubscriber._next (node_modules/rxjs/dist/esm/internal/Subscriber.js:60:26)
+    at SafeSubscriber.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:31:18)
+</failure>
+    <failure type="">Error: An asynchronous spec, beforeEach, or afterEach function called its 'done' callback more than once.
+(in spec: SecurityZoneService devrait émettre via BehaviorSubject)
+    at &lt;Jasmine&gt;
+    at Object.next (src/app/services/__tests__/SecurityZoneService.spec.ts:80:7)
+    at ConsumerObserver.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:91:33)
+    at SafeSubscriber._next (node_modules/rxjs/dist/esm/internal/Subscriber.js:60:26)
+    at SafeSubscriber.next (node_modules/rxjs/dist/esm/internal/Subscriber.js:31:18)
+    at node_modules/rxjs/dist/esm/internal/Subject.js:34:30
+    at errorContext (node_modules/rxjs/dist/esm/internal/util/errorContext.js:19:9)
+    at BehaviorSubject.next (node_modules/rxjs/dist/esm/internal/Subject.js:27:9)
+</failure>
+  </testcase>
+  <testcase name="SecurityZoneService devrait récupérer les zones par événement" time="0.001" classname=".SecurityZoneService"/>
+  <testcase name="SecurityZoneService devrait mettre à jour une zone" time="0.001" classname=".SecurityZoneService"/>
+  <testcase name="SecurityZoneService devrait créer une zone" time="0.001" classname=".SecurityZoneService"/>
+  <testcase name="WebSocketExportService devrait gérer les erreurs de connexion" time="0.002" classname=".WebSocketExportService"/>
+  <testcase name="WebSocketExportService devrait traiter les métadonnées d'événement" time="0.106" classname=".WebSocketExportService"/>
+  <testcase name="WebSocketExportService devrait émettre connecté" time="0.002" classname=".WebSocketExportService"/>
+  <testcase name="WebSocketExportService devrait vérifier si connecté" time="0.001" classname=".WebSocketExportService"/>
+  <testcase name="WebSocketExportService devrait créer le service" time="0.001" classname=".WebSocketExportService"/>
+  <testcase name="WebSocketExportService devrait déconnecter le WebSocket" time="0" classname=".WebSocketExportService"/>
+  <testcase name="WebSocketExportService devrait se connecter au WebSocket" time="0" classname=".WebSocketExportService"/>
+  <testcase name="WebSocketExportService devrait créer un point reçu" time="0.112" classname=".WebSocketExportService"/>
+  <testcase name="WebSocketExportService devrait créer une image reçue" time="0.103" classname=".WebSocketExportService"/>
+  <testcase name="PlanningService devrait récupérer le planning par équipe" time="0.001" classname=".PlanningService"/>
+  <testcase name="PlanningService devrait créer un planning" time="0.001" classname=".PlanningService"/>
+  <testcase name="PlanningService devrait récupérer tous les plannings" time="0.001" classname=".PlanningService"/>
+  <testcase name="PlanningService devrait mettre à jour un planning" time="0.001" classname=".PlanningService"/>
+  <testcase name="PlanningService devrait récupérer un planning par ID" time="0.001" classname=".PlanningService"/>
+  <testcase name="PlanningService devrait créer le service" time="0.001" classname=".PlanningService"/>
+  <testcase name="PlanningService devrait supprimer un planning" time="0.001" classname=".PlanningService"/>
+  <testcase name="PlanningService devrait récupérer l'itinéraire" time="0.001" classname=".PlanningService"/>
+  <testcase name="ImportPopup should create" time="0.007" classname=".ImportPopup"/>
+  <system-out>
+    <![CDATA[Chrome 143.0.0.0 (Windows 10) WARN: 'NG0914: The application is using zoneless change detection, but is still loading Zone.js. Consider removing Zone.js to get the full benefits of zoneless. In applications using the Angular CLI, Zone.js is typically included in the "polyfills" section of the angular.json file.'
+,Chrome 143.0.0.0 (Windows 10) WARN: 'NG0914: The application is using zoneless change detection, but is still loading Zone.js. Consider removing Zone.js to get the full benefits of zoneless. In applications using the Angular CLI, Zone.js is typically included in the "polyfills" section of the angular.json file.'
+
+]]>
+  </system-out>
+  <system-err/>
+</testsuite>

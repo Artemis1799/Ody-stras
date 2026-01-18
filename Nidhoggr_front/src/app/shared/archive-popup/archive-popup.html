@@ -1,0 +1,70 @@
+<div class="popup-overlay" (click)="onClose()">
+  <div class="popup-dialog" (click)="$event.stopPropagation()">
+    <button class="popup-close" (click)="onClose()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    
+    <div class="dialog-header">
+      <div class="header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 8v13H3V8"></path>
+          <path d="M1 3h22v5H1z"></path>
+          <path d="M10 12h4"></path>
+        </svg>
+      </div>
+      <div *ngIf="isToArchive" class="header-text">
+        <h4>{{ title }}</h4>
+        <p>L'élément sera déplacé dans l'historique</p>
+      </div>
+      <div *ngIf="!isToArchive" class="header-text">
+        <h4>{{ title }}</h4>
+        <p>L'élément sera restauré depuis l'historique</p>
+      </div>
+    </div>
+    
+    <div *ngIf="isToArchive" class="dialog-content">
+      <p class="confirm-message">
+        Êtes-vous sûr de vouloir archiver <strong>{{ itemName }}</strong> ?
+      </p>
+      <p class="warning-text">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        {{ warningMessage }}
+      </p>
+    </div>
+
+    <div *ngIf="!isToArchive" class="dialog-content">
+      <p class="confirm-message">
+        Êtes-vous sûr de vouloir désarchiver <strong>{{ itemName }}</strong> ?
+      </p>
+    </div>
+    
+    <div class="dialog-actions">
+      <button class="cancel-btn" (click)="onClose()">
+        Annuler
+      </button>
+      <button *ngIf="isToArchive" class="archive-btn" (click)="onConfirm()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 8v13H3V8"></path>
+          <path d="M1 3h22v5H1z"></path>
+          <path d="M10 12h4"></path>
+        </svg>
+        Archiver
+      </button>
+      <button *ngIf="!isToArchive" class="archive-btn" (click)="onConfirm()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 8v13H3V8"></path>
+          <path d="M1 3h22v5H1z"></path>
+          <path d="M10 12h4"></path>
+        </svg>
+        Désarchiver
+      </button>
+    </div>
+  </div>
+</div>
